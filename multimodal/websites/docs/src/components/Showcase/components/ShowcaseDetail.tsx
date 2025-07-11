@@ -4,17 +4,22 @@ import { Button, Avatar, Link } from '@nextui-org/react';
 import { FiArrowLeft, FiShare2, FiX, FiGithub } from 'react-icons/fi';
 import { FaTwitter } from 'react-icons/fa';
 import { FaCode } from 'react-icons/fa';
-import { ShowcaseItem, isRecentlyPublished } from '../services/dataProcessor';
+import { ShowcaseItem, isRecentlyPublished } from '../../../services/dataProcessor';
 import { BrowserShell } from './BrowserShell';
 import { ShareModal } from './ShareModal';
 import { toggleFullscreen } from '../utils/fullscreenUtils';
 
 interface ShowcaseDetailProps {
   item: ShowcaseItem;
-  onBack: () => void;
+  onBack?: () => void;
+  showBack?: boolean;
 }
 
-export const ShowcaseDetail: React.FC<ShowcaseDetailProps> = ({ item, onBack }) => {
+export const ShowcaseDetail: React.FC<ShowcaseDetailProps> = ({
+  item,
+  onBack,
+  showBack = true,
+}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -96,24 +101,26 @@ export const ShowcaseDetail: React.FC<ShowcaseDetailProps> = ({ item, onBack }) 
         </AnimatePresence>
 
         <div className="max-w-[95%] mx-auto px-4 pb-16">
-          <div className="mb-6 flex items-center justify-between">
-            <Button
-              variant="light"
-              color="default"
-              startContent={<FiArrowLeft />}
-              onClick={onBack}
-              className="text-white"
-            >
-              Back to Showcase
-            </Button>
-          </div>
+          {showBack && (
+            <div className="mb-6 flex items-center justify-between">
+              <Button
+                variant="light"
+                color="default"
+                startContent={<FiArrowLeft />}
+                onClick={onBack}
+                className="text-white"
+              >
+                Back to Showcase
+              </Button>
+            </div>
+          )}
 
           <div className="flex flex-col lg:flex-row gap-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: isExpanded ? 0 : 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="lg:w-3/4 relative h-[calc(100vh-220px)] min-h-[500px]"
+              className="lg:w-3/4 relative h-[calc(100vh-160px)] min-h-[500px]"
               ref={browserShellRef}
             >
               <BrowserShell
@@ -242,8 +249,8 @@ export const ShowcaseDetail: React.FC<ShowcaseDetailProps> = ({ item, onBack }) 
                       Contribute Your Own
                     </h3>
                     <p className="text-sm text-gray-300 mb-3">
-                      Have an interesting Agent TARS report to showcase? We'd love to feature your
-                      work in our gallery!
+                      Have an interesting Agent TARS use case report to us? We'd love to feature
+                      your work in our website!
                     </p>
                     <Button
                       as={Link}
