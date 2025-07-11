@@ -6,12 +6,30 @@ import CustomCursor from '@components/CustomCursor';
 import { Link } from '@components/Link';
 import { VideoPanel } from '@components/VideoPanel';
 import { useCursor } from '@components/CursorContext';
+import { usePageMeta, generatePageTitle, optimizeDescription } from '@components/hooks';
 import './index.css';
 
 // Terminal commands
 const terminalCommands = ['npx @agent-tars/cli@latest'];
 
+// SEO configuration
+const SEO_CONFIG = {
+  defaultDescription:
+    'Agent TARS is an open-source multimodal AI agent that controls your browser through natural language. Experience seamless integration with DOM manipulation, VLM capabilities, and real-world MCP tools.',
+  siteUrl: 'https://example.com',
+  keywords: ['AI agent', 'browser control', 'multimodal', 'open-source', 'natural language'],
+};
+
 export const HomePage = () => {
+  // Set SEO meta tags for home page with enhanced options
+  usePageMeta({
+    title: generatePageTitle(), // Will generate "Agent TARS" as the main title
+    description: optimizeDescription(SEO_CONFIG.defaultDescription),
+    type: 'website',
+    url: typeof window !== 'undefined' ? window.location.origin : SEO_CONFIG.siteUrl,
+    keywords: SEO_CONFIG.keywords,
+  });
+
   const [commandIndex, setCommandIndex] = useState(0);
   const [typedCommand, setTypedCommand] = useState('');
   const [isTyping, setIsTyping] = useState(true);
