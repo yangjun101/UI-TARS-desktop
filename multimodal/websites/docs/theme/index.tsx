@@ -6,10 +6,15 @@ import { Replay } from '../src/components/Replay';
 import { useLocation } from 'rspress/runtime';
 import { Nav } from '@rspress/theme-default';
 
+enum DYNAMIC_ROUTE {
+  Showcase = '/showcase',
+  Replay = '/replay',
+}
+
 const Layout = () => {
   const location = useLocation();
 
-  if (location.pathname.startsWith('/showcase')) {
+  if (location.pathname.startsWith(DYNAMIC_ROUTE.Showcase)) {
     return (
       <>
         <Nav />
@@ -18,9 +23,10 @@ const Layout = () => {
     );
   }
 
-  if (location.pathname.startsWith('/replay')) {
+  if (location.pathname.startsWith(DYNAMIC_ROUTE.Replay)) {
     return (
       <>
+        <Nav />
         <Replay />
       </>
     );

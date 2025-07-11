@@ -8,7 +8,7 @@ const NotFoundPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-100 mb-4">404</h1>
         <p className="text-gray-300 mb-8">
@@ -45,7 +45,7 @@ export const Replay: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
           <p className="text-gray-300">Loading replay...</p>
@@ -56,7 +56,7 @@ export const Replay: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-400 mb-4">Error Loading Replay</h1>
           <p className="text-gray-300 mb-8">{error}</p>
@@ -76,7 +76,7 @@ export const Replay: React.FC = () => {
   }
 
   return (
-    <div className="mt-20">
+    <div className="mt-10">
       <ShowcaseDetail item={items[0]} showBack={false} />
     </div>
   );
