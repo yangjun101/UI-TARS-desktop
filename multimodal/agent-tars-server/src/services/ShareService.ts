@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import crypto from 'crypto';
 import { AgentEventStream } from '@agent-tars/core';
 import { SessionMetadata, StorageProvider } from '../storage';
 import { ShareUtils } from '../utils/share';
@@ -146,8 +147,9 @@ export class ShareService {
     }
 
     if (normalizedSlug) {
-      // add session id to avoid avoid conflict
-      normalizedSlug = `${normalizedSlug}-${sessionId}`;
+      // Generate 6-digit hash from sessionId to avoid conflicts
+      const sessionHash = await this.generateSessionHash(sessionId);
+      normalizedSlug = `${normalizedSlug}-${sessionHash}`;
     } else {
       // fallback to sessionId
       normalizedSlug = sessionId;
@@ -158,6 +160,20 @@ export class ShareService {
       slug: normalizedSlug,
       query: originalQuery,
     });
+  }
+
+  /**
+   * Generate 6-digit hash from sessionId (Cloudflare Worker compatible)
+   */
+  private async generateSessionHash(sessionId: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(sessionId);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+      .slice(0, 6);
   }
 
   /**
