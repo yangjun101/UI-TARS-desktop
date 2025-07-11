@@ -1,6 +1,6 @@
 {
   "name": "@agent-infra/mcp-server-browser",
-  "version": "1.2.6",
+  "version": "1.2.9",
   "description": "MCP server for browser use access",
   "license": "MIT",
   "homepage": "https://github.com/bytedance/UI-TARS-desktop",
@@ -22,9 +22,9 @@
   ],
   "scripts": {
     "build": "shx rm -rf dist && rslib build && shx chmod +x dist/*.{js,cjs}",
-    "dev": "npx -y @modelcontextprotocol/inspector tsx src/index.ts",
+    "dev": "DANGEROUSLY_OMIT_AUTH=true npx -y @modelcontextprotocol/inspector tsx src/index.ts",
     "dev:server": "tsx src/index.ts --port 3000 --vision",
-    "dev:vision": "npx -y @modelcontextprotocol/inspector tsx src/index.ts --vision",
+    "dev:vision": "DANGEROUSLY_OMIT_AUTH=true npx -y @modelcontextprotocol/inspector tsx src/index.ts --vision",
     "prepare": "npm run build",
     "prepublishOnly": "tsx scripts/update-readme.ts",
     "test": "vitest run --config=./vitest.config.mts",
@@ -44,6 +44,7 @@
     "@types/mime-types": "^3.0.1",
     "@agent-infra/shared": "workspace:*",
     "mcp-proxy": "^3.0.3",
+    "sharp": "0.33.3",
     "get-port": "^7.1.0",
     "commander": "^13.1.0",
     "@types/lodash.merge": "4.6.9",

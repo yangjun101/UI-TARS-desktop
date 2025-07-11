@@ -1,5 +1,23 @@
 # @agent-infra/mcp-server-browser
 
+## 1.2.9
+
+### Patch Changes
+
+- chore: parallel detection of page isVisible and isHealthy
+
+## 1.2.8
+
+### Patch Changes
+
+- tweak: browser_vision_screen_capture use webp
+
+## 1.2.7
+
+### Patch Changes
+
+- tweak: mcp browser browser_vision_screen_capture quality and optimizeForSpeed
+
 ## 1.2.6
 
 ### Patch Changes
