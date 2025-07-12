@@ -13,7 +13,7 @@ interface FileResultRendererProps {
 }
 
 export const FileResultRenderer: React.FC<FileResultRendererProps> = ({ part, onAction }) => {
-  const [htmlPreviewMode, setHtmlPreviewMode] = useState<'code' | 'preview'>('code');
+  const [htmlPreviewMode, setHtmlPreviewMode] = useState<'code' | 'preview'>('preview');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('rendered');
 
   // If not a file result, don't render
