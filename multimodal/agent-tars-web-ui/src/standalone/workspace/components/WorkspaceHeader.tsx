@@ -1,22 +1,35 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiBookOpen } from 'react-icons/fi';
+import { FiArrowLeft, FiBookOpen, FiMaximize } from 'react-icons/fi';
 import { formatTimestamp } from '@/common/utils/formatters';
 import { useTool } from '@/common/hooks/useTool';
 import { StandardPanelContent } from '../types/panelContent';
+import { ToggleSwitch, ToggleSwitchProps } from '../renderers/generic/components/ToggleSwitch';
+import { FileDisplayMode } from '../types';
 
 interface WorkspaceHeaderProps {
   panelContent: StandardPanelContent;
   onBack: () => void;
+  showToggle?: boolean;
+  toggleConfig?: ToggleSwitchProps<FileDisplayMode>;
+  showFullscreen?: boolean;
+  onFullscreen?: () => void;
 }
 
-export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ panelContent, onBack }) => {
+export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
+  panelContent,
+  onBack,
+  showToggle = false,
+  toggleConfig,
+  showFullscreen = false,
+  onFullscreen,
+}) => {
   const { getToolIcon } = useTool();
 
   const isResearchReport = panelContent.toolCallId?.startsWith('final-answer');
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b workspace-control-panel">
+    <div className="flex items-center justify-between px-4 py-3 workspace-control-panel">
       <div className="flex items-center min-w-0 flex-1">
         {/* Back button - more compact and subtle */}
         <motion.button
@@ -57,6 +70,24 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ panelContent, 
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="ml-4 flex-shrink-0 flex items-center gap-3">
+        {/* Toggle switch */}
+        {showToggle && toggleConfig && <ToggleSwitch<FileDisplayMode> {...toggleConfig} />}
+
+        {/* Fullscreen button */}
+        {showFullscreen && onFullscreen && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onFullscreen}
+            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            title="Fullscreen preview"
+          >
+            <FiMaximize size={16} />
+          </motion.button>
+        )}
       </div>
     </div>
   );
