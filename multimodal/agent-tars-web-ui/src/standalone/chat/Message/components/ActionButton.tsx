@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FiArrowRight } from 'react-icons/fi';
+import { FiArrowRight, FiClock, FiZap } from 'react-icons/fi';
 
 interface ActionButtonProps {
   icon: React.ReactNode;
@@ -9,16 +9,11 @@ interface ActionButtonProps {
   status?: 'default' | 'pending' | 'success' | 'error';
   statusIcon?: React.ReactNode;
   description?: string;
+  elapsedMs?: number;
 }
 
 /**
- * ActionButton - 通用操作按钮组件，用于工具调用和环境状态查看等功能
- *
- * 设计原则：
- * - 突出工具图标的视觉差异
- * - 统一的视觉风格和交互体验
- * - 可定制的状态显示
- * - 一致的动画效果
+ * ActionButton - Enhanced with improved timing display
  */
 export const ActionButton: React.FC<ActionButtonProps> = ({
   icon,
@@ -27,7 +22,58 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   status = 'default',
   statusIcon,
   description,
+  elapsedMs,
 }) => {
+  // Helper function to format elapsed time for display
+  const formatElapsedTime = (ms: number): string => {
+    if (ms < 1000) {
+      return `${ms}ms`;
+    } else if (ms < 60000) {
+      return `${(ms / 1000).toFixed(1)}s`;
+    } else {
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      return `${minutes}m ${seconds}s`;
+    }
+  };
+
+  // Helper function to get timing badge style based on duration
+  const getTimingBadgeStyle = (ms: number) => {
+    if (ms < 1000) {
+      // Very fast - green
+      return {
+        bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+        text: 'text-emerald-700 dark:text-emerald-400',
+        border: 'border-emerald-200/50 dark:border-emerald-700/30',
+        icon: 'text-emerald-600 dark:text-emerald-400',
+      };
+    } else if (ms < 5000) {
+      // Fast - blue
+      return {
+        bg: 'bg-blue-50 dark:bg-blue-900/20',
+        text: 'text-blue-700 dark:text-blue-400',
+        border: 'border-blue-200/50 dark:border-blue-700/30',
+        icon: 'text-blue-600 dark:text-blue-400',
+      };
+    } else if (ms < 15000) {
+      // Medium - amber
+      return {
+        bg: 'bg-amber-50 dark:bg-amber-900/20',
+        text: 'text-amber-700 dark:text-amber-400',
+        border: 'border-amber-200/50 dark:border-amber-700/30',
+        icon: 'text-amber-600 dark:text-amber-400',
+      };
+    } else {
+      // Slow - red
+      return {
+        bg: 'bg-red-50 dark:bg-red-900/20',
+        text: 'text-red-700 dark:text-red-400',
+        border: 'border-red-200/50 dark:border-red-700/30',
+        icon: 'text-red-600 dark:text-red-400',
+      };
+    }
+  };
+
   // Helper function to get status color classes
   const getStatusColorClasses = () => {
     switch (status) {
@@ -64,14 +110,40 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Icon container with enhanced visual styling */}
+      {/* Icon container */}
       <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">{icon}</div>
 
-      {/* Button text */}
-      <div className="truncate flex-1">
-        <span className="font-medium">{label}</span>
-        {description && (
-          <span className="font-[400] text-xs opacity-70 truncate ml-1">{description}</span>
+      {/* Main content area */}
+      <div className="flex-1 min-w-0 flex items-center">
+        {/* Text content area */}
+        <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center sm:gap-1">
+          {/* Tool name */}
+
+          <span className="font-medium whitespace-nowrap">{label}</span>
+
+          {/* Description */}
+          {description && (
+            <span className="font-[400] text-xs opacity-70 truncate block sm:inline">
+              {description}
+            </span>
+          )}
+        </div>
+
+        {/* Enhanced timing badge */}
+        {elapsedMs !== undefined && status !== 'pending' && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
+            className={`flex items-center gap-1 ml-2 px-2 py-1 rounded-full border ${getTimingBadgeStyle(elapsedMs).bg} ${getTimingBadgeStyle(elapsedMs).border} flex-shrink-0`}
+          >
+            <FiZap className={`${getTimingBadgeStyle(elapsedMs).icon}`} size={10} />
+            <span
+              className={`text-[10px] font-mono font-medium whitespace-nowrap ${getTimingBadgeStyle(elapsedMs).text}`}
+            >
+              {formatElapsedTime(elapsedMs)}
+            </span>
+          </motion.div>
         )}
       </div>
 
