@@ -4,6 +4,8 @@ import { FiCpu } from 'react-icons/fi';
 import { useSession } from '@/common/hooks/useSession';
 import { usePlan } from '@/common/hooks/usePlan';
 import { FilesDisplay } from './FilesDisplay';
+import { useAtomValue } from 'jotai';
+import { sessionFilesAtom } from '@/common/state/atoms/files';
 
 interface ActionBarProps {
   sessionId: string | null;
@@ -17,14 +19,18 @@ interface ActionBarProps {
  * - Decoupled from MessageInput for better modularity
  * - Independent control over UI presentation
  * - Maintains original functionality and styling
+ * - Enhanced visual separation with background styling
  */
 export const ActionBar: React.FC<ActionBarProps> = ({ sessionId, className = '' }) => {
   const { setActivePanelContent } = useSession();
   const { currentPlan } = usePlan(sessionId);
+  const allFiles = useAtomValue(sessionFilesAtom);
+
+  const shouldShowPlan =
+    currentPlan && currentPlan.hasGeneratedPlan && currentPlan.steps.length > 0;
 
   const renderPlanButton = () => {
-    if (!currentPlan || !currentPlan.hasGeneratedPlan || currentPlan.steps.length === 0)
-      return null;
+    if (!shouldShowPlan) return null;
 
     const completedSteps = currentPlan.steps.filter((step) => step.done).length;
     const totalSteps = currentPlan.steps.length;
@@ -75,8 +81,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({ sessionId, className = '' 
     );
   };
 
-  const shouldShowActionBar =
-    (currentPlan && currentPlan.hasGeneratedPlan && currentPlan.steps.length > 0) || sessionId;
+  const files = (sessionId && allFiles[sessionId]) ?? [];
+  const shouldShowActionBar = shouldShowPlan || files.length > 1;
 
   if (!shouldShowActionBar) {
     return null;
@@ -88,10 +94,16 @@ export const ActionBar: React.FC<ActionBarProps> = ({ sessionId, className = '' 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 10 }}
-        className={`px-2 flex justify-between mb-3 ${className}`}
+        className={`mx-0 mb-3 p-3 bg-[#f9fafb] dark:bg-slate-800/60 backdrop-blur-sm rounded-xl border border-gray-200/60 dark:border-gray-700/50 ${className}`}
       >
-        {sessionId && <FilesDisplay sessionId={sessionId} compact={true} />}
-        {renderPlanButton()}
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex-1 min-w-0">
+            {sessionId && (
+              <FilesDisplay files={allFiles[sessionId]} sessionId={sessionId} compact={true} />
+            )}
+          </div>
+          {shouldShowPlan && <div className="flex-shrink-0">{renderPlanButton()}</div>}
+        </div>
       </motion.div>
     </AnimatePresence>
   );
