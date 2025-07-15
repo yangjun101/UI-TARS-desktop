@@ -34,14 +34,16 @@ export const WorkspacePanel: React.FC = () => {
   const { activeSessionId, activePanelContent, setActivePanelContent } = useSession();
   const { replayState } = useReplay();
   const [fullscreenData, setFullscreenData] = React.useState<FullscreenFileData | null>(null);
+  // Track whether focus parameter has already been processed once
+  const [focusProcessed, setFocusProcessed] = React.useState(false);
 
   const isViewingPlan = activePanelContent?.type === 'plan';
   const isReplayActive = replayState.isActive;
   const focusParam = getFocusParam();
 
-  // Handle focus parameter for fullscreen display
+  // Handle focus parameter for fullscreen display - only process once
   useEffect(() => {
-    if (focusParam && activePanelContent && activePanelContent.type === 'file') {
+    if (focusParam && activePanelContent && activePanelContent.type === 'file' && !focusProcessed) {
       const filePath = activePanelContent.arguments?.path || activePanelContent.title;
       const fileName = filePath.split('/').pop() || filePath;
       const content = activePanelContent.arguments?.content || activePanelContent.source;
@@ -67,9 +69,12 @@ export const WorkspacePanel: React.FC = () => {
           isMarkdown: isMarkdownFile,
           isHtml: isHtmlFile,
         });
+
+        // Mark focus parameter as processed
+        setFocusProcessed(true);
       }
     }
-  }, [focusParam, activePanelContent]);
+  }, [focusParam, activePanelContent, focusProcessed]);
 
   if (!activeSessionId) {
     return (

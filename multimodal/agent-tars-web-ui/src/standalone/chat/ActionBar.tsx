@@ -82,7 +82,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ sessionId, className = '' 
   };
 
   const files = (sessionId && allFiles[sessionId]) ?? [];
-  const shouldShowActionBar = shouldShowPlan || files.length > 1;
+  const shouldShowActionBar = shouldShowPlan || files.length > 0;
 
   if (!shouldShowActionBar) {
     return null;
