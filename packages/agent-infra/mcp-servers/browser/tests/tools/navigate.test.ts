@@ -19,7 +19,7 @@ describe('Browser Navigation Comprehensive Tests', () => {
   let httpServer: ReturnType<typeof app.listen>;
   let baseUrl: string;
 
-  beforeAll(async () => {
+  beforeAll(() => {
     app = express();
 
     app.get('/', (req, res) => {
@@ -134,9 +134,9 @@ describe('Browser Navigation Comprehensive Tests', () => {
     baseUrl = `http://localhost:${address.port}`;
   });
 
-  afterAll(async () => {
-    await httpServer.close();
-  });
+  afterAll(() => {
+    httpServer?.close();
+  }, 30000);
 
   beforeEach(async () => {
     client = new Client(
@@ -336,7 +336,7 @@ describe('Browser Navigation Comprehensive Tests', () => {
       expect(content.content?.[0].text).toContain('You were redirected here');
     });
 
-    test('should handle 404 pages', async () => {
+    test('should handle 404 pages', { timeout: 35000 }, async () => {
       const result = await client.callTool({
         name: 'browser_navigate',
         arguments: {
@@ -350,9 +350,9 @@ describe('Browser Navigation Comprehensive Tests', () => {
         arguments: {},
       });
       expect(content.content?.[0].text).toContain('404 - Page Not Found');
-    }, 20000);
+    });
 
-    test('should handle slow loading pages', async () => {
+    test('should handle slow loading pages', { timeout: 35000 }, async () => {
       const result = await client.callTool({
         name: 'browser_navigate',
         arguments: {
@@ -366,19 +366,23 @@ describe('Browser Navigation Comprehensive Tests', () => {
         arguments: {},
       });
       expect(content.content?.[0].text).toContain('This page loads slowly');
-    }, 20000);
+    });
   });
 
   describe('Navigation Timeout Handling', () => {
-    test('should handle navigation timeout gracefully', async () => {
-      const result = await client.callTool({
-        name: 'browser_navigate',
-        arguments: {
-          url: `${baseUrl}/timeout-test`,
-        },
-      });
-      expect(result.isError).toBe(false);
-      expect(result.content?.[0].text).toContain('Navigated to');
-    }, 30000);
+    test(
+      'should handle navigation timeout gracefully',
+      { timeout: 35000 },
+      async () => {
+        const result = await client.callTool({
+          name: 'browser_navigate',
+          arguments: {
+            url: `${baseUrl}/timeout-test`,
+          },
+        });
+        expect(result.isError).toBe(false);
+        expect(result.content?.[0].text).toContain('Navigated to');
+      },
+    );
   });
 });

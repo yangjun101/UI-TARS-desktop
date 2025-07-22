@@ -1,5 +1,23 @@
 # @agent-infra/mcp-server-search
 
+## 1.2.14
+
+## 1.2.13
+
+## 1.2.12
+
+## 1.2.11
+
+### Patch Changes
+
+- feat: tweak some features
+
+## 1.2.10
+
+### Patch Changes
+
+- chore: update mcp version
+
 ## 1.2.9
 
 ## 1.2.8

@@ -1,6 +1,6 @@
 {
   "name": "@agent-infra/mcp-server-browser",
-  "version": "1.2.9",
+  "version": "1.2.14",
   "description": "MCP server for browser use access",
   "license": "MIT",
   "homepage": "https://github.com/bytedance/UI-TARS-desktop",
@@ -17,13 +17,27 @@
   "main": "dist/server.cjs",
   "module": "dist/server.js",
   "types": "dist/server.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/server.js",
+      "require": "./dist/server.cjs"
+    },
+    "./index": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./request-context": {
+      "import": "./dist/request-context.js",
+      "require": "./dist/request-context.cjs"
+    }
+  },
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "shx rm -rf dist && rslib build && shx chmod +x dist/*.{js,cjs}",
     "dev": "DANGEROUSLY_OMIT_AUTH=true npx -y @modelcontextprotocol/inspector tsx src/index.ts",
-    "dev:server": "tsx src/index.ts --port 3000 --vision",
+    "dev:server": "tsx --watch src/index.ts --port 3000 --vision",
     "dev:vision": "DANGEROUSLY_OMIT_AUTH=true npx -y @modelcontextprotocol/inspector tsx src/index.ts --vision",
     "prepare": "npm run build",
     "prepublishOnly": "tsx scripts/update-readme.ts",
@@ -33,9 +47,10 @@
   },
   "dependencies": {
     "@ui-tars/action-parser": "workspace:^",
+    "@agent-infra/logger": "workspace:*",
     "mcp-http-server": "workspace:^",
     "puppeteer-core": "24.7.2",
-    "@modelcontextprotocol/sdk": "~1.13.1"
+    "@modelcontextprotocol/sdk": "~1.15.1"
   },
   "devDependencies": {
     "jimp": "^1.6.0",
@@ -49,7 +64,6 @@
     "commander": "^13.1.0",
     "@types/lodash.merge": "4.6.9",
     "lodash.merge": "4.6.2",
-    "@agent-infra/logger": "workspace:*",
     "@ghostery/adblocker-puppeteer": "2.5.2",
     "cross-fetch": "4.1.0",
     "@rslib/core": "0.5.3",

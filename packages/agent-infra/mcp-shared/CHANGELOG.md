@@ -1,5 +1,19 @@
 # @agent-infra/mcp-shared
 
+## 1.2.14
+
+## 1.2.13
+
+## 1.2.12
+
+## 1.2.11
+
+## 1.2.10
+
+### Patch Changes
+
+- chore: update mcp version
+
 ## 1.2.9
 
 ## 1.2.8

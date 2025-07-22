@@ -1,5 +1,37 @@
 # @agent-infra/mcp-client
 
+## 1.2.14
+
+### Patch Changes
+
+- @agent-infra/mcp-shared@1.2.14
+
+## 1.2.13
+
+### Patch Changes
+
+- @agent-infra/mcp-shared@1.2.13
+
+## 1.2.12
+
+### Patch Changes
+
+- @agent-infra/mcp-shared@1.2.12
+
+## 1.2.11
+
+### Patch Changes
+
+- @agent-infra/mcp-shared@1.2.11
+
+## 1.2.10
+
+### Patch Changes
+
+- chore: update mcp version
+- Updated dependencies
+  - @agent-infra/mcp-shared@1.2.10
+
 ## 1.2.9
 
 ### Patch Changes

@@ -1,5 +1,39 @@
 # @agent-infra/mcp-server-browser
 
+## 1.2.14
+
+### Patch Changes
+
+- fix: module entries
+
+## 1.2.13
+
+### Patch Changes
+
+- fix: request-context.js not work
+
+## 1.2.12
+
+### Patch Changes
+
+- fix: browser_evaluate not work
+
+## 1.2.11
+
+### Patch Changes
+
+- feat: tweak some features
+- Updated dependencies
+  - mcp-http-server@1.2.4
+
+## 1.2.10
+
+### Patch Changes
+
+- fix(mcp-browser): browser mcp screenshot and refactor form_input_fill
+- Updated dependencies
+  - mcp-http-server@1.2.3
+
 ## 1.2.9
 
 ### Patch Changes

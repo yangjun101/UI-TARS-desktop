@@ -1,18 +1,20 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-function createServer(): McpServer {
+async function createServer(): Promise<McpServer> {
   const server = new McpServer({
     name: '{{name}}',
     version: process.env.VERSION || '0.0.1',
   });
 
   // === Tools ===
-  server.tool(
+  server.registerTool(
     'test_tool',
-    'Test tool',
     {
-      hello: z.string().describe('Hello'),
+      description: 'Test tool',
+      inputSchema: {
+        hello: z.string().describe('Hello'),
+      },
     },
     async (args) => {
       return {

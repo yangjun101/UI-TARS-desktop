@@ -41,6 +41,8 @@ import downloadTools from './tools/download.js';
 import navigateTools from './tools/navigate.js';
 import contentTools from './tools/content.js';
 import tabsTools from './tools/tabs.js';
+import actionTools from './tools/action.js';
+import evaluateTools from './tools/evaluate.js';
 
 function setConfig(config: GlobalConfig = {}) {
   store.globalConfig = merge({}, store.globalConfig, config);
@@ -122,16 +124,6 @@ export const toolsMap = defineTools({
       index: z.number().optional().describe('Index of the element to click'),
     }),
   },
-  browser_form_input_fill: {
-    name: 'browser_form_input_fill',
-    description:
-      "Fill out an input field, before using the tool, Either 'index' or 'selector' must be provided",
-    inputSchema: z.object({
-      selector: z.string().optional().describe('CSS selector for input field'),
-      index: z.number().optional().describe('Index of the element to fill'),
-      value: z.string().describe('Value to fill'),
-    }),
-  },
   browser_select: {
     name: 'browser_select',
     description:
@@ -155,13 +147,6 @@ export const toolsMap = defineTools({
         .string()
         .optional()
         .describe('CSS selector for element to hover'),
-    }),
-  },
-  browser_evaluate: {
-    name: 'browser_evaluate',
-    description: 'Execute JavaScript in the browser console',
-    inputSchema: z.object({
-      script: z.string().describe('JavaScript code to execute'),
     }),
   },
   browser_get_clickable_elements: {
@@ -357,6 +342,7 @@ const handleToolCall = async (
           isError: false,
         };
       } catch (error) {
+        logger.error('Failed to browser_get_clickable_elements:', error);
         return {
           content: [{ type: 'text', text: (error as Error).message }],
           isError: true,
@@ -422,7 +408,9 @@ const handleToolCall = async (
           // Second attempt: Use evaluate to perform a direct click
           logger.error('Failed to click element, trying again', error);
           try {
-            await element?.evaluate((el) => (el as HTMLElement).click());
+            await element?.evaluate(
+              /* istanbul ignore next */ (el) => (el as HTMLElement).click(),
+            );
 
             await delay(200);
 
@@ -454,6 +442,7 @@ const handleToolCall = async (
           }
         }
       } catch (error) {
+        logger.error(`Failed to browser_click: ${args.index}`, error);
         return {
           isError: true,
           content: [
@@ -462,60 +451,6 @@ const handleToolCall = async (
               text: `Failed to click element: ${args.index}. Error: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
-        };
-      }
-    },
-    browser_form_input_fill: async (args) => {
-      try {
-        if (args.index !== undefined) {
-          const elementNode = store.selectorMap?.get(Number(args?.index));
-
-          if (elementNode?.highlightIndex !== undefined) {
-            await removeHighlights(page);
-          }
-
-          const element = await locateElement(page, elementNode!);
-
-          if (!element) {
-            return {
-              content: [{ type: 'text', text: 'No form input found' }],
-              isError: true,
-            };
-          }
-          await element?.type(args.value);
-        } else if (args.selector) {
-          await page.waitForSelector(args.selector);
-          await page.type(args.selector, args.value);
-        } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'Either selector or index must be provided',
-              },
-            ],
-            isError: true,
-          };
-        }
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Filled ${args.selector ? args.selector : args.index} with: ${args.value}`,
-            },
-          ],
-          isError: false,
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Failed to fill ${args.selector ? args.selector : args.index}: ${(error as Error).message}`,
-            },
-          ],
-          isError: true,
         };
       }
     },
@@ -563,6 +498,10 @@ const handleToolCall = async (
           isError: false,
         };
       } catch (error) {
+        logger.error(
+          `Failed to browser_select: ${args.selector ? args.selector : args.index}`,
+          error,
+        );
         return {
           content: [
             {
@@ -617,61 +556,15 @@ const handleToolCall = async (
           isError: false,
         };
       } catch (error) {
+        logger.error(
+          `Failed to hover: ${args.selector ? args.selector : args.index}`,
+          error,
+        );
         return {
           content: [
             {
               type: 'text',
               text: `Failed to hover ${args.selector ? args.selector : args.index}: ${(error as Error).message}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-    },
-    browser_evaluate: async (args) => {
-      try {
-        await page.evaluate(
-          /* istanbul ignore next */ () => {
-            window.mcpHelper = {
-              logs: [],
-              originalConsole: { ...console },
-            };
-
-            ['log', 'info', 'warn', 'error'].forEach((method) => {
-              (console as any)[method] = (...args: any[]) => {
-                window.mcpHelper.logs.push(`[${method}] ${args.join(' ')}`);
-                (window.mcpHelper.originalConsole as any)[method](...args);
-              };
-            });
-          },
-        );
-        /* istanbul ignore next */
-        const result = await page.evaluate(args.script);
-
-        const logs = await page.evaluate(
-          /* istanbul ignore next */ () => {
-            Object.assign(console, window.mcpHelper.originalConsole);
-            const logs = window.mcpHelper.logs;
-            delete (window as any).mcpHelper;
-            return logs;
-          },
-        );
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Execution result:\n${JSON.stringify(result, null, 2)}\n`,
-            },
-          ],
-          isError: false,
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Script execution failed: ${(error as Error).message}`,
             },
           ],
           isError: true,
@@ -725,6 +618,7 @@ const handleToolCall = async (
           isError: false,
         };
       } catch (error) {
+        logger.error(`Failed to browser_scroll: ${args.amount}`, error);
         return {
           content: [
             {
@@ -750,6 +644,7 @@ const handleToolCall = async (
           isError: false,
         };
       } catch (error) {
+        logger.error(`Failed to browser_close`, error);
         return {
           content: [
             {
@@ -769,6 +664,7 @@ const handleToolCall = async (
           isError: false,
         };
       } catch (error) {
+        logger.error(`Failed to browser_press_key`, error);
         return {
           content: [{ type: 'text', text: `Failed to press key: ${args.key}` }],
           isError: true,
@@ -818,8 +714,10 @@ function createServer(config: GlobalConfig = {}): McpServer {
   // New Tools
   const newTools = [
     ...navigateTools,
+    ...actionTools,
     ...contentTools,
     ...tabsTools,
+    ...evaluateTools,
     ...(config.vision ? visionTools : []),
     ...downloadTools,
   ];

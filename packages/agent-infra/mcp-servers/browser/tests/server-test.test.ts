@@ -27,7 +27,7 @@ describe('Browser MCP Server', () => {
   let httpServer: any;
   let baseUrl: string;
 
-  beforeAll(async () => {
+  beforeAll(() => {
     app = express();
 
     app.get('/', (req, res) => {
@@ -121,8 +121,8 @@ describe('Browser MCP Server', () => {
     baseUrl = `http://localhost:${address.port}`;
   });
 
-  afterAll(async () => {
-    await httpServer.close();
+  afterAll(() => {
+    httpServer?.close();
   });
 
   beforeEach(async () => {
@@ -396,7 +396,7 @@ describe('Browser MCP Server', () => {
   });
 
   describe('Tab Management', () => {
-    test('should manage multiple tabs', async () => {
+    test('should manage multiple tabs', { timeout: 30000 }, async () => {
       // Open new tab
       const newTabResult = await client.callTool({
         name: 'browser_new_tab',

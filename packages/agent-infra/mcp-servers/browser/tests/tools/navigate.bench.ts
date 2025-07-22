@@ -20,7 +20,7 @@ let app: express.Express;
 let httpServer: ReturnType<typeof app.listen>;
 let baseUrl: string;
 
-beforeAll(async () => {
+beforeAll(() => {
   app = express();
 
   app.get('/', (req, res) => {
@@ -54,8 +54,8 @@ beforeAll(async () => {
   await page.goto(baseUrl);
 });
 
-afterAll(async () => {
-  await httpServer.close();
+afterAll(() => {
+  httpServer?.close();
 });
 
 afterEach(async () => {

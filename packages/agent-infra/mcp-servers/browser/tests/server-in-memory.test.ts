@@ -93,7 +93,7 @@ describe('MCP Server in memory', () => {
     let httpServer: any;
     let baseUrl: string;
 
-    beforeAll(async () => {
+    beforeAll(() => {
       app = express();
 
       // 添加测试页面路由
@@ -129,13 +129,13 @@ describe('MCP Server in memory', () => {
         `);
       });
 
-      httpServer = app.listen(0); // 使用随机可用端口
+      httpServer = app.listen(0);
       const address = httpServer.address() as AddressInfo;
       baseUrl = `http://localhost:${address.port}`;
     });
 
-    afterAll(async () => {
-      await httpServer.close();
+    afterAll(() => {
+      httpServer?.close();
     });
 
     beforeEach(async () => {
