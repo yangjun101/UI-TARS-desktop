@@ -1,5 +1,23 @@
 # @agent-infra/mcp-server-browser
 
+## 1.2.16
+
+### Patch Changes
+
+- 9d89dab: fix: logger
+
+## 1.2.16-beta.0
+
+### Patch Changes
+
+- fix: logger
+
+## 1.2.15
+
+### Patch Changes
+
+- refactor(mcp-browser): browser_get_markdown
+
 ## 1.2.14
 
 ### Patch Changes
