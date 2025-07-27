@@ -1,56 +1,46 @@
-import React, { createContext, useContext, ReactNode, useEffect } from 'react';
-import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai';
+import React, { createContext, useContext, ReactNode, useEffect, useRef } from 'react';
+import { atom, useAtom } from 'jotai';
 import { replayStateAtom } from '../state/atoms/replay';
 import { activeSessionIdAtom, sessionsAtom } from '../state/atoms/session';
 import { messagesAtom } from '../state/atoms/message';
-import { connectionStatusAtom, modelInfoAtom, activePanelContentAtom } from '../state/atoms/ui';
+import { connectionStatusAtom, activePanelContentAtom } from '../state/atoms/ui';
+import { processEventAction } from '../state/actions/eventProcessor';
+import { useSetAtom } from 'jotai';
+import { AgentEventStream } from '@/common/types';
 
 /**
- * ReplayModeContext - Global context for sharing replay mode state
- *
- * This context provides a centralized way to check if the application
- * is currently in replay mode, allowing components to adapt their behavior
- * without needing to directly access the replay state atom.
+ * ReplayModeContext - Global context for sharing replay mode state and controls
  */
 interface ReplayModeContextType {
   isReplayMode: boolean;
+  cancelAutoPlay: () => void;
 }
 
 const ReplayModeContext = createContext<ReplayModeContextType>({
   isReplayMode: false,
+  cancelAutoPlay: () => {},
 });
 
 /**
  * Parse URL parameters for replay configuration
  */
-function parseReplayParams(): {
-  shouldReplay: boolean;
-  focusFile: string | null;
-} {
+function shouldAutoPlay(): boolean {
   const urlParams = new URLSearchParams(window.location.search);
-  const shouldReplay = urlParams.get('replay') === '1';
-  const focusFile = urlParams.get('focus');
-
-  return { shouldReplay, focusFile };
+  return urlParams.get('replay') === '1';
 }
 
 /**
- * Check if events contain generated files
+ * Check if focus parameter exists
  */
-function hasGeneratedFiles(events: any[]): boolean {
-  return events.some(
-    (event) =>
-      event.type === 'tool_result' &&
-      (event.name === 'write_file' ||
-        event.name === 'create_file' ||
-        (event.content && typeof event.content === 'object' && event.content.path)),
-  );
+function getFocusParam(): string | null {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('focus');
 }
 
 /**
  * Find specific file in generated files from events
  */
-function findGeneratedFile(events: any[], fileName: string): any | null {
+function findGeneratedFile(events: AgentEventStream.Event[], fileName: string): any | null {
   for (const event of events) {
     if (
       event.type === 'tool_result' &&
@@ -75,168 +65,178 @@ function findGeneratedFile(events: any[], fileName: string): any | null {
 }
 
 /**
- * ReplayModeProvider - Provides replay mode state to the application and initializes replay data
+ * ReplayModeProvider - Provides replay mode state and initializes replay data
  */
 export const ReplayModeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Access necessary atoms
   const [replayState, setReplayState] = useAtom(replayStateAtom);
   const [, setMessages] = useAtom(messagesAtom);
   const [, setSessions] = useAtom(sessionsAtom);
   const [, setActiveSessionId] = useAtom(activeSessionIdAtom);
   const [, setConnectionStatus] = useAtom(connectionStatusAtom);
   const [, setActivePanelContent] = useAtom(activePanelContentAtom);
+  const processEvent = useSetAtom(processEventAction);
+
+  // Timer refs for auto-play countdown - properly managed
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cancel auto-play countdown function
+  const cancelAutoPlay = React.useCallback(() => {
+    console.log('[ReplayMode] Canceling auto-play countdown');
+
+    // Clear the countdown timer
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+
+    // Update replay state to cancel auto-play
+    setReplayState((prev) => ({
+      ...prev,
+      autoPlayCountdown: null,
+      isPlaying: false,
+    }));
+  }, [setReplayState]);
 
   // Initialize replay mode if window variables are present
   useEffect(() => {
-    // Check if in replay mode
-    if (window.AGENT_TARS_REPLAY_MODE && window.AGENT_TARS_EVENT_STREAM) {
-      // Get session data and event stream
-      const sessionData = window.AGENT_TARS_SESSION_DATA;
-      const events = window.AGENT_TARS_EVENT_STREAM;
-      const { shouldReplay, focusFile } = parseReplayParams();
+    if (!window.AGENT_TARS_REPLAY_MODE || !window.AGENT_TARS_EVENT_STREAM) {
+      return;
+    }
 
-      console.log('[ReplayMode] Initializing replay mode with', events.length, 'events');
-      console.log('[ReplayMode] URL params:', { shouldReplay, focusFile });
+    const sessionData = window.AGENT_TARS_SESSION_DATA;
+    const events = window.AGENT_TARS_EVENT_STREAM;
+    const shouldReplay = shouldAutoPlay();
+    const focusFile = getFocusParam();
 
-      if (sessionData && sessionData.id) {
-        // Set connection status to "offline" to prevent API calls
-        setConnectionStatus({
-          connected: false,
-          lastConnected: null,
-          lastError: null,
-          reconnecting: false,
+    console.log('[ReplayMode] Initializing with', events.length, 'events');
+    console.log('[ReplayMode] Should auto play:', shouldReplay);
+    console.log('[ReplayMode] Focus file:', focusFile);
+
+    if (!sessionData?.id) {
+      console.error('[ReplayMode] Missing session data');
+      return;
+    }
+
+    // Set offline mode
+    setConnectionStatus({
+      connected: false,
+      lastConnected: null,
+      lastError: null,
+      reconnecting: false,
+    });
+
+    // Set session data
+    setSessions([sessionData]);
+    setActiveSessionId(sessionData.id);
+    setMessages({ [sessionData.id]: [] });
+
+    const finalIndex = events.length - 1;
+    const startTimestamp = events.length > 0 ? events[0].timestamp : null;
+    const endTimestamp = events.length > 0 ? events[finalIndex].timestamp : null;
+
+    // Handle focus file parameter
+    if (focusFile) {
+      const foundFile = findGeneratedFile(events, focusFile);
+      if (foundFile) {
+        setActivePanelContent({
+          type: 'file',
+          source: foundFile.content,
+          title: foundFile.path.split('/').pop() || foundFile.path,
+          timestamp: foundFile.timestamp,
+          toolCallId: foundFile.toolCallId,
+          arguments: {
+            path: foundFile.path,
+            content: foundFile.content,
+          },
         });
+      }
+    }
 
-        // Set sessions data
-        setSessions([sessionData]);
-        setActiveSessionId(sessionData.id);
+    if (shouldReplay) {
+      // Auto-play mode: start countdown from 3 seconds
+      console.log('[ReplayMode] Starting auto-play countdown');
 
-        // Initialize messages state
-        setMessages({
-          [sessionData.id]: [],
-        });
+      setReplayState({
+        isActive: true,
+        events,
+        currentEventIndex: -1,
+        isPlaying: false,
+        playbackSpeed: 1,
+        startTimestamp,
+        endTimestamp,
+        autoPlayCountdown: 3, // Start countdown from 3 seconds
+      });
 
-        if (focusFile) {
-          // Handle focus parameter - find the specific file and show it in fullscreen
-          const foundFile = findGeneratedFile(events, focusFile);
-          console.log('[ReplayMode] Focus file requested:', focusFile, 'found:', !!foundFile);
+      // Start countdown timer with proper cleanup
+      let countdown = 3;
+      const startCountdown = () => {
+        countdownIntervalRef.current = setInterval(() => {
+          countdown -= 1;
+          console.log('[ReplayMode] Countdown:', countdown);
 
-          if (foundFile) {
-            // Initialize replay state to show final state
-            setReplayState({
-              isActive: true,
-              isPaused: true,
-              events: events,
-              currentEventIndex: events.length - 1,
-              startTimestamp: events.length > 0 ? events[0].timestamp : null,
-              endTimestamp: events.length > 0 ? events[events.length - 1].timestamp : null,
-              playbackSpeed: 1,
-              autoPlayCountdown: null,
-              visibleTimeWindow:
-                events.length > 0
-                  ? {
-                      start: events[0].timestamp,
-                      end: events[events.length - 1].timestamp,
-                    }
-                  : null,
-              processedEvents: {},
-              needsInitialProcessing: true, // Flag to indicate processing is needed
-            });
+          setReplayState((prev) => {
+            // Check if auto-play was cancelled
+            if (prev.autoPlayCountdown === null) {
+              return prev; // Don't update if cancelled
+            }
 
-            // Set the focused file as active panel content for fullscreen display
-            setActivePanelContent({
-              type: 'file',
-              source: foundFile.content,
-              title: foundFile.path.split('/').pop() || foundFile.path,
-              timestamp: foundFile.timestamp,
-              toolCallId: foundFile.toolCallId,
-              arguments: {
-                path: foundFile.path,
-                content: foundFile.content,
-              },
-            });
-
-            return;
-          }
-        }
-
-        if (shouldReplay) {
-          // Traditional replay mode with countdown
-          setReplayState({
-            isActive: true,
-            isPaused: true,
-            events: events,
-            currentEventIndex: -1,
-            startTimestamp: events.length > 0 ? events[0].timestamp : null,
-            endTimestamp: events.length > 0 ? events[events.length - 1].timestamp : null,
-            playbackSpeed: 1,
-            autoPlayCountdown: 2,
-            visibleTimeWindow:
-              events.length > 0
-                ? {
-                    start: events[0].timestamp,
-                    end: events[events.length - 1].timestamp,
-                  }
-                : null,
-            processedEvents: {},
-            needsInitialProcessing: false, // No processing needed until replay starts
+            return {
+              ...prev,
+              autoPlayCountdown: countdown,
+            };
           });
 
-          // Start countdown timer
-          const countdownTimer = setInterval(() => {
+          if (countdown <= 0) {
+            // Clear countdown and start playback
+            if (countdownIntervalRef.current) {
+              clearInterval(countdownIntervalRef.current);
+              countdownIntervalRef.current = null;
+            }
+
             setReplayState((prev) => {
-              if (prev.autoPlayCountdown === null || prev.autoPlayCountdown <= 0) {
-                clearInterval(countdownTimer);
-
-                if (prev.autoPlayCountdown === 0) {
-                  setTimeout(() => {
-                    console.log('[ReplayMode] Auto-play countdown finished, starting replay...');
-                    window.dispatchEvent(new CustomEvent('replay-autostart'));
-                  }, 0);
-                }
-
-                return {
-                  ...prev,
-                  autoPlayCountdown: null,
-                };
+              // Check if auto-play was cancelled
+              if (prev.autoPlayCountdown === null) {
+                return prev; // Don't start playback if cancelled
               }
 
               return {
                 ...prev,
-                autoPlayCountdown: prev.autoPlayCountdown - 1,
+                autoPlayCountdown: null,
+                isPlaying: true,
               };
             });
-          }, 1000);
-        } else {
-          // New default behavior: jump to final state
-          const finalIndex = events.length - 1;
 
-          setReplayState({
-            isActive: true,
-            isPaused: true,
-            events: events,
-            currentEventIndex: finalIndex,
-            startTimestamp: events.length > 0 ? events[0].timestamp : null,
-            endTimestamp: events.length > 0 ? events[events.length - 1].timestamp : null,
-            playbackSpeed: 1,
-            autoPlayCountdown: null,
-            visibleTimeWindow:
-              events.length > 0
-                ? {
-                    start: events[0].timestamp,
-                    end: events[events.length - 1].timestamp,
-                  }
-                : null,
-            processedEvents: {},
-            needsInitialProcessing: true, // Flag to indicate processing is needed
-          });
+            console.log('[ReplayMode] Auto-play countdown finished, starting playback');
+          }
+        }, 1000);
+      };
 
-          console.log('[ReplayMode] Jumping to final state without replay');
-        }
-      } else {
-        console.error('[ReplayMode] Missing session data or session ID');
-      }
+      // Add small delay to ensure UI is ready
+      setTimeout(startCountdown, 100);
+    } else {
+      // Jump to final state mode
+      setReplayState({
+        isActive: true,
+        events,
+        currentEventIndex: finalIndex,
+        isPlaying: false,
+        playbackSpeed: 1,
+        startTimestamp,
+        endTimestamp,
+        autoPlayCountdown: null,
+      });
+
+      // Process all events to final state
+      processAllEventsToIndex(sessionData.id, events, finalIndex, processEvent);
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    };
   }, [
     setMessages,
     setSessions,
@@ -244,26 +244,38 @@ export const ReplayModeProvider: React.FC<{ children: ReactNode }> = ({ children
     setReplayState,
     setConnectionStatus,
     setActivePanelContent,
+    processEvent,
   ]);
 
-  // Check both the atom and global window variable for replay mode
   const isReplayMode = replayState.isActive || !!window.AGENT_TARS_REPLAY_MODE;
 
   return (
-    <ReplayModeContext.Provider
-      value={{
-        isReplayMode,
-      }}
-    >
+    <ReplayModeContext.Provider value={{ isReplayMode, cancelAutoPlay }}>
       {children}
     </ReplayModeContext.Provider>
   );
 };
 
 /**
- * useReplayMode - Hook to access replay mode state
+ * Process all events up to a specific index
  */
-export const useReplayMode = (): boolean => {
-  const { isReplayMode } = useContext(ReplayModeContext);
-  return isReplayMode;
+function processAllEventsToIndex(
+  sessionId: string,
+  events: AgentEventStream.Event[],
+  targetIndex: number,
+  processEvent: (params: { sessionId: string; event: AgentEventStream.Event }) => void,
+): void {
+  for (let i = 0; i <= targetIndex; i++) {
+    if (events[i]) {
+      processEvent({ sessionId, event: events[i] });
+    }
+  }
+}
+
+/**
+ * useReplayMode - Hook to access replay mode state and controls
+ */
+export const useReplayMode = (): { isReplayMode: boolean; cancelAutoPlay: () => void } => {
+  const { isReplayMode, cancelAutoPlay } = useContext(ReplayModeContext);
+  return { isReplayMode, cancelAutoPlay };
 };

@@ -3,33 +3,77 @@ import { useSession } from '@/common/hooks/useSession';
 import { MessageGroup } from './Message/components/MessageGroup';
 import { MessageInput } from './MessageInput';
 import { ActionBar } from './ActionBar';
-import { FiInfo, FiMessageSquare, FiRefreshCw, FiWifiOff, FiX } from 'react-icons/fi';
+import { FiInfo, FiMessageSquare, FiRefreshCw, FiWifiOff, FiPlay, FiX } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtomValue } from 'jotai';
 import { groupedMessagesAtom, messagesAtom } from '@/common/state/atoms/message';
-
-import { useReplay } from '@/common/hooks/useReplay';
 import { replayStateAtom } from '@/common/state/atoms/replay';
 import { useReplayMode } from '@/common/hooks/useReplayMode';
+import { useReplay } from '@/common/hooks/useReplay';
 
 import './ChatPanel.css';
 import { ResearchReportEntry } from './ResearchReportEntry';
 
 /**
- * ChatPanel Component - Main chat interface
- *
- * Now uses decoupled ActionBar for Generated Files and View Plan functionality,
- * maintaining clean separation of concerns between input and action management.
+ * CountdownCircle component for better visual countdown
+ */
+const CountdownCircle: React.FC<{ seconds: number; total: number }> = ({ seconds, total }) => {
+  const progress = ((total - seconds) / total) * 100;
+  const circumference = 2 * Math.PI * 18; // radius = 18
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div className="relative w-16 h-16">
+      <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 40 40">
+        {/* Background circle */}
+        <circle
+          cx="20"
+          cy="20"
+          r="18"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-gray-200 dark:text-gray-700"
+        />
+        {/* Progress circle */}
+        <circle
+          cx="20"
+          cy="20"
+          r="18"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          className="text-accent-500 dark:text-accent-400 transition-all duration-1000 ease-linear"
+        />
+      </svg>
+      {/* Center number */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <motion.span
+          key={seconds}
+          initial={{ scale: 1.2, opacity: 0.7 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="text-xl font-bold text-gray-700 dark:text-gray-300"
+        >
+          {seconds}
+        </motion.span>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * ChatPanel Component - Main chat interface with simplified replay logic and auto-play countdown
  */
 export const ChatPanel: React.FC = () => {
   const { activeSessionId, isProcessing, connectionStatus, checkServerStatus } = useSession();
-
   const groupedMessages = useAtomValue(groupedMessagesAtom);
   const allMessages = useAtomValue(messagesAtom);
-
-  const [replayState] = useAtom(replayStateAtom);
-  const isReplayMode = useReplayMode();
-  const { cancelAutoPlay } = useReplay();
+  const replayState = useAtomValue(replayStateAtom);
+  const { isReplayMode, cancelAutoPlay } = useReplayMode();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -41,12 +85,9 @@ export const ChatPanel: React.FC = () => {
   useEffect(() => {
     if (messagesEndRef.current && messagesContainerRef.current) {
       const container = messagesContainerRef.current;
-
-      // Check if user is already at bottom
       const { scrollTop, scrollHeight, clientHeight } = container;
       const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 30;
 
-      // Modified scroll logic: always scroll during processing to ensure real-time messages are visible
       if (
         isAtBottom ||
         isProcessing ||
@@ -125,7 +166,6 @@ export const ChatPanel: React.FC = () => {
     if (!activeSessionId || !allMessages[activeSessionId]) return null;
 
     const sessionMessages = allMessages[activeSessionId];
-    // Find the last message with type final_answer and isDeepResearch set to true
     const reportMessage = [...sessionMessages]
       .reverse()
       .find(
@@ -140,41 +180,21 @@ export const ChatPanel: React.FC = () => {
 
   const researchReport = findResearchReport();
 
-  // Check if we should display empty state or replay starting message
+  // Simplified empty state logic
   const shouldShowEmptyState = () => {
+    // No active session
     if (!activeSessionId) return true;
 
-    if (activeMessages.length === 0) {
-      // In replay mode, check if we're still waiting for events to be processed
-      if (isReplayMode) {
-        // If we have events but no messages yet, and we're in countdown or need processing
-        if (replayState.events.length > 0) {
-          // Show countdown if active
-          if (replayState.autoPlayCountdown !== null) {
-            return true; // Show "Replay starting..." with countdown
-          }
+    // Has messages - don't show empty state
+    if (activeMessages.length > 0) return false;
 
-          // Check URL params to determine if we should show loading
-          const urlParams = new URLSearchParams(window.location.search);
-          const shouldReplay = urlParams.get('replay') === '1';
-
-          // If in replay mode but not started yet, show the loading state
-          if (shouldReplay && replayState.currentEventIndex === -1) {
-            return true; // Show "Please wait while the replay loads"
-          }
-
-          // If we've processed to final state but no messages yet, it means processing is in progress
-          if (!shouldReplay && replayState.needsInitialProcessing) {
-            return false; // Don't show empty state, processing in progress
-          }
-        }
-      }
-
-      // Normal empty state for non-replay mode or when no events
+    // In replay mode with events but no messages yet (waiting for playback to start)
+    if (isReplayMode && replayState.events.length > 0 && replayState.currentEventIndex === -1) {
       return true;
     }
 
-    return false;
+    // Default empty state
+    return true;
   };
 
   const showEmptyState = shouldShowEmptyState();
@@ -245,7 +265,7 @@ export const ChatPanel: React.FC = () => {
               )}
             </AnimatePresence>
 
-            {/* Empty state or replay starting */}
+            {/* Simplified empty state */}
             {showEmptyState ? (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -254,39 +274,61 @@ export const ChatPanel: React.FC = () => {
                 className="flex items-center justify-center h-full"
               >
                 <div className="text-center p-6 max-w-md">
-                  <h3 className="text-lg font-display font-medium mb-2">
-                    {replayState.isActive && replayState.autoPlayCountdown !== null
-                      ? 'Replay starting...'
-                      : replayState.isActive && replayState.currentEventIndex === -1
-                        ? 'Replay starting...'
-                        : 'Start a conversation'}
-                  </h3>
-                  {replayState.isActive && replayState.autoPlayCountdown !== null ? (
-                    <div className="mt-2">
-                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
-                        Auto-play in {replayState.autoPlayCountdown} seconds...
-                      </p>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={cancelAutoPlay}
-                        className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200/50 dark:border-gray-700/30 flex items-center mx-auto"
-                      >
-                        <FiX size={12} className="mr-1.5" />
-                        Cancel auto-play
-                      </motion.button>
-                    </div>
+                  {/* Enhanced auto-play countdown UI */}
+                  {isReplayMode && replayState.autoPlayCountdown !== null ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="relative"
+                    >
+                      {/* Background card */}
+                      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100/50 dark:border-gray-700/30">
+                        {/* Countdown circle */}
+                        <div className="flex justify-center mb-6">
+                          <CountdownCircle seconds={replayState.autoPlayCountdown} total={3} />
+                        </div>
+
+                        {/* Title and description */}
+                        <h3 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200">
+                          Auto-play starting
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 leading-relaxed">
+                          Replay will begin in {replayState.autoPlayCountdown} second
+                          {replayState.autoPlayCountdown !== 1 ? 's' : ''}. You can cancel or wait
+                          for automatic playback.
+                        </p>
+
+                        {/* Enhanced cancel button */}
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={cancelAutoPlay}
+                          className="inline-flex items-center px-4 py-2 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors border border-gray-200/50 dark:border-gray-600/50 shadow-sm"
+                        >
+                          <FiX size={14} className="mr-2" />
+                          Cancel Auto-play
+                        </motion.button>
+                      </div>
+                    </motion.div>
                   ) : (
-                    <p className="text-gray-600 dark:text-gray-400 text-sm">
-                      {replayState.isActive && replayState.currentEventIndex === -1
-                        ? 'Please wait while the replay loads or press play to begin'
-                        : 'Ask Agent TARS a question or provide a command to begin.'}
-                    </p>
+                    <>
+                      <h3 className="text-lg font-display font-medium mb-2">
+                        {isReplayMode && replayState.currentEventIndex === -1
+                          ? 'Ready to replay'
+                          : 'Start a conversation'}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">
+                        {isReplayMode && replayState.currentEventIndex === -1
+                          ? 'Press play to start the replay or use the timeline to navigate'
+                          : 'Ask Agent TARS a question or provide a command to begin.'}
+                      </p>
+                    </>
                   )}
                 </div>
               </motion.div>
             ) : (
-              // Modified here: wrap each message group with animation to display immediately
+              // Display messages
               <div className="space-y-6 pb-2">
                 {activeMessages.map((group, index) => (
                   <AnimatePresence mode="popLayout" key={`group-${index}-${group.messages[0].id}`}>
