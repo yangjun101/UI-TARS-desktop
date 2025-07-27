@@ -1,4 +1,4 @@
-/* 布局相关样式 */
+/* Layout related styles */
 .glass-effect {
   @apply backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 border border-gray-100/60 dark:border-gray-700/20;
 }

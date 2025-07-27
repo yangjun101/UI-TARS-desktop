@@ -1,7 +1,7 @@
 import { API_BASE_URL, API_ENDPOINTS } from '@/common/constants';
 
 /**
- * 分享配置接口
+ * Share configuration interface
  */
 export interface ShareConfig {
   hasShareProvider: boolean;
@@ -9,7 +9,7 @@ export interface ShareConfig {
 }
 
 /**
- * 分享结果接口
+ * Share result interface
  */
 export interface ShareResult {
   success: boolean;
@@ -20,13 +20,13 @@ export interface ShareResult {
 }
 
 /**
- * 分享服务类 - 处理分享相关功能
+ * Share service class - handles share-related functionality
  */
 class ShareService {
   private shareConfig: ShareConfig | null = null;
 
   /**
-   * 获取分享配置
+   * Get share configuration
    */
   async getShareConfig(): Promise<ShareConfig> {
     if (this.shareConfig) {
@@ -47,15 +47,15 @@ class ShareService {
       return this.shareConfig as ShareConfig;
     } catch (error) {
       console.error('Failed to get share config:', error);
-      // 默认配置
+      // Default configuration
       return { hasShareProvider: false, shareProvider: null };
     }
   }
 
   /**
-   * 分享会话
-   * @param sessionId 会话ID
-   * @param upload 是否上传到分享提供者（如果存在）
+   * Share session
+   * @param sessionId Session ID
+   * @param upload Whether to upload to share provider (if exists)
    */
   async shareSession(sessionId: string, upload = false): Promise<ShareResult> {
     try {
@@ -81,9 +81,9 @@ class ShareService {
   }
 
   /**
-   * 下载 HTML 分享文件
-   * @param html HTML 内容
-   * @param sessionId 会话ID
+   * Download HTML share file
+   * @param html HTML content
+   * @param sessionId Session ID
    */
   downloadShareHtml(html: string, sessionId: string): void {
     const blob = new Blob([html], { type: 'text/html' });

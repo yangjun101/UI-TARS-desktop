@@ -13,41 +13,41 @@ interface MessageGroupProps {
 }
 
 /**
- * MessageGroup Component - 重构版以支持流式渲染
+ * MessageGroup Component - Refactored version to support streaming rendering
  *
- * 设计原则:
- * - 每条消息独立渲染，避免阻塞
- * - 保持简洁的视觉层次结构
- * - 消息间的视觉关系通过样式而非嵌套实现
+ * Design principles:
+ * - Each message renders independently to avoid blocking
+ * - Maintain clean visual hierarchy
+ * - Visual relationships between messages are implemented through styles rather than nesting
  */
 export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, isThinking }) => {
-  // 过滤掉环境消息
+  // Filter out environment messages
   const filteredMessages = messages.filter((msg) => msg.role !== 'environment');
 
-  // 如果过滤后没有消息，则不渲染任何内容
+  // If no messages after filtering, render nothing
   if (filteredMessages.length === 0) {
     return null;
   }
 
-  // 获取用户消息和助手消息
+  // Get user messages and assistant messages
   const userMessages = filteredMessages.filter((msg) => msg.role === 'user');
   const assistantMessages = filteredMessages.filter(
     (msg) => msg.role === 'assistant' || msg.role === 'final_answer' || msg.role === 'system',
   );
 
-  // 获取最后一条助手消息（用于时间戳和复制功能）
+  // Get the last assistant message (for timestamp and copy functionality)
   const lastResponseMessage =
     assistantMessages.length > 0 ? assistantMessages[assistantMessages.length - 1] : null;
 
   return (
     <div>
-      {/* 渲染用户消息 - 处理多模态内容的拆分 */}
+      {/* Render user messages - handle multimodal content splitting */}
       {userMessages.map((userMsg) => {
         if (isMultimodalContent(userMsg.content)) {
           const imageContents = userMsg.content.filter((part) => part.type === 'image_url');
           const textContents = userMsg.content.filter((part) => part.type === 'text');
 
-          // 同时包含图片和文本时拆分显示
+          // Split display when containing both images and text
           if (imageContents.length > 0 && textContents.length > 0) {
             return (
               <React.Fragment key={userMsg.id}>
@@ -70,23 +70,23 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, isThinking
           }
         }
 
-        // 普通用户消息
+        // Regular user message
         return <Message key={userMsg.id} message={userMsg} />;
       })}
 
-      {/* 渲染所有助手消息 - 每条消息独立渲染，支持流式展示 */}
+      {/* Render all assistant messages - each message renders independently, supporting streaming display */}
       {assistantMessages.map((message, index) => (
         <Message
           key={message.id}
           message={message}
-          // 移除 isIntermediate 属性，让每条消息都使用一致的样式
+          // Remove isIntermediate property, let each message use consistent styling
           isInGroup={true}
-          // 只有最后一条消息且非思考状态时显示时间戳
+          // Only show timestamp for the last message when not in thinking state
           shouldDisplayTimestamp={index === assistantMessages.length - 1 && !isThinking}
         />
       ))}
 
-      {/* 时间戳和复制功能 */}
+      {/* Timestamp and copy functionality */}
       {!isThinking && lastResponseMessage && (
         <div className="mt-1 mb-2">
           <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 px-2">
@@ -95,7 +95,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, isThinking
               {formatTimestamp(lastResponseMessage.timestamp)}
             </div>
 
-            {/* 集成复制功能按钮 - 现在使用最后一条消息 */}
+            {/* Integrated copy function button - now uses the last message */}
             <MessageTimestamp
               timestamp={lastResponseMessage.timestamp}
               content={lastResponseMessage.content}

@@ -70,7 +70,7 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
     }
   }, [activeSessionId, toolCallId, toolResults]);
 
-  // 如果提供了环境图像，直接使用
+  // If environment image is provided, use it directly
   useEffect(() => {
     if (environmentImage) {
       setRelatedImage(environmentImage);
@@ -85,17 +85,17 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
 
     if (!toolCallId) return;
 
-    // 获取当前工具调用在消息中的索引
+    // Get the index of current tool call in messages
     const currentToolCallIndex = sessionMessages.findIndex((msg) =>
       msg.toolCalls?.some((tc) => tc.id === toolCallId),
     );
 
     if (currentToolCallIndex === -1) return;
 
-    // 查找距离当前工具调用最近的环境输入
+    // Find the environment input closest to the current tool call
     let foundImage = false;
 
-    // 向前搜索环境输入，找到最近的截图
+    // Search forward for environment input, find the most recent screenshot
     for (let i = currentToolCallIndex; i >= 0; i--) {
       const msg = sessionMessages[i];
       if (msg.role === 'environment' && Array.isArray(msg.content)) {
@@ -111,7 +111,7 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
       }
     }
 
-    // 如果在当前工具调用之前没有找到图片，则搜索所有环境消息作为回退
+    // If no image is found before the current tool call, search all environment messages as fallback
     if (!foundImage) {
       console.warn(
         `[BrowserControlRenderer] Could not find preceding screenshot for toolCallId: ${toolCallId}. Falling back to search all environment messages.`,
@@ -120,7 +120,7 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
         (msg) => msg.role === 'environment' && Array.isArray(msg.content),
       );
 
-      // 从后往前找，找到最新的截图
+      // Search backwards to find the most recent screenshot
       for (let i = envMessages.length - 1; i >= 0; i--) {
         const msg = envMessages[i];
         const imgContent = msg.content.find(
@@ -129,7 +129,7 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
 
         if (imgContent && 'image_url' in imgContent && imgContent.image_url.url) {
           setRelatedImage(imgContent.image_url.url);
-          break; // 找到最新的就停止
+          break; // Stop when the latest one is found
         }
       }
     }

@@ -36,12 +36,12 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ image, onRemove }) =
 
   return (
     <>
-      {/* 添加 padding 来容纳超出边界的关闭按钮 */}
+      {/* Add padding to accommodate close button that extends beyond boundaries */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.8 }}
-        className="relative group cursor-pointer p-2" // 添加 padding
+        className="relative group cursor-pointer p-2" // Add padding
       >
         {/* Enhanced thumbnail container */}
         <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-200/60 dark:border-gray-700/40 hover:border-accent-300 dark:hover:border-accent-600 transition-all duration-200 shadow-sm hover:shadow-md">
@@ -72,7 +72,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ image, onRemove }) =
           </div>
         </div>
 
-        {/* Enhanced remove button - 调整位置确保完全可见 */}
+        {/* Enhanced remove button - adjust position to ensure full visibility */}
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -86,7 +86,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ image, onRemove }) =
           <FiX size={14} />
         </motion.button>
 
-        {/* Image info tooltip - 移除可能导致黑色显示的 tooltip */}
+        {/* Image info tooltip - remove tooltip that might cause black display */}
       </motion.div>
 
       {/* Zoom modal */}

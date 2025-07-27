@@ -78,7 +78,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ inline, className, childre
             )}
           </button>
 
-          {/* Copy button - 使用react-icons图标并移除文字 */}
+          {/* Copy button - use react-icons and remove text */}
           <button
             onClick={handleCopy}
             className="hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-md px-2 py-1 text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"

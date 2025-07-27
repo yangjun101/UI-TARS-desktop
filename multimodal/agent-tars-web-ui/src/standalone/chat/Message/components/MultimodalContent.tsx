@@ -22,16 +22,16 @@ export const MultimodalContent: React.FC<MultimodalContentProps> = ({
   timestamp,
   setActivePanelContent,
 }) => {
-  // 筛选出图片和文本内容
+  // Filter out image and text content
   const imageContents = content.filter((part) => part.type === 'image_url');
   const textContents = content.filter((part) => part.type === 'text');
 
-  // 仅包含图片的情况 - 优化布局
+  // Image-only case - optimize layout
   const isImageOnly = imageContents.length > 0 && textContents.length === 0;
 
   return (
     <>
-      {/* 渲染图片内容 */}
+      {/* Render image content */}
       {imageContents.length > 0 && (
         <div
           className={`${isImageOnly ? '' : 'mt-2 mb-2'} ${imageContents.length > 1 ? 'flex flex-wrap gap-2' : ''}`}
@@ -66,7 +66,7 @@ export const MultimodalContent: React.FC<MultimodalContentProps> = ({
         </div>
       )}
 
-      {/* 渲染文本内容 - 确保用户消息中文本可见 */}
+      {/* Render text content - ensure text is visible in user messages */}
       {textContents.map((part, index) => (
         <div key={`text-${index}`} className="text-current">
           <MarkdownRenderer key={`text-${index}`} content={part.text} />

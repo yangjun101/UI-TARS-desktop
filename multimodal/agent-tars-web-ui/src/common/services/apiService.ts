@@ -93,7 +93,7 @@ class ApiService {
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(5000), // 添加 5 秒超时
+          signal: AbortSignal.timeout(5000), // Add 5 second timeout
         },
       );
 
@@ -119,7 +119,7 @@ class ApiService {
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(5000), // 添加 5 秒超时
+          signal: AbortSignal.timeout(5000), // Add 5 second timeout
         },
       );
 

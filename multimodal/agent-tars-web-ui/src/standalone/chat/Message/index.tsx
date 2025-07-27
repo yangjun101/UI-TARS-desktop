@@ -27,13 +27,13 @@ interface MessageProps {
 }
 
 /**
- * Message Component - 重构版，移除 isIntermediate 差异
+ * Message Component - Refactored version, removing isIntermediate differences
  *
- * 设计原则:
- * - 统一的消息样式，不区分中间和最终状态
- * - 专注于内容，减少视觉干扰
- * - 优雅的样式和排版
- * - 支持便捷的消息复制功能
+ * Design principles:
+ * - Unified message styling, no distinction between intermediate and final states
+ * - Focus on content, reduce visual distractions
+ * - Elegant styling and typography
+ * - Support convenient message copying functionality
  */
 export const Message: React.FC<MessageProps> = ({
   message,
@@ -158,7 +158,7 @@ export const Message: React.FC<MessageProps> = ({
       baseClasses = 'message-assistant';
     }
 
-    // 添加更平滑的点击样式
+    // Add smoother click styles
     if (isFinalAssistantResponse) {
       baseClasses += ' cursor-pointer';
     }
@@ -166,7 +166,7 @@ export const Message: React.FC<MessageProps> = ({
     return baseClasses;
   };
 
-  // 检查消息是否只包含图片（用于样式优化）
+  // Check if message contains only images (for style optimization)
   const isImageOnlyMessage = React.useMemo(() => {
     if (!isMultimodalContent(message.content)) return false;
 
@@ -176,13 +176,13 @@ export const Message: React.FC<MessageProps> = ({
     return imageContents.length > 0 && textContents.length === 0;
   }, [message.content]);
 
-  // 检查是否有环境状态可显示
+  // Check if there's environment state to display
   const hasEnvironmentState = React.useMemo(() => {
     if (!activeSessionId || !isFinalAssistantResponse || !allMessages[activeSessionId])
       return false;
 
     const sessionMessages = allMessages[activeSessionId] || [];
-    // 检查是否有环境消息
+    // Check if there are environment messages
     return sessionMessages.some(
       (msg) =>
         msg.role === 'environment' &&

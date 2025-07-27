@@ -9,13 +9,13 @@ interface ShareButtonProps {
 }
 
 /**
- * 分享按钮组件 - 显示在聊天面板底部或导航栏
+ * Share button component - displayed at the bottom of chat panel or in navigation bar
  *
- * 设计原则:
- * - 简洁的单色图标，与整体黑白灰风格保持一致
- * - 圆形按钮设计，保持优雅的视觉效果
- * - 精细的悬停和点击动画，提升交互体验
- * - 支持不同的展示变体以适应不同位置
+ * Design principles:
+ * - Clean monochrome icon, consistent with the overall black-white-gray style
+ * - Circular button design, maintaining elegant visual effect
+ * - Fine hover and click animations, enhancing interactive experience
+ * - Support different display variants to adapt to different positions
  */
 export const ShareButton: React.FC<ShareButtonProps> = ({ variant = 'default' }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);

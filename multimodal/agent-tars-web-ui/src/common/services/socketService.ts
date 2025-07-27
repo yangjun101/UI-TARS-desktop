@@ -72,27 +72,27 @@ class SocketService {
     console.log(`Joining session: ${sessionId}`);
     this.socket.emit(SOCKET_EVENTS.JOIN_SESSION, sessionId);
 
-    // 清理现有监听器
+    // Clean up existing listeners
     this.socket.off(SOCKET_EVENTS.AGENT_EVENT);
     this.socket.off(SOCKET_EVENTS.AGENT_STATUS);
 
-    // 设置事件监听器
+    // Set up event listeners
     this.socket.on(SOCKET_EVENTS.AGENT_EVENT, ({ type, data }) => {
       if (data) {
         onEvent(data);
       }
     });
 
-    // 增强状态更新处理
+    // Enhanced status update handling
     this.socket.on(SOCKET_EVENTS.AGENT_STATUS, (status) => {
       console.log('Received agent status:', status);
       onStatusUpdate(status);
 
-      // 触发全局事件以同步应用中的所有组件
+      // Trigger global event to synchronize all components in the application
       this.notifyEventHandlers(SOCKET_EVENTS.AGENT_STATUS, status);
     });
 
-    // 立即请求当前状态
+    // Immediately request current status
     this.socket.emit('request-status', { sessionId });
   }
 

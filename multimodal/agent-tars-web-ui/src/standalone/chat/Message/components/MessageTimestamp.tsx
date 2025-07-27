@@ -8,7 +8,7 @@ interface MessageTimestampProps {
   timestamp: number;
   content: string | ChatCompletionContentPart[];
   role: string;
-  inlineStyle?: boolean; // 新增属性，用于内联显示模式
+  inlineStyle?: boolean; // New property for inline display mode
 }
 
 /**
@@ -40,7 +40,7 @@ export const MessageTimestamp: React.FC<MessageTimestampProps> = ({
   };
 
   if (inlineStyle) {
-    // 内联样式模式，只显示复制按钮
+    // Inline style mode, only show copy button
     return (
       <button
         onClick={handleCopy}
@@ -53,7 +53,7 @@ export const MessageTimestamp: React.FC<MessageTimestampProps> = ({
     );
   }
 
-  // 原有的浮动样式
+  // Original floating style
   return (
     <div
       className={`absolute bottom-0 ${role === 'user' ? 'right-0' : 'left-0'} flex items-center text-xs text-gray-400 dark:text-gray-500 opacity-0 transition-opacity duration-200 group-hover:opacity-100 -mb-6`}

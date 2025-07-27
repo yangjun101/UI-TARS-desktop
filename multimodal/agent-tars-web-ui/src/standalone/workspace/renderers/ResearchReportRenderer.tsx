@@ -29,13 +29,13 @@ export const ResearchReportRenderer: React.FC<ResearchReportRendererProps> = ({
   const [copied, setCopied] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // 处理内容格式化，确保始终是字符串
+  // Handle content formatting to ensure it's always a string
   const formattedContent = React.useMemo(() => {
     if (typeof content === 'string') {
       return content;
     }
 
-    // 如果不是字符串，尝试转换为 JSON 字符串
+    // If not a string, try to convert to JSON string
     try {
       return JSON.stringify(content, null, 2);
     } catch (e) {
