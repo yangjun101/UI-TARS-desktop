@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from 'fs';
-import path from 'path';
 import {
   InMemoryTransport,
   Client,
@@ -46,6 +44,7 @@ import { WorkspacePathResolver } from './shared/workspace-path-resolver';
  * for built-in MCP Servers.
  */
 export class AgentTARS<T extends AgentTARSOptions = AgentTARSOptions> extends MCPAgent<T> {
+  static label = 'Agent TARS';
   private workingDirectory: string;
   // FIXME: remove it since options is strict type already
   private tarsOptions: AgentTARSOptions;
@@ -718,5 +717,14 @@ Current Working Directory: ${workingDirectory}
     }
 
     return processedResult;
+  }
+
+  override async onDispose(): Promise<void> {
+    const browserManager = this.getBrowserManager();
+    if (browserManager && browserManager.isLaunchingComplete()) {
+      console.log(`Closing browser pages for session before creating new session`);
+      await browserManager.closeAllPages();
+    }
+    await super.onDispose();
   }
 }

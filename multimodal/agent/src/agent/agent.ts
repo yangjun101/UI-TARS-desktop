@@ -36,7 +36,7 @@ import {
   RequestOptions,
   ChatCompletionChunk,
 } from '@multimodal/model-provider';
-import { getLogger, LogLevel, rootLogger } from '../utils/logger';
+import { getLogger, LogLevel, rootLogger } from '@multimodal/shared-utils';
 import { AgentExecutionController } from './execution-controller';
 import { getLLMClient } from './llm-client';
 import { getToolCallEngineForProvider } from '../tool-call-engine/engine-selector';
@@ -55,6 +55,7 @@ export class Agent<T extends AgentOptions = AgentOptions>
   extends BaseAgent<T>
   implements IAgent<T>
 {
+  static label = 'tarko';
   private instructions: string;
   private maxIterations: number;
   private maxTokens: number | undefined;

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { AgentCLIArguments } from '@tarko/agent-server-interface';
 import { AgentTARSAppConfig } from './config';
 
 /**
@@ -16,45 +17,10 @@ import { AgentTARSAppConfig } from './config';
  */
 export type AgentTARSCLIArguments = Pick<
   AgentTARSAppConfig,
-  | 'model'
-  | 'thinking'
-  | 'toolCallEngine'
-  | 'workspace'
-  | 'browser'
-  | 'planner'
-  | 'share'
-  | 'snapshot'
-  | 'logLevel'
-  | 'server'
-> & {
-  // Server configuration
-  /** Server port number - maps to server.port */
-  port?: number;
-
-  // Deprecated options, for backward compatible
-  provider?: string;
-  apiKey?: string;
-  baseURL?: string;
-  browserControl?: string;
-  browserCdpEndpoint?: string;
-  shareProvider?: string;
-
-  /** Configuration file paths or URLs */
-  config?: string[];
-
-  // Logging configuration shortcuts
-  /** Enable debug mode (highest priority, shows tool calls and system events) */
-  debug?: boolean;
-  /** Reduce startup logging to minimum */
-  quiet?: boolean;
-
-  // LLM behavior configuration
-  /** Enable streaming mode for LLM responses */
-  stream?: boolean;
-
-  /** Open the web UI in the default browser on server start */
-  open?: boolean;
-
-  // Allow additional properties for extensibility
-  [key: string]: any;
-};
+  'workspace' | 'browser' | 'planner' | 'search' | 'agio'
+> &
+  AgentCLIArguments & {
+    // Deprecated shortcut options for backward compatibility
+    browserControl?: string;
+    browserCdpEndpoint?: string;
+  };
