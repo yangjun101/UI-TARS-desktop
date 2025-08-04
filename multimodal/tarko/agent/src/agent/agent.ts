@@ -23,7 +23,7 @@ import {
   IAgent,
   ChatCompletionCreateParams,
   ChatCompletion,
-} from '@multimodal/agent-interface';
+} from '@tarko/agent-interface';
 
 import { BaseAgent } from './base-agent';
 import { AgentRunner } from './agent-runner';
@@ -35,8 +35,8 @@ import {
   OpenAI,
   RequestOptions,
   ChatCompletionChunk,
-} from '@multimodal/model-provider';
-import { getLogger, LogLevel, rootLogger } from '@multimodal/shared-utils';
+} from '@tarko/model-provider';
+import { getLogger, LogLevel, rootLogger } from '@tarko/shared-utils';
 import { AgentExecutionController } from './execution-controller';
 import { getLLMClient } from './llm-client';
 import { getToolCallEngineForProvider } from '../tool-call-engine/engine-selector';
@@ -89,7 +89,7 @@ export class Agent<T extends AgentOptions = AgentOptions>
     this.maxIterations = options.maxIterations ?? 10;
     this.maxTokens = options.maxTokens;
     this.name = options.name ?? 'Anonymous';
-    this.id = options.id ?? '@multimodal/agent';
+    this.id = options.id ?? '@tarko/agent';
 
     // console.log(JSON.stringify(options, null, 2));
 

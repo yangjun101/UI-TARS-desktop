@@ -8,8 +8,8 @@ import type {
   ChatCompletionContentPart,
   MultimodalToolCallResult,
   ToolCallResult,
-} from '@multimodal/agent-interface';
-import { getLogger } from '@multimodal/shared-utils';
+} from '@tarko/agent-interface';
+import { getLogger } from '@tarko/shared-utils';
 
 const logger = getLogger('Multimodal');
 

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AgentEventStream, ToolCallEngine } from '@multimodal/agent-interface';
-import { getLogger } from '@multimodal/shared-utils';
-import { ResolvedModel } from '@multimodal/model-provider';
+import { AgentEventStream, ToolCallEngine } from '@tarko/agent-interface';
+import { getLogger } from '@tarko/shared-utils';
+import { ResolvedModel } from '@tarko/model-provider';
 import { LLMProcessor } from './llm-processor';
 import { ToolProcessor } from './tool-processor';
 import type { Agent } from '../agent';

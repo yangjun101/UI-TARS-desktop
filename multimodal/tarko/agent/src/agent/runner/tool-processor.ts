@@ -11,8 +11,8 @@ import {
   ToolCallResult,
   JSONSchema7,
   ChatCompletionMessageToolCall,
-} from '@multimodal/agent-interface';
-import { getLogger } from '@multimodal/shared-utils';
+} from '@tarko/agent-interface';
+import { getLogger } from '@tarko/shared-utils';
 import { zodToJsonSchema } from '../../utils';
 
 /**

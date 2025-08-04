@@ -17,14 +17,14 @@ import {
   ChatCompletion,
   AgentContextAwarenessOptions,
   Tool,
-} from '@multimodal/agent-interface';
+} from '@tarko/agent-interface';
 import {
   ResolvedModel,
   LLMReasoningOptions,
   OpenAI,
   ChatCompletionMessageToolCall,
-} from '@multimodal/model-provider';
-import { getLogger } from '@multimodal/shared-utils';
+} from '@tarko/model-provider';
+import { getLogger } from '@tarko/shared-utils';
 import { ToolProcessor } from './tool-processor';
 import { StructuredOutputsToolCallEngine } from '../../tool-call-engine';
 

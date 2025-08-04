@@ -5,7 +5,7 @@
 
 // Export Agent core
 export { v4 as uuidv4 } from 'uuid';
-export * from '@multimodal/agent-interface';
+export * from '@tarko/agent-interface';
 
 // Export Agent core
 export * from './agent';
@@ -14,13 +14,13 @@ export * from './agent';
 export * from './tool-call-engine';
 
 // Export logger
-export { getLogger, LogLevel, ConsoleLogger } from '@multimodal/shared-utils';
+export { getLogger, LogLevel, ConsoleLogger } from '@tarko/shared-utils';
 
 // Export utils
 export * from './utils';
 
-export { ModelResolver } from '@multimodal/model-provider';
-export type { ResolvedModel } from '@multimodal/model-provider';
+export { ModelResolver } from '@tarko/model-provider';
+export type { ResolvedModel } from '@tarko/model-provider';
 
 // Export constructor type for convenience
-export type { TConstructor } from '@multimodal/agent-interface';
+export type { TConstructor } from '@tarko/agent-interface';

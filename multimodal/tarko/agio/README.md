@@ -1,16 +1,16 @@
-# @multimodal/agio
+# @tarko/agio
 
 ## Overview
 
 **Agio** (**Ag**ent **I**nsights and **O**bservations) is a standardized multimodal AI Agent Server monitoring protocol for server-side agent operation monitoring and analytics. It provides a consistent event schema for tracking agent behavior, performance metrics, and usage patterns.
 
-It's designed for [@multimodal/agent](https://www.npmjs.com/@multimodal/agent) and all of agents built on `@multimodal/agent`, such as [@mcp-agent/core](https://www.npmjs.com/package/@mcp-agent/core), [@agent-tars/core](https://www.npmjs.com/@agent-tars/core) etc.
+It's designed for [@tarko/agent](https://www.npmjs.com/@tarko/agent) and all of agents built on `@tarko/agent`, such as [@tarko/mcp-agent](https://www.npmjs.com/package/@tarko/mcp-agent), [@agent-tars/core](https://www.npmjs.com/@agent-tars/core) etc.
 
 ## Motivation
 
 The goal of this protocol is to provide standardized server-side monitoring for Agent operations, allowing service providers to focus on implementing monitoring infrastructure rather than designing data schemas.
 
-While Agio shares some conceptual similarities with the `Agent Event Stream` in [@multimodal/agent](https://www.npmjs.com/@multimodal/agent), they serve distinct purposes:
+While Agio shares some conceptual similarities with the `Agent Event Stream` in [@tarko/agent](https://www.npmjs.com/@tarko/agent), they serve distinct purposes:
 
 | Feature | Agent Event Stream | Agio |
 | --- | --- | --- |
@@ -33,7 +33,7 @@ While Agio shares some conceptual similarities with the `Agent Event Stream` in 
 ## Installation
 
 ```bash
-npm install @multimodal/agio
+npm install @tarko/agio
 ```
 
 ## Usage
@@ -45,7 +45,7 @@ You can access the AGIO Schema at [agio-schema.json](https://github.com/bytedanc
 ### Basic Usage
 
 ```typescript
-import { AgioEvent } from '@multimodal/agio';
+import { AgioEvent } from '@tarko/agio';
 
 // Create a typed event
 const initEvent: AgioEvent.AgentInitializedEvent = {
@@ -75,7 +75,7 @@ Agio provides convenient utility functions for creating events with automatic ti
 #### Creating Single Events
 
 ```typescript
-import { AgioEvent } from '@multimodal/agio';
+import { AgioEvent } from '@tarko/agio';
 
 // Create a TTFT event with automatic timestamp
 const ttftEvent = AgioEvent.createEvent('agent_ttft', 'session-123', {
@@ -111,7 +111,7 @@ const runEndEvent = AgioEvent.createEvent('agent_run_end', 'session-123', {
 For batch event creation, use `createEvents` to generate multiple events with the same session ID:
 
 ```typescript
-import { AgioEvent } from '@multimodal/agio';
+import { AgioEvent } from '@tarko/agio';
 
 // Create multiple events at once
 const events = AgioEvent.createEvents('session-123', [
@@ -151,7 +151,7 @@ events.forEach(event => yourMonitoringSystem.track(event));
 Use the `isEventType` utility for type-safe event processing:
 
 ```typescript
-import { AgioEvent } from '@multimodal/agio';
+import { AgioEvent } from '@tarko/agio';
 
 function processEvent(event: AgioEvent.ExtendedEvent) {
   if (AgioEvent.isEventType(event, 'agent_ttft')) {
@@ -170,7 +170,7 @@ function processEvent(event: AgioEvent.ExtendedEvent) {
 ### Implementing an Agio Provider
 
 ```typescript
-import { AgioEvent, AgentEventStream } from '@multimodal/agio';
+import { AgioEvent, AgentEventStream } from '@tarko/agio';
 
 class MyAgioProvider implements AgioEvent.AgioProvider {
   async sendAgentInitialized(): Promise<void> {
@@ -215,7 +215,7 @@ interface CustomAgioEvents {
 }
 
 // 2. Extend the Agio namespace
-declare module '@multimodal/agio' {
+declare module '@tarko/agio' {
   namespace AgioEvent {
     interface Extensions extends CustomAgioEvents {}
   }

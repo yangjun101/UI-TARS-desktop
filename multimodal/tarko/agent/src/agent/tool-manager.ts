@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Tool } from '@multimodal/agent-interface';
-import { ConsoleLogger } from '@multimodal/shared-utils';
+import { Tool } from '@tarko/agent-interface';
+import { ConsoleLogger } from '@tarko/shared-utils';
 
 /**
  * Manages tools for the Agent, handling registration, lookup, and execution

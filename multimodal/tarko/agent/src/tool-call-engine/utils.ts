@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getLogger } from '@multimodal/shared-utils';
+import { getLogger } from '@tarko/shared-utils';
 import {
   ChatCompletionContentPart,
   ChatCompletionMessageParam,
   MultimodalToolCallResult,
-} from '@multimodal/agent-interface';
+} from '@tarko/agent-interface';
 
 const logger = getLogger('ToolCallEngine');
 

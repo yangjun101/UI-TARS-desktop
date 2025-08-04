@@ -6,8 +6,8 @@
 
 import { LocalBrowser, Page, RemoteBrowser } from '@agent-infra/browser';
 import { BrowserOperator } from '@gui-agent/operator-browser';
-import { ConsoleLogger, AgentEventStream, Tool, z } from '@mcp-agent/core';
-import { ImageCompressor, formatBytes } from '@multimodal/shared-media-utils';
+import { ConsoleLogger, AgentEventStream, Tool, z } from '@tarko/mcp-agent';
+import { ImageCompressor, formatBytes } from '@tarko/shared-media-utils';
 
 /**
  * Coordinate type definition

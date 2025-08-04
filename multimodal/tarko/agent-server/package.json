@@ -19,13 +19,13 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@multimodal/shared-utils": "workspace:*",
-    "@multimodal/shared-media-utils": "workspace:*"
+    "@tarko/shared-utils": "workspace:*",
+    "@tarko/shared-media-utils": "workspace:*"
   },
   "devDependencies": {
     "@tarko/agent-server-interface": "workspace:*",
-    "@multimodal/agent-snapshot": "workspace:*",
-    "@multimodal/agio": "workspace:*",
+    "@tarko/agent-snapshot": "workspace:*",
+    "@tarko/agio": "workspace:*",
     "@agent-infra/shared": "0.0.2",
     "cors": "^2.8.5",
     "express": "4.21.2",

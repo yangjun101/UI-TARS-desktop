@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AgentEventStream } from '@multimodal/agent-interface';
-import { getLogger } from '@multimodal/shared-utils';
+import { AgentEventStream } from '@tarko/agent-interface';
+import { getLogger } from '@tarko/shared-utils';
 
 /**
  * StreamAdapter - Adapts between standard events and streaming iterations

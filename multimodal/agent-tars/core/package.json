@@ -22,11 +22,11 @@
     "benchmark:crawl": "cd benchmark/crawl && pnpm start"
   },
   "dependencies": {
-    "@multimodal/shared-utils": "workspace:*",
-    "@multimodal/shared-media-utils": "workspace:*"
+    "@tarko/shared-utils": "workspace:*",
+    "@tarko/shared-media-utils": "workspace:*"
   },
   "devDependencies": {
-    "@mcp-agent/core": "workspace:*",
+    "@tarko/mcp-agent": "workspace:*",
     "@agent-tars/interface": "workspace:*",
     "@gui-agent/operator-browser": "workspace:*",
     "@agent-infra/mcp-server-browser": "1.1.10",
@@ -36,8 +36,8 @@
     "@agent-infra/browser": "0.1.1",
     "@agent-infra/browser-search": "0.0.5",
     "@agent-infra/shared": "0.0.2",
-    "@multimodal/agent": "workspace:*",
-    "@multimodal/agent-snapshot": "workspace:*",
+    "@tarko/agent": "workspace:*",
+    "@tarko/agent-snapshot": "workspace:*",
     "@rslib/core": "0.10.0",
     "@types/node": "22.15.30",
     "typescript": "^5.5.3",

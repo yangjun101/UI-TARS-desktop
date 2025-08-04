@@ -5,7 +5,7 @@
 
 import path from 'path';
 import fs from 'fs';
-import { Agent } from '@multimodal/agent';
+import { Agent } from '@tarko/agent';
 import {
   AgentRunOptions,
   LLMRequestHookPayload,
@@ -14,7 +14,7 @@ import {
   ChatCompletionChunk,
   ChatCompletionMessageToolCall,
   ToolCallResult,
-} from '@multimodal/agent-interface';
+} from '@tarko/agent-interface';
 import { logger } from './utils/logger';
 import { AgentHookBase } from './agent-hook-base';
 

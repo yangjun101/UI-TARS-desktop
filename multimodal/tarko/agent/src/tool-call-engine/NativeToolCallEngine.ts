@@ -1,5 +1,5 @@
 import { zodToJsonSchema } from '../utils';
-import { getLogger } from '@multimodal/shared-utils';
+import { getLogger } from '@tarko/shared-utils';
 import {
   Tool,
   ToolCallEngine,
@@ -16,7 +16,7 @@ import {
   StreamProcessingState,
   StreamChunkResult,
   ChatCompletionMessageToolCall,
-} from '@multimodal/agent-interface';
+} from '@tarko/agent-interface';
 import { buildToolCallResultMessages } from './utils';
 
 /**

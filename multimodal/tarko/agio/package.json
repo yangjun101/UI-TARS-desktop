@@ -1,5 +1,5 @@
 {
-  "name": "@multimodal/agio",
+  "name": "@tarko/agio",
   "version": "0.3.0-beta.1",
   "description": "Agio (Agent Insights and Observations) - A standardized multimodal AI Agent Server monitoring protocol for server-side agent operation monitoring and analytics",
   "main": "dist/index.js",
@@ -26,7 +26,7 @@
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
-    "@multimodal/agent-interface": "workspace:*"
+    "@tarko/agent-interface": "workspace:*"
   },
   "devDependencies": {
     "@rslib/core": "0.10.0",

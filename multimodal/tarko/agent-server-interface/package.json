@@ -25,8 +25,8 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@multimodal/agio": "workspace:*",
-    "@multimodal/agent-interface": "workspace:*"
+    "@tarko/agio": "workspace:*",
+    "@tarko/agent-interface": "workspace:*"
   },
   "devDependencies": {
     "@rslib/core": "0.10.0",

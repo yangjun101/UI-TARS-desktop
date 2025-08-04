@@ -219,8 +219,8 @@ Agent TARS 中建设的差异，以及我们的一些演进方向。
 为此，我们需要引入一种设计模式，能够在运行时将 Agent 所依赖的环境保存为 Snapshot，接着，可以基于 Snapshot 来回放 Agent，确保 Agent 的 Context、Run Loop state，与最终的 Response 保持确定。最终，我们设计的 Snapshot 框架示例如下：
 
 ```ts
-import { Agent } from '@multimodal/agent';
-import { AgentSnapshot } from '@multimodal/agent-snapshot';
+import { Agent } from '@tarko/agent';
+import { AgentSnapshot } from '@tarko/agent-snapshot';
 
 const agent = new Agent({
   /* Agent Options */
@@ -235,7 +235,7 @@ await agentSnapshot.generate(runOptions);
 await agentSnapshot.replay(runOptions);
 ```
 
-这一框架已经驱动了 Agent TARS 的 [持续集成](https://github.com/bytedance/UI-TARS-desktop/blob/85a0f62a222298daaa203e7757aaa91abf4209d5/multimodal/agent/snapshot/runner.ts)，驱动了 [@multimodal/agent](https://www.npmjs.com/@multimodal/agent)、[@mcp-agent/core](https://www.npmjs.com/package/@mcp-agent/core)、[@magent-tars/core](https://www.npmjs.com/package/@agent-tars/core) 的测试，目前帮助我们在 Beta 的开发中至少规避了 10+ Issues：
+这一框架已经驱动了 Agent TARS 的 [持续集成](https://github.com/bytedance/UI-TARS-desktop/blob/85a0f62a222298daaa203e7757aaa91abf4209d5/multimodal/agent/snapshot/runner.ts)，驱动了 [@tarko/agent](https://www.npmjs.com/@tarko/agent)、[@tarko/mcp-agent](https://www.npmjs.com/package/@tarko/mcp-agent)、[@magent-tars/core](https://www.npmjs.com/package/@agent-tars/core) 的测试，目前帮助我们在 Beta 的开发中至少规避了 10+ Issues：
 
 <br/ >
 

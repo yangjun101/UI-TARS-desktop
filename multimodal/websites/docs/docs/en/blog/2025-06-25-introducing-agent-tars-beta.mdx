@@ -230,8 +230,8 @@ In Agent TARS, the main challenge in long-step task scenarios is that the intern
 For this, we need to introduce a design pattern that can save the environment on which the Agent depends as a Snapshot at runtime, and then replay the Agent based on the Snapshot to ensure that the Agent's Context, Run Loop state, and final Response remain deterministic. Finally, our designed Snapshot framework example is as follows:
 
 ```ts
-import { Agent } from '@multimodal/agent';
-import { AgentSnapshot } from '@multimodal/agent-snapshot';
+import { Agent } from '@tarko/agent';
+import { AgentSnapshot } from '@tarko/agent-snapshot';
 
 const agent = new Agent({
   /* Agent Options */
@@ -246,7 +246,7 @@ await agentSnapshot.generate(runOptions);
 await agentSnapshot.replay(runOptions);
 ```
 
-This framework has already powered Agent TARS's [continuous integration](https://github.com/bytedance/UI-TARS-desktop/blob/85a0f62a222298daaa203e7757aaa91abf4209d5/multimodal/agent/snapshot/runner.ts), driving the testing of [@multimodal/agent](https://www.npmjs.com/@multimodal/agent), [@mcp-agent/core](https://www.npmjs.com/package/@mcp-agent/core), and [@magent-tars/core](https://www.npmjs.com/package/@agent-tars/core), currently helping us avoid at least 10+ issues in Beta development:
+This framework has already powered Agent TARS's [continuous integration](https://github.com/bytedance/UI-TARS-desktop/blob/85a0f62a222298daaa203e7757aaa91abf4209d5/multimodal/agent/snapshot/runner.ts), driving the testing of [@tarko/agent](https://www.npmjs.com/@tarko/agent), [@tarko/mcp-agent](https://www.npmjs.com/package/@tarko/mcp-agent), and [@magent-tars/core](https://www.npmjs.com/package/@agent-tars/core), currently helping us avoid at least 10+ issues in Beta development:
 
 <br/ >
 
