@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { deepMerge } from '@tarko/shared-utils';
+import { deepMerge, isTest } from '@tarko/shared-utils';
 import {
   AgentCLIArguments,
   ModelProviderName,
   AgentAppConfig,
   LogLevel,
+  isAgentWebUIImplementationType,
 } from '@tarko/agent-server-interface';
 import { resolveValue } from '../utils';
+import path from 'path';
 
 /**
  * Handler for processing deprecated CLI options
@@ -88,6 +90,9 @@ export function buildAppConfig<
   // Apply CLI shortcuts and special handling
   applyLoggingShortcuts(config, { debug, quiet });
   applyServerConfiguration(config, { port });
+
+  // Apply WebUI defaults after all merging is complete
+  applyWebUIDefaults(config as AgentAppConfig);
 
   return config as U;
 }
@@ -211,5 +216,43 @@ function resolveModelSecrets(cliConfigProps: Partial<AgentAppConfig>): void {
     if (cliConfigProps.model.baseURL) {
       cliConfigProps.model.baseURL = resolveValue(cliConfigProps.model.baseURL, 'base URL');
     }
+  }
+}
+
+/**
+ * Apply WebUI configuration defaults
+ */
+function applyWebUIDefaults(config: AgentAppConfig): void {
+  if (!config.webui) {
+    config.webui = {};
+  }
+
+  if (!config.webui.type) {
+    config.webui.type = 'static';
+  }
+
+  if (isAgentWebUIImplementationType(config.webui, 'static') && !config.webui.staticPath) {
+    config.webui.staticPath = isTest() ? '/path/to/web-ui' : path.resolve(__dirname, '../static');
+  }
+
+  if (!config.webui.title) {
+    config.webui.title = 'Tarko';
+  }
+
+  if (!config.webui.welcomTitle) {
+    config.webui.welcomTitle = 'Hello, Tarko!';
+  }
+
+  if (!config.webui.subtitle) {
+    config.webui.subtitle = 'Build your own effective Agents and run anywhere!';
+  }
+
+  if (!config.webui.welcomePrompts) {
+    config.webui.welcomePrompts = ['Introduce yourself'];
+  }
+
+  if (!config.webui.logo) {
+    config.webui.logo =
+      'https://lf3-static.bytednsdoc.com/obj/eden-cn/zyha-aulnh/ljhwZthlaukjlkulzlp/appicon.png';
   }
 }
