@@ -4,106 +4,33 @@
  */
 
 import { Request, Response } from 'express';
-import { getLogger } from '@tarko/shared-utils';
-import { ImageCompressor, formatBytes } from '@tarko/shared-media-utils';
-import { ChatCompletionContentPart, ChatCompletionContentPartImage } from '@tarko/interface';
 import { createErrorResponse } from '../../utils/error-handler';
+import { ContextReferenceProcessor, ImageProcessor } from '@tarko/context-engineer/node';
 
-const imageCompressor = new ImageCompressor({
+const imageProcessor = new ImageProcessor({
   quality: 5,
   format: 'webp',
 });
 
-const logger = getLogger('Controller-Queries');
-
-getLogger;
-/**
- * Compress images in query content if present
- * @param query - The query content that may contain images
- * @returns Processed query with compressed images
- */
-async function compressImagesInQuery(
-  query: string | ChatCompletionContentPart[],
-): Promise<string | ChatCompletionContentPart[]> {
-  try {
-    // Handle different query formats
-    if (typeof query === 'string') {
-      return query; // Text only, no compression needed
-    }
-
-    // Handle array of content parts (multimodal format)
-    if (Array.isArray(query)) {
-      const compressedQuery = await Promise.all(
-        query.map(async (part: ChatCompletionContentPart) => {
-          if (part.type === 'image_url' && part.image_url?.url) {
-            return await compressImageUrl(part);
-          }
-          return part;
-        }),
-      );
-      return compressedQuery;
-    }
-
-    return query;
-  } catch (error) {
-    console.error('Error compressing images in query:', error);
-    // Return original query if compression fails
-    return query;
-  }
-}
-
-/**
- * Compress a single image URL
- * @param imagePart - Content part containing image URL
- * @returns Compressed image content part
- */
-async function compressImageUrl(
-  imagePart: ChatCompletionContentPartImage,
-): Promise<ChatCompletionContentPartImage> {
-  try {
-    const imageUrl = imagePart!.image_url.url;
-
-    // Skip if not a base64 image
-    if (!imageUrl.startsWith('data:image/')) {
-      return imagePart;
-    }
-
-    // Extract base64 data
-    const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
-    const originalBuffer = Buffer.from(base64Data, 'base64');
-    const originalSize = originalBuffer.length;
-
-    // Compress the image
-    const compressedBuffer = await imageCompressor.compressToBuffer(originalBuffer);
-    const compressedSize = compressedBuffer.length;
-
-    // Convert compressed buffer to base64
-    const compressedBase64 = `data:image/webp;base64,${compressedBuffer.toString('base64')}`;
-
-    // Log compression stats
-    const compressionRatio = originalSize / compressedSize;
-    const compressionPercentage = ((1 - compressedSize / originalSize) * 100).toFixed(2);
-
-    console.log('Image compression stats:', {
-      original: formatBytes(originalSize),
-      compressed: formatBytes(compressedSize),
-      ratio: `${compressionRatio.toFixed(2)}x (${compressionPercentage}% smaller)`,
-      format: 'webp',
-      quality: 80,
-    });
-
-    return {
-      ...imagePart,
-      image_url: {
-        url: compressedBase64,
-      },
-    };
-  } catch (error) {
-    console.error('Error compressing individual image:', error);
-    // Return original image part if compression fails
-    return imagePart;
-  }
-}
+const contextReferenceProcessor = new ContextReferenceProcessor({
+  maxFileSize: 2 * 1024 * 1024, // 2MB limit for LLM context
+  ignoreExtensions: [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.webp',
+    '.svg',
+    '.pdf',
+    '.zip',
+    '.tar',
+    '.gz',
+    '.exe',
+    '.dll',
+  ],
+  ignoreDirs: ['node_modules', '.git', '.next', 'dist', 'build', 'coverage', '.vscode', '.idea'],
+  maxDepth: 8,
+});
 
 /**
  * Execute a non-streaming query
@@ -116,8 +43,18 @@ export async function executeQuery(req: Request, res: Response) {
   }
 
   try {
-    // Compress images in query before processing
-    const compressedQuery = await compressImagesInQuery(query);
+    // Get server instance to access workspace path
+    const server = req.app.locals.server;
+    const workspacePath = server.getCurrentWorkspace();
+
+    // Process contextual references first
+    const processedQuery = await contextReferenceProcessor.processContextualReferences(
+      query,
+      workspacePath,
+    );
+
+    // Compress images in processed query
+    const compressedQuery = await imageProcessor.compressImagesInQuery(processedQuery);
 
     // Use enhanced error handling in runQuery
     const response = await req.session!.runQuery(compressedQuery);
@@ -151,8 +88,18 @@ export async function executeStreamingQuery(req: Request, res: Response) {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Compress images in query before processing
-    const compressedQuery = await compressImagesInQuery(query);
+    // Get server instance to access workspace path
+    const server = req.app.locals.server;
+    const workspacePath = server.getCurrentWorkspace();
+
+    // Process contextual references first
+    const processedQuery = await contextReferenceProcessor.processContextualReferences(
+      query,
+      workspacePath,
+    );
+
+    // Compress images in processed query
+    const compressedQuery = await imageProcessor.compressImagesInQuery(processedQuery);
 
     // Get streaming response - any errors will be returned as events
     const eventStream = await req.session!.runQueryStreaming(compressedQuery);

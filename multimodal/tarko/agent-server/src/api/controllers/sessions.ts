@@ -452,3 +452,166 @@ export async function getSessionWorkspaceFiles(req: Request, res: Response) {
     });
   }
 }
+
+/**
+ * Search files and directories in session workspace
+ */
+export async function searchWorkspaceItems(req: Request, res: Response) {
+  const sessionId = req.query.sessionId as string;
+  const query = req.query.q as string;
+  const type = req.query.type as 'file' | 'directory' | 'all';
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Session ID is required' });
+  }
+
+  // Allow empty query for default directory listing
+  if (query === undefined || query === null) {
+    return res.status(400).json({ error: 'Search query parameter is required' });
+  }
+
+  try {
+    const server = req.app.locals.server;
+    const baseWorkspacePath = server.getCurrentWorkspace();
+
+    let items: Array<{ name: string; path: string; type: 'file' | 'directory'; relativePath: string }>;
+
+    if (query.length === 0) {
+      // Empty query: return current directory contents (top-level files and directories)
+      items = await getWorkspaceRootItems(baseWorkspacePath, type || 'all');
+    } else {
+      // Non-empty query: search recursively
+      items = await searchWorkspaceItemsRecursive(baseWorkspacePath, query, type || 'all');
+    }
+
+    // Limit results to avoid overwhelming the UI
+    const limitedItems = items.slice(0, 20);
+
+    res.status(200).json({ items: limitedItems });
+  } catch (error) {
+    console.error(`Error searching workspace items for session ${sessionId}:`, error);
+    res.status(500).json({
+      error: 'Failed to search workspace items',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Recursively search for files and directories
+ */
+async function searchWorkspaceItemsRecursive(
+  basePath: string,
+  query: string,
+  type: 'file' | 'directory' | 'all',
+): Promise<
+  Array<{ name: string; path: string; type: 'file' | 'directory'; relativePath: string }>
+> {
+  const items: Array<{
+    name: string;
+    path: string;
+    type: 'file' | 'directory';
+    relativePath: string;
+  }> = [];
+
+  const searchInDirectory = async (currentPath: string, depth = 0) => {
+    // Limit recursion depth to avoid performance issues
+    if (depth > 5) return;
+
+    try {
+      const entries = fs.readdirSync(currentPath);
+
+      for (const entry of entries) {
+        // Skip hidden files and common ignore patterns
+        if (entry.startsWith('.') || entry === 'node_modules' || entry === '.git') {
+          continue;
+        }
+
+        const fullPath = path.join(currentPath, entry);
+        const stats = fs.statSync(fullPath);
+        const relativePath = path.relative(basePath, fullPath);
+
+        // Check if name matches query (case-insensitive)
+        if (entry.toLowerCase().includes(query.toLowerCase())) {
+          const itemType = stats.isDirectory() ? 'directory' : 'file';
+
+          if (type === 'all' || type === itemType) {
+            items.push({
+              name: entry,
+              path: fullPath,
+              type: itemType,
+              relativePath: relativePath.replace(/\\/g, '/'), // Normalize path separators
+            });
+          }
+        }
+
+        // Recursively search in subdirectories
+        if (stats.isDirectory()) {
+          await searchInDirectory(fullPath, depth + 1);
+        }
+      }
+    } catch (error) {
+      // Skip directories we can't read
+      console.warn(`Cannot read directory ${currentPath}:`, error);
+    }
+  };
+
+  await searchInDirectory(basePath);
+
+  // Sort by type (directories first) then by name
+  return items.sort((a, b) => {
+    if (a.type !== b.type) {
+      return a.type === 'directory' ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
+}
+
+/**
+ * Get root level items in workspace
+ */
+async function getWorkspaceRootItems(
+  basePath: string,
+  type: 'file' | 'directory' | 'all',
+): Promise<Array<{ name: string; path: string; type: 'file' | 'directory'; relativePath: string }>> {
+  const items: Array<{
+    name: string;
+    path: string;
+    type: 'file' | 'directory';
+    relativePath: string;
+  }> = [];
+
+  try {
+    const entries = fs.readdirSync(basePath);
+
+    for (const entry of entries) {
+      // Skip hidden files and common ignore patterns
+      if (entry.startsWith('.') || entry === 'node_modules' || entry === '.git') {
+        continue;
+      }
+
+      const fullPath = path.join(basePath, entry);
+      const stats = fs.statSync(fullPath);
+      const itemType = stats.isDirectory() ? 'directory' : 'file';
+
+      if (type === 'all' || type === itemType) {
+        items.push({
+          name: entry,
+          path: fullPath,
+          type: itemType,
+          relativePath: entry,
+        });
+      }
+    }
+  } catch (error) {
+    console.warn(`Cannot read directory ${basePath}:`, error);
+  }
+
+  // Sort by type (directories first) then by name
+  return items.sort((a, b) => {
+    if (a.type !== b.type) {
+      return a.type === 'directory' ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
+}

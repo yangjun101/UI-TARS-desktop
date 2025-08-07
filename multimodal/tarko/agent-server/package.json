@@ -19,11 +19,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@tarko/shared-utils": "workspace:*",
-    "@tarko/shared-media-utils": "workspace:*"
+    "@tarko/context-engineer": "workspace:*"
   },
   "devDependencies": {
     "@tarko/interface": "workspace:*",
+    "@tarko/shared-utils": "workspace:*",
     "@tarko/agent-snapshot": "workspace:*",
     "@tarko/agio": "workspace:*",
     "@agent-infra/shared": "0.0.2",

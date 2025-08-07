@@ -48,6 +48,7 @@ const DEFAULT_OPTIONS: Partial<AgentCLIInitOptions> = {
         'Tell me the top 5 most popular projects on ProductHunt today',
         'Please book me the earliest flight from Hangzhou to Shenzhen on 10.1',
       ],
+      enableContextualSelector: true,
     },
     server: {
       storage: {

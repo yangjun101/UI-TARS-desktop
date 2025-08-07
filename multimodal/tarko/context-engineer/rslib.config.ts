@@ -12,24 +12,24 @@ const BANNER = `/**
 export default defineConfig({
   source: {
     entry: {
-      index: ['src/index.ts'],
+      index: ['./src/**', '!./src/**/*.test.ts'],
     },
   },
   lib: [
     {
+      format: 'esm',
+      syntax: 'es2021',
+      bundle: false,
+      autoExternal: false,
+      dts: false,
+      banner: { js: BANNER },
+    },
+    {
       format: 'cjs',
       syntax: 'es2021',
-      bundle: true,
+      bundle: false,
       dts: true,
       banner: { js: BANNER },
-      autoExternal: {
-        dependencies: false,
-        optionalDependencies: true,
-        peerDependencies: true,
-      },
-      output: {
-        externals: ['@tarko/context-engineer', '@tarko/context-engineer/node'],
-      },
     },
   ],
   output: {

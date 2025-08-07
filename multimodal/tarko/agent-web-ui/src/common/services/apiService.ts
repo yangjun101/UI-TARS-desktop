@@ -5,6 +5,16 @@ import { ChatCompletionContentPart } from '@tarko/agent-interface';
 import { AgentServerVersionInfo } from '@agent-tars/interface';
 
 /**
+ * Workspace item interface for contextual selector
+ */
+export interface WorkspaceItem {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  relativePath: string;
+}
+
+/**
  * API Service - Handles HTTP requests to the Agent TARS Server
  *
  * Provides methods for:
@@ -13,6 +23,7 @@ import { AgentServerVersionInfo } from '@agent-tars/interface';
  * - Server health checks
  * - Version information
  * - Agent information
+ * - Workspace file search
  */
 class ApiService {
   /**
@@ -396,6 +407,42 @@ class ApiService {
     } catch (error) {
       console.error('Error getting agent info:', error);
       return { name: 'Unknown Agent' };
+    }
+  }
+
+  /**
+   * Search workspace files and directories for contextual selector
+   */
+  async searchWorkspaceItems(
+    sessionId: string,
+    query: string,
+    type?: 'file' | 'directory' | 'all'
+  ): Promise<WorkspaceItem[]> {
+    try {
+      const params = new URLSearchParams({
+        sessionId,
+        q: query,
+        ...(type && { type }),
+      });
+
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.WORKSPACE_SEARCH}?${params}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(3000),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to search workspace items: ${response.statusText}`);
+      }
+
+      const { items } = await response.json();
+      return items;
+    } catch (error) {
+      console.error('Error searching workspace items:', error);
+      return [];
     }
   }
 }

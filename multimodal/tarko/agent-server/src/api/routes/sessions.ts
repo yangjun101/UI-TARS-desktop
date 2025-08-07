@@ -38,5 +38,7 @@ export function registerSessionRoutes(app: express.Application): void {
     router.post('/share', sessionsController.shareSession);
     // Get session workspace files
     router.get('/workspace/files', sessionsController.getSessionWorkspaceFiles);
+    // Search workspace items for contextual selector
+    router.get('/workspace/search', sessionsController.searchWorkspaceItems);
   });
 }
