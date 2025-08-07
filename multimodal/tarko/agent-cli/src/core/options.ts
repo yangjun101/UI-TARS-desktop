@@ -66,6 +66,23 @@ export function addCommonOptions(command: Command): Command {
       'Tool call engine type (native, prompt_engineering, structured_outputs)',
     )
 
+    .option('--tool', 'Tool config including filter options')
+    // Tool filtering
+    .option(
+      '--tool.include <patterns>',
+      'Include only tools whose names contain these patterns (comma-separated)',
+      {
+        type: [String],
+      },
+    )
+    .option(
+      '--tool.exclude <patterns>',
+      'Exclude tools whose names contain these patterns (comma-separated)',
+      {
+        type: [String],
+      },
+    )
+
     // Workspace configuration
     .option('--workspace <path>', 'workspace path')
 
