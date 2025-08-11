@@ -3,41 +3,41 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AgentPlugin } from '../index';
+import { AgentPlugin } from '../AgentPlugin';
 import { LLMRequestHookPayload, LLMResponseHookPayload } from '@tarko/agent';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
-interface SnapshotPluginConfig {
+interface SnapshotPluginConfigOption {
   baseDir: string;
 }
 
 /**
  * MCP Agent Plugin - handles MCP_ENVIRONMENT and provides search/link reading capabilities
  */
-export class SnapshotPlugin implements AgentPlugin {
-  readonly name = 'snapshot-plugin';
+export class SnapshotPlugin extends AgentPlugin {
   private baseDir = '';
   private loop = 0;
+  readonly name = 'snapshot-plugin';
 
-  constructor(config: SnapshotPluginConfig) {
-    this.baseDir = config.baseDir;
-    // this.logger = getLogger('SnapshotPlugin')
+  constructor(option: SnapshotPluginConfigOption) {
+    super();
+    this.baseDir = option.baseDir;
   }
 
-  onLLMRequest(id: string, payload: LLMRequestHookPayload): void | Promise<void> {
+  async onLLMRequest(id: string, payload: LLMRequestHookPayload): Promise<void> {
     this.saveSnapshot(id, 'request.json', payload);
   }
 
-  onLLMResponse(id: string, payload: LLMResponseHookPayload): void | Promise<void> {
+  async onLLMResponse(id: string, payload: LLMResponseHookPayload): Promise<void> {
     this.saveSnapshot(id, 'response.json', payload);
   }
 
-  onEachAgentLoopStart?(): void | Promise<void> {
+  async onEachAgentLoopStart(): Promise<void> {
     this.loop++;
   }
 
-  onAgentLoopEnd?(): void | Promise<void> {
+  async onAgentLoopEnd(): Promise<void> {
     this.loop++;
     return Promise.resolve();
   }
