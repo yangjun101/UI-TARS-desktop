@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
 
   // Workspace endpoints
   WORKSPACE_SEARCH: '/api/v1/sessions/workspace/search',
+  WORKSPACE_VALIDATE: '/api/v1/sessions/workspace/validate',
 };
 
 /**

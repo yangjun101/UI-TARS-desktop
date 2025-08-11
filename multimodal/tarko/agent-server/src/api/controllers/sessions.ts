@@ -474,7 +474,12 @@ export async function searchWorkspaceItems(req: Request, res: Response) {
     const server = req.app.locals.server;
     const baseWorkspacePath = server.getCurrentWorkspace();
 
-    let items: Array<{ name: string; path: string; type: 'file' | 'directory'; relativePath: string }>;
+    let items: Array<{
+      name: string;
+      path: string;
+      type: 'file' | 'directory';
+      relativePath: string;
+    }>;
 
     if (query.length === 0) {
       // Empty query: return current directory contents (top-level files and directories)
@@ -531,8 +536,11 @@ async function searchWorkspaceItemsRecursive(
         const stats = fs.statSync(fullPath);
         const relativePath = path.relative(basePath, fullPath);
 
-        // Check if name matches query (case-insensitive)
-        if (entry.toLowerCase().includes(query.toLowerCase())) {
+        // Check if name or relative path matches query (case-insensitive)
+        const nameMatches = entry.toLowerCase().includes(query.toLowerCase());
+        const pathMatches = relativePath.toLowerCase().includes(query.toLowerCase());
+
+        if (nameMatches || pathMatches) {
           const itemType = stats.isDirectory() ? 'directory' : 'file';
 
           if (type === 'all' || type === itemType) {
@@ -568,12 +576,73 @@ async function searchWorkspaceItemsRecursive(
 }
 
 /**
+ * Validate if workspace paths exist
+ */
+export async function validateWorkspacePaths(req: Request, res: Response) {
+  const sessionId = req.query.sessionId as string;
+  const paths = req.body.paths as string[];
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Session ID is required' });
+  }
+
+  if (!Array.isArray(paths)) {
+    return res.status(400).json({ error: 'Paths array is required' });
+  }
+
+  try {
+    const server = req.app.locals.server;
+    const baseWorkspacePath = server.getCurrentWorkspace();
+
+    const validationResults = paths.map((relativePath) => {
+      try {
+        const fullPath = path.join(baseWorkspacePath, relativePath);
+        const normalizedPath = path.resolve(fullPath);
+        const normalizedWorkspace = path.resolve(baseWorkspacePath);
+
+        // Security check
+        if (!normalizedPath.startsWith(normalizedWorkspace)) {
+          return { path: relativePath, exists: false, error: 'Path outside workspace' };
+        }
+
+        const exists = fs.existsSync(normalizedPath);
+        let type: 'file' | 'directory' | undefined;
+
+        if (exists) {
+          const stats = fs.statSync(normalizedPath);
+          type = stats.isDirectory() ? 'directory' : 'file';
+        }
+
+        return { path: relativePath, exists, type };
+      } catch (error) {
+        return { path: relativePath, exists: false, error: 'Access denied' };
+      }
+    });
+
+    res.status(200).json({ results: validationResults });
+  } catch (error) {
+    // FIXME: Security - Log injection vulnerability
+    // The sessionId comes from user input and is directly interpolated into the log message.
+    // This could allow attackers to inject malicious content into logs.
+    // Solution: Use structured logging or sanitize the sessionId before logging.
+    // Example: console.error('Error validating workspace paths:', { sessionId: sessionId?.substring(0, 8) + '***' }, error);
+    console.error(`Error validating workspace paths for session ${sessionId}:`, error);
+    res.status(500).json({
+      error: 'Failed to validate workspace paths',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
  * Get root level items in workspace
  */
 async function getWorkspaceRootItems(
   basePath: string,
   type: 'file' | 'directory' | 'all',
-): Promise<Array<{ name: string; path: string; type: 'file' | 'directory'; relativePath: string }>> {
+): Promise<
+  Array<{ name: string; path: string; type: 'file' | 'directory'; relativePath: string }>
+> {
   const items: Array<{
     name: string;
     path: string;

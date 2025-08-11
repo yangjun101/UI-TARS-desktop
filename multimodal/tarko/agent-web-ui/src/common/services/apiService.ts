@@ -416,7 +416,7 @@ class ApiService {
   async searchWorkspaceItems(
     sessionId: string,
     query: string,
-    type?: 'file' | 'directory' | 'all'
+    type?: 'file' | 'directory' | 'all',
   ): Promise<WorkspaceItem[]> {
     try {
       const params = new URLSearchParams({
@@ -425,14 +425,11 @@ class ApiService {
         ...(type && { type }),
       });
 
-      const response = await fetch(
-        `${API_BASE_URL}${API_ENDPOINTS.WORKSPACE_SEARCH}?${params}`,
-        {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(3000),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.WORKSPACE_SEARCH}?${params}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(3000),
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to search workspace items: ${response.statusText}`);
@@ -443,6 +440,38 @@ class ApiService {
     } catch (error) {
       console.error('Error searching workspace items:', error);
       return [];
+    }
+  }
+
+  /**
+   * Validate workspace paths existence
+   */
+  async validateWorkspacePaths(
+    sessionId: string,
+    paths: string[],
+  ): Promise<
+    Array<{ path: string; exists: boolean; type?: 'file' | 'directory'; error?: string }>
+  > {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}${API_ENDPOINTS.WORKSPACE_VALIDATE}?sessionId=${sessionId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths }),
+          signal: AbortSignal.timeout(3000),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to validate workspace paths: ${response.statusText}`);
+      }
+
+      const { results } = await response.json();
+      return results;
+    } catch (error) {
+      console.error('Error validating workspace paths:', error);
+      return paths.map((path) => ({ path, exists: false, error: 'Validation failed' }));
     }
   }
 }
