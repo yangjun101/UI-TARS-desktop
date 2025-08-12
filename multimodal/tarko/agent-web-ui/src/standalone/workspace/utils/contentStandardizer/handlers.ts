@@ -1,17 +1,10 @@
+import { SearchService } from '@/common/services/SearchService';
 import { ToolResultContentPart } from '../../types';
-import { StandardPanelContent, SearchResult, PanelContentSource } from '../../types/panelContent';
-import {
-  isMultimodalContent,
-  isSearchResults,
-  isCommandResult,
-  isScriptResult,
-  isFileResult,
-  isObjectWithResults,
-} from './typeGuards';
+import { StandardPanelContent, PanelContentSource } from '../../types/panelContent';
+import { isMultimodalContent, isCommandResult, isScriptResult, isFileResult } from './typeGuards';
 import {
   extractImageUrl,
   parseImageContent,
-  extractSearchResults,
   extractCommandResult,
   extractScriptResult,
   extractFileContent,
@@ -65,46 +58,28 @@ export function handleSearchContent(
   toolArguments?: Record<string, unknown>,
   title?: string,
 ): ToolResultContentPart[] {
-  if (isSearchResults(source)) {
-    return [
-      {
-        type: 'search_result',
-        name: 'SEARCH_RESULTS',
-        results: source.map(
-          (item): SearchResult => ({
-            title: item.title,
-            url: item.url,
-            snippet: item.content || item.snippet || '',
-          }),
-        ),
-        query: (toolArguments?.query as string) || title?.replace(/^Search: /i, ''),
-      },
-    ];
+  // All search processing is now handled by eventProcessor using SearchService
+  // This function should only receive already-normalized search data
+
+  if (SearchService.isNormalizedSearchData(source)) {
+    return source as ToolResultContentPart[];
   }
 
-  if (isMultimodalContent(source)) {
-    const { results, query } = extractSearchResults(source);
-    return [
-      {
-        type: 'search_result',
-        name: 'SEARCH_RESULTS',
-        results,
-        query,
-      },
-    ];
+  // If we reach here, something went wrong in the pipeline
+  console.warn('handleSearchContent: Received non-normalized search data', {
+    source,
+    toolArguments,
+  });
+
+  // Delegate back to SearchService as last resort
+  const toolName = (toolArguments?.toolName as string) || 'unknown';
+  const normalizedResult = SearchService.normalizeSearchContent(toolName, source, toolArguments);
+
+  if (SearchService.isNormalizedSearchData(normalizedResult)) {
+    return normalizedResult as ToolResultContentPart[];
   }
 
-  if (isObjectWithResults(source)) {
-    return [
-      {
-        type: 'search_result',
-        name: 'SEARCH_RESULTS',
-        results: source.results,
-        query: source.query,
-      },
-    ];
-  }
-
+  // Absolute fallback - this should rarely happen
   return [
     {
       type: 'text',

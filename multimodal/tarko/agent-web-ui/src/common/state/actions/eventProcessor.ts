@@ -12,6 +12,8 @@ import { sessionFilesAtom, FileItem } from '../atoms/files';
 import { activeSessionIdAtom } from '../atoms/session';
 import { ChatCompletionContentPartImage } from '@tarko/agent-interface';
 import { jsonrepair } from 'jsonrepair';
+import { TOOL_NAMES } from '@/common/constants';
+import { SearchService } from '../../services/SearchService';
 
 // Internal cache - not an Atom to avoid unnecessary reactivity
 const toolCallArgumentsMap = new Map<string, any>();
@@ -439,6 +441,17 @@ function collectFileInfo(
   }
 }
 
+// Helper function to normalize search results using unified search service
+function normalizeSearchResult(toolName: string, content: any, args: any): any {
+  // Use unified search service for all search-related processing
+  if (SearchService.isSearchTool(toolName)) {
+    return SearchService.normalizeSearchContent(toolName, content, args);
+  }
+
+  // Return original content for non-search tools
+  return content;
+}
+
 function handleToolResult(
   get: Getter,
   set: Setter,
@@ -457,18 +470,23 @@ function handleToolResult(
     event.timestamp,
   );
 
+  // Normalize content for search results
+  const normalizedContent = normalizeSearchResult(event.name, event.content, args);
+
   const result: ToolResult = {
     id: uuidv4(),
     toolCallId: event.toolCallId,
     name: event.name,
-    content: event.content,
+    content: normalizedContent,
     timestamp: event.timestamp,
     error: event.error,
-    type: determineToolType(event.name, event.content),
+    type: determineToolType(event.name, normalizedContent),
     arguments: args,
     elapsedMs: event.elapsedMs,
     _extra: event._extra,
   };
+
+  // Removed debug logging
 
   // Update both message and tool result atoms for immediate UI response
   set(messagesAtom, (prev: Record<string, Message[]>) => {
