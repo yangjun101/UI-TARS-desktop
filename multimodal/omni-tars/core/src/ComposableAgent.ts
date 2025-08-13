@@ -12,6 +12,7 @@ import {
 } from '@tarko/agent';
 import { AgentComposer } from './AgentComposer';
 import { AgentPlugin } from './AgentPlugin';
+import { SYSTEM_PROMPT } from './environments/prompt';
 
 export interface ComposableAgentOptions extends AgentOptions {
   /** Agent plugins to compose */
@@ -30,6 +31,7 @@ export class ComposableAgent extends Agent {
     const composer = new AgentComposer({ plugins });
 
     super({
+      // instructions: SYSTEM_PROMPT,
       instructions: composer.generateSystemPrompt(),
       maxIterations: optionsWithoutPlugins.maxIterations || 100,
       //Remove plugins to prevent circular reference from reporting errors
@@ -39,6 +41,11 @@ export class ComposableAgent extends Agent {
     this.composer = composer;
     this.composer.setAgent(this);
     this.logger = getLogger('ComposableAgent');
+
+    this.logger.info(
+      'load plugins success: ',
+      plugins.map((p) => options.name),
+    );
   }
 
   async initialize(): Promise<void> {
