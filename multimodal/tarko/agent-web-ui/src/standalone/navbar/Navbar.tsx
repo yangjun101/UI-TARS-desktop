@@ -240,7 +240,7 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
     : `${Math.max((modelTextWidth / totalTextWidth) * availableWidth * 0.85, 180)}px`;
 
   return (
-    <div ref={containerRef} className="flex-1 flex justify-center min-w-0">
+    <div ref={containerRef} className="flex-1 flex justify-center min-w-0 mx-[10vw]">
       <div className="flex items-center gap-3 min-w-0" style={{ maxWidth: '100%' }}>
         {/* Agent Name Badge - Enhanced with colorful gradient */}
         {agentInfo.name && (
@@ -263,8 +263,6 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
                 ? '1px solid rgba(139, 92, 246, 0.25)'
                 : '1px solid rgba(99, 102, 241, 0.15)',
               borderRadius: '8px',
-              minWidth: 0,
-              maxWidth: agentMaxWidth,
               position: 'relative',
               '&::before': {
                 content: '""',
@@ -295,7 +293,6 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
               sx={{
                 fontWeight: 500,
                 fontSize: '12px',
-
                 color: isDarkMode ? '#e0e7ff' : '#4338ca',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
