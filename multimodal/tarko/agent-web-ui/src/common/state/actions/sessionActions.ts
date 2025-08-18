@@ -16,7 +16,7 @@ import { ChatCompletionContentPart, AgentEventStream } from '@tarko/agent-interf
 const sessionMetadataCache = new Map<
   string,
   {
-    modelInfo?: { provider: string; model: string };
+    modelInfo?: { provider: string; model: string; displayName?: string };
   }
 >();
 
@@ -170,6 +170,7 @@ export const setActiveSessionAction = atom(null, async (get, set, sessionId: str
           modelInfo: {
             provider: runStartEvent.provider || '',
             model: runStartEvent.model || '',
+            displayName: runStartEvent.modelDisplayName ?? '',
           },
         });
       }
@@ -192,6 +193,7 @@ export const setActiveSessionAction = atom(null, async (get, set, sessionId: str
             const modelInfo = {
               provider: runStartEvent.provider || '',
               model: runStartEvent.model || '',
+              displayName: runStartEvent.modelDisplayName ?? '',
             };
 
             set(modelInfoAtom, modelInfo);

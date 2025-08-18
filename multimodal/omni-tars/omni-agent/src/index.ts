@@ -17,7 +17,7 @@ const toolCallEngine = createComposableToolCallEngineFactory({
 });
 
 export default class OmniTARSAgent extends ComposableAgent {
-  static label = 'omni tars agent';
+  static label = 'Omni-TARS Agent';
 
   constructor(options: AgentOptions) {
     super({
