@@ -12,3 +12,7 @@ coverage/
 scripts/merge-yml/*.yml
 .claude/
 .history/
+
+# Agent TARS session files (temporary data)
+**/session_*.json
+multimodal/agent-tars/my-workspace/session_*.json
