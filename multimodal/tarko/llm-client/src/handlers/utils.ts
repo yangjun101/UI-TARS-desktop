@@ -30,6 +30,7 @@ import { OpenRouterHandler } from './openrouter.js';
 import { PerplexityHandler } from './perplexity.js';
 import { InputError, MIMEType } from './types.js';
 import { AzureOpenAIHandler } from './azure-openai.js';
+import { BedrockHandler } from './bedrock.js';
 
 export const Handlers: Record<string, (opts: ConfigOptions) => any> = {
   ['openai']: (opts: ConfigOptions) =>
@@ -142,6 +143,16 @@ export const Handlers: Record<string, (opts: ConfigOptions) => any> = {
       models['azure-openai'].supportsToolCalls,
       models['azure-openai'].supportsN,
       models['azure-openai'].supportsStreaming,
+    ),
+  ['bedrock']: (opts: ConfigOptions) =>
+    new BedrockHandler(
+      opts,
+      models.bedrock.models,
+      models.bedrock.supportsJSON,
+      models.bedrock.supportsImages,
+      models.bedrock.supportsToolCalls,
+      models.bedrock.supportsN,
+      models.bedrock.supportsStreaming,
     ),
 };
 

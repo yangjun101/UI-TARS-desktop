@@ -26,6 +26,11 @@ export type ConfigOptions = Pick<ClientOptions, 'apiKey' | 'baseURL'> & {
     apiVersion?: string;
     azureADTokenProvider?: any;
   };
+  // AWS Bedrock configuration
+  region?: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  sessionToken?: string;
 };
 
 export type ChatCompletionChoice = Omit<ChatCompletion.Choice, 'finish_reason'> & {

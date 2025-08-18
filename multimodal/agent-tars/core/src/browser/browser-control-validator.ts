@@ -10,7 +10,7 @@ import { ModelProviderName } from '@tarko/agent';
 /**
  * Supported providers for GUI-based browser control strategies
  */
-const GUI_SUPPORTED_PROVIDERS: ModelProviderName[] = ['volcengine'];
+const GUI_SUPPORTED_PROVIDERS: ModelProviderName[] = ['volcengine', 'bedrock'];
 
 /**
  * Validates the browser control mode based on model provider capabilities

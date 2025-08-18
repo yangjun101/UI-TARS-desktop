@@ -103,6 +103,10 @@ export class ModelResolver {
     let model = runModel;
     let baseURL: string | undefined;
     let apiKey: string | undefined;
+    let region: string | undefined;
+    let accessKeyId: string | undefined;
+    let secretAccessKey: string | undefined;
+    let sessionToken: string | undefined;
 
     // If no provider specified but we have a model, try to infer from configured providers
     if (!provider && model) {
@@ -127,6 +131,10 @@ export class ModelResolver {
     if (configuredProvider) {
       baseURL = configuredProvider.baseURL;
       apiKey = configuredProvider.apiKey;
+      region = configuredProvider.region;
+      accessKeyId = configuredProvider.accessKeyId;
+      secretAccessKey = configuredProvider.secretAccessKey;
+      sessionToken = configuredProvider.sessionToken;
     }
 
     // Fall back to default selection configuration
@@ -135,6 +143,18 @@ export class ModelResolver {
     }
     if (!apiKey) {
       apiKey = this.defaultSelection.apiKey;
+    }
+    if (!region) {
+      region = this.defaultSelection.region;
+    }
+    if (!accessKeyId) {
+      accessKeyId = this.defaultSelection.accessKeyId;
+    }
+    if (!secretAccessKey) {
+      secretAccessKey = this.defaultSelection.secretAccessKey;
+    }
+    if (!sessionToken) {
+      sessionToken = this.defaultSelection.sessionToken;
     }
 
     // Apply default configuration from constants if still missing
@@ -149,6 +169,10 @@ export class ModelResolver {
       id: model,
       baseURL,
       apiKey,
+      region,
+      accessKeyId,
+      secretAccessKey,
+      sessionToken,
       actualProvider: this.getActualProvider(provider),
     };
   }

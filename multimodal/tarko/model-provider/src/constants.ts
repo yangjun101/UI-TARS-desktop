@@ -32,4 +32,8 @@ export const MODEL_PROVIDER_CONFIGS: readonly ProviderConfig[] = [
     actual: 'openai',
     baseURL: 'https://api.deepseek.com/v1',
   },
+  {
+    name: 'bedrock',
+    actual: 'bedrock',
+  },
 ] as const;

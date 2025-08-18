@@ -21,7 +21,8 @@ export type ModelProviderName =
   | 'ollama'
   | 'lm-studio'
   | 'volcengine'
-  | 'deepseek';
+  | 'deepseek'
+  | 'bedrock';
 
 /**
  * Model provider serving configuration
@@ -35,6 +36,22 @@ export interface ModelProviderServingConfig {
    * Provider's base URL
    */
   baseURL?: string;
+  /**
+   * AWS region (for Bedrock)
+   */
+  region?: string;
+  /**
+   * AWS access key ID (for Bedrock)
+   */
+  accessKeyId?: string;
+  /**
+   * AWS secret access key (for Bedrock)
+   */
+  secretAccessKey?: string;
+  /**
+   * AWS session token (for Bedrock)
+   */
+  sessionToken?: string;
 }
 
 /**
@@ -99,6 +116,22 @@ export interface ResolvedModel {
    * The actual implementation provider name
    */
   actualProvider: ActualModelProviderName;
+  /**
+   * AWS region (for Bedrock)
+   */
+  region?: string;
+  /**
+   * AWS access key ID (for Bedrock)
+   */
+  accessKeyId?: string;
+  /**
+   * AWS secret access key (for Bedrock)
+   */
+  secretAccessKey?: string;
+  /**
+   * AWS session token (for Bedrock)
+   */
+  sessionToken?: string;
 }
 
 /**

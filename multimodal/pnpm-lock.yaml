@@ -144,7 +144,7 @@ importers:
         specifier: ^5.5.3
         version: 5.8.3
 
-  agent-tars/test-workspace:
+  agent-tars/my-workspace:
     dependencies:
       '@agent-tars/interface':
         specifier: workspace:*

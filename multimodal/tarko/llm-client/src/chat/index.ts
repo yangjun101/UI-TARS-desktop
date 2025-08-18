@@ -24,10 +24,12 @@ export type GroqModel = (typeof models.groq.models)[number];
 export type OpenRouterModel = string;
 export type OpenAICompatibleModel = string;
 export type AzureOpenAIModel = string;
+export type BedrockModel = (typeof models.bedrock.models)[number];
 
 export type LLMChatModel =
   | OpenAIModel
   | OpenAINonStreamingModel
+  | BedrockModel
   | AI21Model
   | AnthropicModel
   | GeminiModel
@@ -51,6 +53,7 @@ type ProviderModelMap = {
   openrouter: OpenRouterModel;
   'openai-compatible': OpenAICompatibleModel;
   'azure-openai': AzureOpenAIModel;
+  bedrock: BedrockModel;
 };
 
 type CompletionBase<P extends LLMProvider> = Pick<

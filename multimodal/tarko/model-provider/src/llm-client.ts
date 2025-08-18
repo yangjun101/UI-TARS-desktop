@@ -21,11 +21,25 @@ export function createLLMClient(
   resolvedModel: ResolvedModel,
   requestInterceptor?: (provider: string, request: LLMRequest, baseURL?: string) => any,
 ): OpenAI {
-  const { provider, id, actualProvider, baseURL, apiKey } = resolvedModel;
+  const {
+    provider,
+    id,
+    actualProvider,
+    baseURL,
+    apiKey,
+    region,
+    accessKeyId,
+    secretAccessKey,
+    sessionToken,
+  } = resolvedModel;
 
   const client = new TokenJS({
     apiKey,
     baseURL,
+    region,
+    accessKeyId,
+    secretAccessKey,
+    sessionToken,
   });
 
   // Add extended model support for non-native providers
