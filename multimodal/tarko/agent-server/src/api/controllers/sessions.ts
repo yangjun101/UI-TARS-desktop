@@ -179,7 +179,10 @@ export async function getSessionStatus(req: Request, res: Response) {
  * Update session metadata
  */
 export async function updateSession(req: Request, res: Response) {
-  const { sessionId, name, tags } = req.body;
+  const { sessionId, metadata: metadataUpdates } = req.body as {
+    sessionId: string;
+    metadata: Partial<SessionMetadata['metadata']>;
+  };
 
   if (!sessionId) {
     return res.status(400).json({ error: 'Session ID is required' });
@@ -197,12 +200,10 @@ export async function updateSession(req: Request, res: Response) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Update metadata with new name and tags
     const updatedMetadata = await server.storageProvider.updateSessionMetadata(sessionId, {
       metadata: {
         ...metadata.metadata,
-        name,
-        tags,
+        ...metadataUpdates,
       },
     });
 

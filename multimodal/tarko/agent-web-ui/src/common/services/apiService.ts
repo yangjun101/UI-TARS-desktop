@@ -2,7 +2,6 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/common/constants';
 import {
   AgentEventStream,
   SessionMetadata,
-  AgentInfo,
   SanitizedAgentOptions,
   WorkspaceInfo,
 } from '@/common/types';
@@ -199,13 +198,13 @@ class ApiService {
    */
   async updateSessionMetadata(
     sessionId: string,
-    updates: { name?: string; tags?: string[] },
+    updates: Partial<SessionMetadata['metadata']>,
   ): Promise<SessionMetadata> {
     try {
       const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.UPDATE_SESSION}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, ...updates }),
+        body: JSON.stringify({ sessionId, metadata: updates }),
       });
 
       if (!response.ok) {
@@ -407,31 +406,6 @@ class ApiService {
   }
 
   /**
-   * Get current agent information
-   */
-  async getAgentInfo(): Promise<AgentInfo> {
-    try {
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AGENT_INFO}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(3000),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get agent info: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return {
-        name: data.name || 'Unknown Agent',
-      };
-    } catch (error) {
-      console.error('Error getting agent info:', error);
-      return { name: 'Unknown Agent' };
-    }
-  }
-
-  /**
    * Get current agent options (sanitized)
    */
   async getAgentOptions(): Promise<SanitizedAgentOptions> {
@@ -570,7 +544,7 @@ class ApiService {
         sessionId,
         provider,
         modelId,
-        endpoint: `${API_BASE_URL}/api/v1/sessions/model`
+        endpoint: `${API_BASE_URL}/api/v1/sessions/model`,
       });
 
       const requestBody = { sessionId, provider, modelId };
@@ -595,7 +569,7 @@ class ApiService {
 
       const { success } = responseData;
       console.log('🎯 [ModelSelector] Update result:', success ? 'SUCCESS' : 'FAILED');
-      
+
       return success;
     } catch (error) {
       console.error('💥 [ModelSelector] Error updating session model:', error);

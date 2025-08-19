@@ -300,6 +300,9 @@ export namespace AgentEventStream {
 
     /** Display name for the model */
     modelDisplayName?: string;
+
+    /** Agent name being used */
+    agentName?: string;
   }
 
   /**

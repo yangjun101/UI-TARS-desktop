@@ -26,15 +26,9 @@ export const checkConnectionStatusAction = atom(null, async (get, set) => {
       lastError: isConnected ? null : currentStatus.lastError,
     });
 
-    // Load agent info and workspace info when connection is successful
+    // Load workspace info when connection is successful
+    // Agent info will be loaded from session metadata when a session is active
     if (isConnected) {
-      try {
-        const agentInfo = await apiService.getAgentInfo();
-        set(agentInfoAtom, agentInfo);
-      } catch (error) {
-        console.warn('Failed to load agent info:', error);
-      }
-
       try {
         const agentOptions = await apiService.getAgentOptions();
         set(agentOptionsAtom, agentOptions);

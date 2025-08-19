@@ -26,16 +26,6 @@ export function getVersion(req: Request, res: Response) {
 }
 
 /**
- * Get current agent information
- */
-export function getAgentInfo(req: Request, res: Response) {
-  const server = req.app.locals.server;
-  res.status(200).json({
-    name: server.getCurrentAgentName() || 'Unknown Agent',
-  });
-}
-
-/**
  * Get current agent options (sanitized)
  */
 export function getAgentOptions(req: Request, res: Response) {
@@ -116,7 +106,7 @@ export async function updateSessionModel(req: Request, res: Response) {
       const activeSession = server.sessions[sessionId];
       if (activeSession) {
         console.log(`Session ${sessionId} model updated to ${provider}:${modelId}`);
-        
+
         try {
           // Recreate agent with new model configuration
           await activeSession.updateModelConfig(updatedMetadata);

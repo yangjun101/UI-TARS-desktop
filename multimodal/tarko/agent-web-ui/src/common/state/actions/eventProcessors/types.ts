@@ -22,7 +22,7 @@ export interface EventProcessingParams {
  */
 export interface EventHandler<T extends AgentEventStream.Event = AgentEventStream.Event> {
   canHandle(event: AgentEventStream.Event): event is T;
-  handle(context: EventHandlerContext, sessionId: string, event: T): void;
+  handle(context: EventHandlerContext, sessionId: string, event: T): void | Promise<void>;
 }
 
 /**

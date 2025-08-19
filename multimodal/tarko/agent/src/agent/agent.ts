@@ -223,7 +223,7 @@ export class Agent<T extends AgentOptions = AgentOptions>
   public getTools(): Tool[] {
     const allTools = this.toolManager.getTools();
     const toolFilterOptions = this.options.tool;
-    
+
     return filterTools(allTools, toolFilterOptions);
   }
 
@@ -358,6 +358,7 @@ Provide concise and accurate responses.`;
         provider: this.currentResolvedModel.provider,
         model: this.currentResolvedModel.id,
         modelDisplayName: this.currentResolvedModel.displayName,
+        agentName: this.name,
       });
 
       // Add user message to event stream

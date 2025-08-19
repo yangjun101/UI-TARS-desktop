@@ -25,6 +25,7 @@ export const connectionStatusAtom = atom<ConnectionStatus>({
 });
 
 /**
+ * FIXME: Merge "modelInfoAtom" and "agentInfoAtom", just using "sessionMetadataAtom".
  * Atom for model info (provider and model name)
  */
 export const modelInfoAtom = atom<ModelInfo>({

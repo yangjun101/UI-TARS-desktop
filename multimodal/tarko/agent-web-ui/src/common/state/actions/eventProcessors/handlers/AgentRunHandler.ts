@@ -1,17 +1,18 @@
-import { isProcessingAtom, modelInfoAtom } from '@/common/state/atoms/ui';
+import { isProcessingAtom, modelInfoAtom, agentInfoAtom } from '@/common/state/atoms/ui';
 import { AgentEventStream } from '@/common/types';
 import { EventHandler, EventHandlerContext } from '../types';
+import { apiService } from '@/common/services/apiService';
 
 export class AgentRunStartHandler implements EventHandler<AgentEventStream.AgentRunStartEvent> {
   canHandle(event: AgentEventStream.Event): event is AgentEventStream.AgentRunStartEvent {
     return event.type === 'agent_run_start';
   }
 
-  handle(
+  async handle(
     context: EventHandlerContext,
     sessionId: string,
     event: AgentEventStream.AgentRunStartEvent,
-  ): void {
+  ): Promise<void> {
     const { set } = context;
 
     if (event.provider || event.model) {
@@ -21,6 +22,27 @@ export class AgentRunStartHandler implements EventHandler<AgentEventStream.Agent
         displayName: event.modelDisplayName,
       });
     }
+
+    // FIXME: Migrate these codes to the server, no need to maintain them on the front-end 🤡
+    // Capture and persist agent name in session metadata
+    if (event.agentName) {
+      set(agentInfoAtom, {
+        name: event.agentName,
+      });
+
+      // Store agent info in session metadata for persistence
+      try {
+        await apiService.updateSessionMetadata(sessionId, {
+          agentInfo: {
+            name: event.agentName,
+            configuredAt: Date.now(),
+          },
+        });
+      } catch (error) {
+        console.warn('Failed to persist agent info in session metadata:', error);
+      }
+    }
+
     set(isProcessingAtom, true);
   }
 }

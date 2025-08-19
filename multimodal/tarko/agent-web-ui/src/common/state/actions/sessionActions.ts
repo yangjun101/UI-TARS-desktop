@@ -4,19 +4,25 @@ import { apiService } from '../../services/apiService';
 import { sessionsAtom, activeSessionIdAtom } from '../atoms/session';
 import { messagesAtom } from '../atoms/message';
 import { toolResultsAtom, toolCallResultMap } from '../atoms/tool';
-import { isProcessingAtom, activePanelContentAtom, modelInfoAtom } from '../atoms/ui';
+import {
+  isProcessingAtom,
+  activePanelContentAtom,
+  modelInfoAtom,
+  agentInfoAtom,
+} from '../atoms/ui';
 import { processEventAction } from './eventProcessors';
-import { Message } from '@/common/types';
+import { Message, SessionMetadata } from '@/common/types';
 import { connectionStatusAtom } from '../atoms/ui';
 import { replayStateAtom } from '../atoms/replay';
 import { sessionFilesAtom, FileItem } from '../atoms/files';
 import { ChatCompletionContentPart, AgentEventStream } from '@tarko/agent-interface';
 
-// Cache model information to avoid re-fetching on session switches
+// Cache model information and agent info to avoid re-fetching on session switches
 const sessionMetadataCache = new Map<
   string,
   {
     modelInfo?: { provider: string; model: string; displayName?: string };
+    agentInfo?: { name: string };
   }
 >();
 
@@ -111,6 +117,7 @@ export const createSessionAction = atom(null, async (get, set) => {
   }
 });
 
+// FIXME: Simplify it or Remove it.
 // Enhanced with automatic workspace panel file selection and replay mode handling
 export const setActiveSessionAction = atom(null, async (get, set, sessionId: string) => {
   try {
@@ -160,49 +167,98 @@ export const setActiveSessionAction = atom(null, async (get, set, sessionId: str
       const processedEvents = preprocessStreamingEvents(events);
 
       for (const event of processedEvents) {
-        set(processEventAction, { sessionId, event });
+        await set(processEventAction, { sessionId, event });
       }
 
-      // Cache model metadata for future session switches
+      // Cache model metadata and agent info for future session switches
       const runStartEvent = events.find((e) => e.type === 'agent_run_start');
-      if (runStartEvent && ('provider' in runStartEvent || 'model' in runStartEvent)) {
-        sessionMetadataCache.set(sessionId, {
-          modelInfo: {
+      if (
+        runStartEvent &&
+        ('provider' in runStartEvent || 'model' in runStartEvent || 'agentName' in runStartEvent)
+      ) {
+        const cacheData: { modelInfo?: any; agentInfo?: any } = {};
+
+        if (runStartEvent.provider || runStartEvent.model) {
+          cacheData.modelInfo = {
             provider: runStartEvent.provider || '',
             model: runStartEvent.model || '',
             displayName: runStartEvent.modelDisplayName ?? '',
-          },
-        });
+          };
+        }
+
+        if (runStartEvent.agentName) {
+          cacheData.agentInfo = {
+            name: runStartEvent.agentName,
+          };
+        }
+
+        sessionMetadataCache.set(sessionId, cacheData);
       }
     } else {
       console.log(`Session ${sessionId} already has messages, skipping event loading`);
       const cachedMetadata = sessionMetadataCache.get(sessionId);
+
+      // Restore model info from cache
       if (cachedMetadata?.modelInfo) {
         console.log(`Restoring model info from cache for session ${sessionId}`);
         set(modelInfoAtom, cachedMetadata.modelInfo);
-      } else {
-        console.log(
-          `No cached model info for session ${sessionId}, loading events to find model info`,
-        );
+      }
 
-        // Lightweight load for model info only
+      // Restore agent info from cache
+      if (cachedMetadata?.agentInfo) {
+        console.log(`Restoring agent info from cache for session ${sessionId}`);
+        set(agentInfoAtom, cachedMetadata.agentInfo);
+      }
+
+      // If no cached data, try to load from session metadata first, then events
+      if (!cachedMetadata?.modelInfo || !cachedMetadata?.agentInfo) {
+        console.log(`Loading session metadata for ${sessionId}`);
+
         try {
-          const events = await apiService.getSessionEvents(sessionId);
-          const runStartEvent = events.find((e) => e.type === 'agent_run_start');
-          if (runStartEvent && ('provider' in runStartEvent || 'model' in runStartEvent)) {
-            const modelInfo = {
-              provider: runStartEvent.provider || '',
-              model: runStartEvent.model || '',
-              displayName: runStartEvent.modelDisplayName ?? '',
-            };
+          const sessionDetails = await apiService.getSessionDetails(sessionId);
+          const cacheData: { modelInfo?: any; agentInfo?: any } = { ...cachedMetadata };
 
-            set(modelInfoAtom, modelInfo);
-
-            sessionMetadataCache.set(sessionId, { modelInfo });
-            console.log(`Found and cached model info for session ${sessionId}:`, modelInfo);
+          // Restore agent info from session metadata
+          if (!cachedMetadata?.agentInfo && sessionDetails.metadata?.agentInfo?.name) {
+            const agentInfo = { name: sessionDetails.metadata.agentInfo.name };
+            set(agentInfoAtom, agentInfo);
+            cacheData.agentInfo = agentInfo;
+            console.log(`Restored agent info from session metadata for ${sessionId}:`, agentInfo);
           }
+
+          // If still missing model info, load from events
+          if (!cachedMetadata?.modelInfo) {
+            const events = await apiService.getSessionEvents(sessionId);
+            const runStartEvent = events.find((e) => e.type === 'agent_run_start');
+
+            if (runStartEvent && ('provider' in runStartEvent || 'model' in runStartEvent)) {
+              const modelInfo = {
+                provider: runStartEvent.provider || '',
+                model: runStartEvent.model || '',
+                displayName: runStartEvent.modelDisplayName ?? '',
+              };
+              set(modelInfoAtom, modelInfo);
+              cacheData.modelInfo = modelInfo;
+              console.log(`Found and cached model info for session ${sessionId}:`, modelInfo);
+            }
+
+            // Also extract agent info from events if not in metadata
+            if (
+              !cacheData.agentInfo &&
+              runStartEvent &&
+              'agentName' in runStartEvent &&
+              runStartEvent.agentName
+            ) {
+              const agentInfo = { name: runStartEvent.agentName };
+              set(agentInfoAtom, agentInfo);
+              cacheData.agentInfo = agentInfo;
+              console.log(`Found and cached agent info for session ${sessionId}:`, agentInfo);
+            }
+          }
+
+          sessionMetadataCache.set(sessionId, cacheData);
         } catch (error) {
-          console.warn(`Failed to load events for model info recovery:`, error);
+          console.warn(`Failed to load session metadata/events for info recovery:`, error);
         }
       }
     }
@@ -233,7 +289,11 @@ export const setActiveSessionAction = atom(null, async (get, set, sessionId: str
 
 export const updateSessionAction = atom(
   null,
-  async (get, set, params: { sessionId: string; updates: { name?: string; tags?: string[] } }) => {
+  async (
+    get,
+    set,
+    params: { sessionId: string; updates: Partial<SessionMetadata['metadata']> },
+  ) => {
     const { sessionId, updates } = params;
 
     try {
@@ -404,40 +464,3 @@ export const checkSessionStatusAction = atom(null, async (get, set, sessionId: s
     console.error('Failed to check session status:', error);
   }
 });
-
-// Backup mechanism for session naming - reduced importance to avoid update failure impact
-async function handleConversationEnd(get: Getter, set: Setter, sessionId: string): Promise<void> {
-  const allMessages = get(messagesAtom)[sessionId] || [];
-
-  const sessions = get(sessionsAtom);
-  const currentSession = sessions.find((s) => s.id === sessionId);
-
-  // Skip if session already has a name
-  if (currentSession && currentSession.name) {
-    return;
-  }
-
-  // Only generate summary for actual conversations
-  if (allMessages.length > 1) {
-    try {
-      const apiMessages = allMessages.map((msg: Message) => ({
-        role: msg.role,
-        content: typeof msg.content === 'string' ? msg.content : 'multimodal content',
-      }));
-
-      const summary = await apiService.generateSummary(sessionId, apiMessages);
-
-      if (summary) {
-        await apiService.updateSessionMetadata(sessionId, { name: summary });
-
-        set(sessionsAtom, (prev) =>
-          prev.map((session) =>
-            session.id === sessionId ? { ...session, name: summary } : session,
-          ),
-        );
-      }
-    } catch (error) {
-      console.error('Failed to generate or update summary, continuing anyway:', error);
-    }
-  }
-}

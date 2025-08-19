@@ -6,7 +6,7 @@ import { replayStateAtom } from '@/common/state/atoms/replay';
 /**
  * Main event processor action - maintains the original API
  */
-export const processEventAction = atom(null, (get, set, params: EventProcessingParams) => {
+export const processEventAction = atom(null, async (get, set, params: EventProcessingParams) => {
   const { sessionId, event } = params;
 
   // Create handler context
@@ -34,7 +34,7 @@ export const processEventAction = atom(null, (get, set, params: EventProcessingP
 
   if (handler) {
     try {
-      handler.handle(context, sessionId, event);
+      await handler.handle(context, sessionId, event);
     } catch (error) {
       console.error(`Error handling event ${event.type}:`, error);
       // Continue processing to avoid breaking the event stream
