@@ -10,6 +10,7 @@ import { SkeletonLoader } from './SkeletonLoader';
 import { useAtomValue } from 'jotai';
 import { agentStatusAtom } from '@/common/state/atoms/ui';
 import { AgentProcessingPhase } from '@tarko/interface';
+import { getAgentTitle } from '@/common/constants';
 
 interface MessageGroupProps {
   messages: MessageType[];
@@ -96,7 +97,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, isThinking
       {isThinking && (
         <div className="mt-4 space-y-4">
           <ThinkingAnimation
-            text={agentStatus.message || 'Agent TARS is running'}
+            text={agentStatus.message || `${getAgentTitle()} is running`}
             phase={agentStatus.phase}
             estimatedTime={agentStatus.estimatedTime}
             showProgress={

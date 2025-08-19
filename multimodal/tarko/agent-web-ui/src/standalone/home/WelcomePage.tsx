@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowRight, FiArrowUpRight } from 'react-icons/fi';
 import { useSession } from '@/common/hooks/useSession';
+import { getWebUIConfig, getLogoUrl, getAgentTitle } from '@/common/constants';
 
 const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,10 +15,8 @@ const WelcomePage: React.FC = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Get configuration from global window object with fallback defaults
-  const webUIConfig = window.AGENT_WEB_UI_CONFIG;
-  const logoUrl =
-    webUIConfig?.logo ||
-    'https://lf3-static.bytednsdoc.com/obj/eden-cn/zyha-aulnh/ljhwZthlaukjlkulzlp/appicon.png';
+  const webUIConfig = getWebUIConfig();
+  const logoUrl = getLogoUrl();
   const pageTitle = webUIConfig?.title;
   const pageSubtitle = webUIConfig?.subtitle;
   const webclomeTitle = webUIConfig?.welcomTitle ?? webUIConfig?.title;
@@ -167,7 +166,7 @@ const WelcomePage: React.FC = () => {
                   value={query}
                   onChange={handleInput}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask Agent TARS anything..."
+                  placeholder={`Ask ${getAgentTitle()} anything...`}
                   className="w-full px-6 py-4 text-lg bg-transparent outline-none text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-none min-h-[100px]"
                   disabled={isLoading || isDirectChatLoading}
                   rows={3}

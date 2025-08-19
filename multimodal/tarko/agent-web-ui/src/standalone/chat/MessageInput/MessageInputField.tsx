@@ -11,6 +11,7 @@ import {
   updateSelectorStateAction,
 } from '@/common/state/atoms/contextualSelector';
 import { ContextualSelector, ContextualItem } from '../ContextualSelector';
+import { getAgentTitle, isContextualSelectorEnabled } from '@/common/constants';
 
 interface MessageInputFieldProps {
   uploadedImages: ChatCompletionContentPart[];
@@ -55,7 +56,7 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
   const { abortQuery } = useSession();
 
   // Check if contextual selector is enabled
-  const isContextualSelectorEnabled = window.AGENT_WEB_UI_CONFIG?.enableContextualSelector ?? false;
+  const contextualSelectorEnabled = isContextualSelectorEnabled();
 
   useEffect(() => {
     if (!isDisabled && inputRef.current) {
@@ -80,7 +81,7 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
       contextualItems: parseContextualReferences(newValue),
     }));
 
-    if (!isContextualSelectorEnabled) return;
+    if (!contextualSelectorEnabled) return;
 
     // Check for @ symbol at cursor position
     const textBeforeCursor = newValue.slice(0, newCursorPosition);
@@ -301,7 +302,7 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
   return (
     <>
       {/* Contextual selector - positioned above input */}
-      {isContextualSelectorEnabled && contextualState.showSelector && (
+      {contextualSelectorEnabled && contextualState.showSelector && (
         <div className="absolute left-0 right-0 bottom-full mb-2 z-50">
           <ContextualSelector
             isOpen={contextualState.showSelector}
@@ -346,10 +347,10 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
                 connectionStatus && !connectionStatus.connected
                   ? 'Server disconnected...'
                   : isProcessing
-                    ? 'Agent TARS is running...'
-                    : isContextualSelectorEnabled
-                      ? 'Ask Agent TARS something... (Use @ to reference files/folders, Ctrl+Enter to send)'
-                      : 'Ask Agent TARS something... (Ctrl+Enter to send)'
+                    ? `${getAgentTitle()} is running...`
+                    : contextualSelectorEnabled
+                      ? `Ask ${getAgentTitle()} something... (Use @ to reference files/folders, Ctrl+Enter to send)`
+                      : `Ask ${getAgentTitle()} something... (Ctrl+Enter to send)`
               }
               disabled={isDisabled}
               className="w-full px-5 pt-5 pb-12 focus:outline-none resize-none min-h-[100px] max-h-[220px] bg-transparent text-sm leading-relaxed rounded-[1.4rem]"
@@ -479,7 +480,7 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
             whileHover={{ opacity: 1 }}
             className="text-gray-500 dark:text-gray-400 transition-opacity"
           >
-            {isContextualSelectorEnabled ? (
+            {contextualSelectorEnabled ? (
               <>
                 Use @ to reference files/folders • Ctrl+Enter to send • You can also paste images
                 directly

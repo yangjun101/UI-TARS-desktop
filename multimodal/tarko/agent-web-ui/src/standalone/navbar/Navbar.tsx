@@ -12,6 +12,7 @@ import { useReplayMode } from '@/common/hooks/useReplayMode';
 import { useDarkMode } from '@/common/hooks/useDarkMode';
 import { apiService } from '@/common/services/apiService';
 import { NavbarModelSelector } from './ModelSelector';
+import { getLogoUrl, getAgentTitle } from '@/common/constants';
 
 import './Navbar.css';
 
@@ -37,8 +38,8 @@ export const Navbar: React.FC = () => {
         parts.push(agentInfo.name);
       }
 
-      // Create title with format: "dir | agent" or fallback to "Agent TARS"
-      const title = parts.length > 0 ? parts.join(' | ') : 'Agent TARS';
+      // Create title with format: "dir | agent" or fallback to configured title
+      const title = parts.length > 0 ? parts.join(' | ') : getAgentTitle();
       document.title = title;
     };
 
@@ -46,10 +47,7 @@ export const Navbar: React.FC = () => {
   }, [workspaceInfo.name, agentInfo.name]);
 
   // Get configuration from global window object
-  const webUIConfig = window.AGENT_WEB_UI_CONFIG;
-  const logoUrl =
-    webUIConfig?.logo ||
-    'https://lf3-static.bytednsdoc.com/obj/eden-cn/zyha-aulnh/ljhwZthlaukjlkulzlp/appicon.png';
+  const logoUrl = getLogoUrl();
 
   // Get logo type from URL query parameter
   const logoType = React.useMemo(() => {
@@ -91,7 +89,7 @@ export const Navbar: React.FC = () => {
           ) : (
             /* Agent TARS logo with configurable URL */
             <a href="http://agent-tars.com" target="blank" className="mr-3">
-              <img src={logoUrl} alt="Agent TARS" className="w-6 h-6 rounded-lg" />
+              <img src={logoUrl} alt={getAgentTitle()} className="w-6 h-6 rounded-lg" />
             </a>
           )}
         </div>
@@ -126,7 +124,7 @@ export const Navbar: React.FC = () => {
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowAboutModal(true)}
             className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100/40 dark:hover:bg-gray-800/40 transition-colors"
-            title="About Agent TARS"
+            title={`About ${getAgentTitle()}`}
           >
             <FiInfo size={16} />
           </motion.button>
