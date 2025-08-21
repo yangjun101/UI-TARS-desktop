@@ -139,6 +139,44 @@ export function addCommonOptions(command: Command): Command {
 }
 
 /**
+ * Built-in agent mappings
+ *
+ * Using lazy resolution - resolve module path only when needed
+ */
+const BUILTIN_AGENTS: Record<string, { modulePath: string; label: string }> = {
+  'agent-tars': {
+    modulePath: '@agent-tars/core',
+    label: 'Agent TARS',
+  },
+  'omni-tars': {
+    modulePath: '@omni-tars/agent',
+    label: 'Omni TARS',
+  },
+  'mcp-agent': {
+    modulePath: '@tarko/mcp-agent',
+    label: 'MCP Agent',
+  },
+};
+
+/**
+ * Resolve built-in agent module path when needed
+ */
+function resolveBuiltinAgent(agentName: string): string {
+  const agent = BUILTIN_AGENTS[agentName];
+  if (!agent) {
+    throw new Error(`Unknown built-in agent: ${agentName}`);
+  }
+
+  try {
+    return require.resolve(agent.modulePath);
+  } catch (error: unknown) {
+    throw new Error(
+      `Failed to resolve built-in agent "${agentName}": ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
  * FIXME: Support markdown agent.
  *
  * Resolve agent implementation from cli argument
@@ -149,6 +187,19 @@ export async function resolveAgentFromCLIArgument(
 ): Promise<AgentImplementation> {
   // Use default agent if no agent parameter provided
   if (agentParam) {
+    // Check if it's a built-in agent
+    const builtinAgent = BUILTIN_AGENTS[agentParam];
+    if (builtinAgent) {
+      console.log(`Using built-in agent: ${builtinAgent.label}`);
+      return {
+        type: 'modulePath',
+        value: resolveBuiltinAgent(agentParam),
+        label: builtinAgent.label,
+        agio: AgioProvider,
+      };
+    }
+
+    // Otherwise treat as custom module path
     return {
       type: 'modulePath',
       value: agentParam,

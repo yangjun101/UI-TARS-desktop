@@ -335,9 +335,6 @@ importers:
       '@rslib/core':
         specifier: 0.10.0
         version: 0.10.0(typescript@5.8.3)
-      '@tarko/agent-cli':
-        specifier: workspace:*
-        version: link:../../tarko/agent-cli
       '@types/node':
         specifier: 22.15.30
         version: 22.15.30
@@ -372,9 +369,6 @@ importers:
       '@rslib/core':
         specifier: 0.10.0
         version: 0.10.0(typescript@5.8.3)
-      '@tarko/agent-cli':
-        specifier: workspace:*
-        version: link:../../tarko/agent-cli
       '@types/node':
         specifier: 22.15.30
         version: 22.15.30
@@ -424,9 +418,6 @@ importers:
       '@rslib/core':
         specifier: 0.10.0
         version: 0.10.0(typescript@5.8.3)
-      '@tarko/agent-cli':
-        specifier: workspace:*
-        version: link:../../tarko/agent-cli
       '@types/node':
         specifier: 22.15.30
         version: 22.15.30
@@ -461,9 +452,6 @@ importers:
       '@rslib/core':
         specifier: 0.10.0
         version: 0.10.0(typescript@5.8.3)
-      '@tarko/agent-cli':
-        specifier: workspace:*
-        version: link:../../tarko/agent-cli
       '@types/node':
         specifier: 22.15.30
         version: 22.15.30
@@ -498,9 +486,6 @@ importers:
       '@rslib/core':
         specifier: 0.10.0
         version: 0.10.0(typescript@5.8.3)
-      '@tarko/agent-cli':
-        specifier: workspace:*
-        version: link:../../tarko/agent-cli
       '@tarko/agent-interface':
         specifier: workspace:*
         version: link:../../tarko/agent-interface
@@ -577,12 +562,21 @@ importers:
 
   tarko/agent-cli:
     dependencies:
+      '@agent-tars/core':
+        specifier: workspace:*
+        version: link:../../agent-tars/core
+      '@omni-tars/agent':
+        specifier: workspace:*
+        version: link:../../omni-tars/omni-agent
       '@tarko/agent':
         specifier: workspace:*
         version: link:../agent
       '@tarko/agent-server':
         specifier: workspace:*
         version: link:../agent-server
+      '@tarko/mcp-agent':
+        specifier: workspace:*
+        version: link:../mcp-agent
       '@tarko/shared-utils':
         specifier: workspace:*
         version: link:../shared-utils
