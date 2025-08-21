@@ -2,9 +2,10 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { defineConfig, LogLevel } from '@tarko/agent-cli';
+import { LogLevel } from '@tarko/interface';
 
-export default defineConfig({
+// FIXME: using defineConfig
+export default {
   model: {
     // provider: 'volcengine',
     // baseURL: process.env.ARK_BASE_URL,
@@ -29,4 +30,4 @@ export default defineConfig({
       'What is Agent TARS',
     ],
   },
-});
+};

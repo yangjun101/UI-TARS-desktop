@@ -2,10 +2,11 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { defineConfig, LogLevel } from '@tarko/agent-cli';
+import { LogLevel } from '@tarko/interface';
 import { resolve } from 'node:path';
 
-export default defineConfig({
+// FIXME: using defineConfig
+export default {
   model: {
     provider: 'openai-non-streaming',
     baseURL: process.env.OMNI_TARS_BASE_URL,
@@ -24,4 +25,4 @@ export default defineConfig({
     ],
   },
   snapshot: { storageDirectory: resolve(__dirname, 'snapshots'), enable: true },
-});
+};

@@ -2,9 +2,8 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { defineConfig } from '@tarko/agent-cli';
-
-export default defineConfig({
+// FIXME: using defineConfig
+export default {
   model: {
     provider: 'volcengine',
     baseURL: process.env.OMNI_TARS_BASE_URL,
@@ -23,4 +22,4 @@ export default defineConfig({
       'Please book me the earliest flight from Hangzhou to Shenzhen on 10.1',
     ],
   },
-});
+};
