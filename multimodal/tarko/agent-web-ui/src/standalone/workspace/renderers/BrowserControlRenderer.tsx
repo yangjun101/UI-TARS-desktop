@@ -71,7 +71,7 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
     }
   }, [environmentImage]);
 
-  // Find the most recent environment input (screenshot) before this operation
+  // Find the next environment input (screenshot) after this operation
   useEffect(() => {
     // Initialize: clear current screenshot if no direct environment image provided
     if (!environmentImage) {
@@ -93,8 +93,8 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
 
     let foundImage = false;
 
-    // Only search for screenshots BEFORE the current tool call
-    for (let i = currentToolCallIndex - 1; i >= 0; i--) {
+    // Search for screenshots AFTER the current tool call
+    for (let i = currentToolCallIndex + 1; i < sessionMessages.length; i++) {
       const msg = sessionMessages[i];
       if (msg.role === 'environment' && Array.isArray(msg.content)) {
         const imgContent = msg.content.find(
@@ -109,10 +109,10 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
       }
     }
 
-    // If no valid screenshot found before the tool call, clear the display
+    // If no valid screenshot found after the tool call, clear the display
     if (!foundImage && !environmentImage) {
       console.warn(
-        `[BrowserControlRenderer] No valid screenshot found before toolCallId: ${toolCallId}. Clearing screenshot display.`,
+        `[BrowserControlRenderer] No valid screenshot found after toolCallId: ${toolCallId}. Clearing screenshot display.`,
       );
       setRelatedImage(null);
     }
