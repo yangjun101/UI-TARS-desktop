@@ -25,7 +25,7 @@ const toolCallEngine = createComposableToolCallEngineFactory({
   ],
 });
 
-const sandboxUrl = process.env.AIO_SANDBOX_URL;
+const sandboxBaseUrl = process.env.AIO_SANDBOX_URL ?? '.';
 
 type OmniTarsOption = AgentOptions & MCPTarsExtraOption & CodeAgentExtraOption;
 
@@ -47,14 +47,13 @@ export default class OmniTARSAgent extends ComposableAgent {
     ],
     workspace: {
       navItems: [
-        // DO NOT DISPLAY CODE SERVER FOR NOW
-        // {
-        //   title: 'Code Server',
-        //   link: sandboxUrl + '/code-server/',
-        // },
+        {
+          title: 'Code Server',
+          link: sandboxBaseUrl + '/code-server/',
+        },
         {
           title: 'VNC',
-          link: sandboxUrl ? sandboxUrl + '/vnc/index.html' : './vnc/index.html',
+          link: sandboxBaseUrl + '/vnc/index.html?autoconnect=true',
         },
       ],
     },
