@@ -239,54 +239,6 @@ function extractCommandData(panelContent: StandardPanelContent) {
   }
 
   /**
-   * SUCCESS:
-   *
-   * {
-   *    "panelContent": {
-   *        "type": "command_result",
-   *        "source": {
-   *            "output": "File created successfully at: /home/gem/agent-tars-poster/package.json",
-   *            "error": null,
-   *            "path": "/home/gem/agent-tars-poster/package.json",
-   *            "prev_exist": false,
-   *            "old_content": null,
-   *            "new_content": "..."
-   *        },
-   *        "title": "str_replace_editor",
-   *        "timestamp": 1755607726980,
-   *        "toolCallId": "call_1755607726967_iiy3e7x6v",
-   *        "arguments": {
-   *            "command": "create",
-   *            "path": "/home/gem/agent-tars-poster/package.json",
-   *            "file_text": "..."
-   *        }
-   *    }
-   * }
-   */
-  if (panelContent.title === 'str_replace_editor' && panelContent.arguments) {
-    const { command = '', file_text = '', path = '' } = panelContent.arguments;
-
-    const mergedCommand = [command, path, '\n', file_text].filter(Boolean).join(' ');
-    if (typeof panelContent.source === 'object') {
-      return {
-        command: mergedCommand,
-        stdout: panelContent.source.output,
-        stderr: panelContent.source.error,
-        exitCode: panelContent.source.error ? 1 : 0,
-      };
-    }
-
-    if (typeof panelContent.source === 'string') {
-      const isError = panelContent.source.includes('Error: ');
-      return {
-        command: mergedCommand,
-        stderr: isError ? panelContent.source : '',
-        stdout: isError ? '' : panelContent.source,
-      };
-    }
-  }
-
-  /**
    * Final fallback
    */
   if (typeof panelContent.source === 'string') {
