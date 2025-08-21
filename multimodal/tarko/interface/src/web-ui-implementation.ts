@@ -13,6 +13,30 @@
 export type AgentWebUIImplementationType = 'static' | 'remote';
 
 /**
+ * Navigation item configuration for workspace
+ */
+export interface WorkspaceNavItem {
+  /**
+   * Navigation item title displayed on the button
+   */
+  title: string;
+  /**
+   * Link URL to open in new tab
+   */
+  link: string;
+}
+
+/**
+ * Workspace configuration options
+ */
+export interface WorkspaceConfig {
+  /**
+   * Navigation items to display in the workspace header
+   */
+  navItems?: WorkspaceNavItem[];
+}
+
+/**
  * Base agent implementation interface
  */
 export interface BaseAgentWebUIImplementation {
@@ -57,6 +81,10 @@ export interface BaseAgentWebUIImplementation {
    * @defaultValue false
    */
   enableContextualSelector?: boolean;
+  /**
+   * Workspace configuration
+   */
+  workspace?: WorkspaceConfig;
 }
 
 /**
