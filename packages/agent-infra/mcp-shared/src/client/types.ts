@@ -18,7 +18,7 @@ interface BaseMCPServer<ServerNames extends string = string> {
   name: ServerNames;
   status?: 'activate' | 'error' | 'disabled';
   description?: string;
-  /** timeout (seconds), default 10s */
+  /** timeout (seconds), default 60s */
   timeout?: number;
   /** filters for tools and prompts */
   filters?: MCPFilters;

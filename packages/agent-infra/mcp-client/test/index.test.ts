@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MCPClient, MCPTool } from '../src/index';
+import type { MCPServer } from '../src/index';
 import type {
-  MCPServer,
   BuiltInMCPServer,
   StdioMCPServer,
   SSEMCPServer,
   StreamableHTTPMCPServer,
-} from '../src/index';
+} from '@agent-infra/mcp-shared/client';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
@@ -56,6 +56,27 @@ class MockMCPServer extends McpServer {
       async (request: any) => {
         if (request.params?.name === toolName) {
           return mockResult;
+        }
+        throw new Error(`Tool ${request.params?.name} not found`);
+      },
+    );
+  }
+
+  setupSlowToolCall(toolName: string, delayMs: number, mockResult?: any) {
+    this.server.setRequestHandler(
+      z.object({
+        method: z.literal('tools/call'),
+        params: z.object({ name: z.string() }).optional(),
+      }),
+      async (request: any) => {
+        if (request.params?.name === toolName) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          return (
+            mockResult || {
+              content: [{ type: 'text', text: 'Slow tool result' }],
+              isError: false,
+            }
+          );
         }
         throw new Error(`Tool ${request.params?.name} not found`);
       },
@@ -592,6 +613,75 @@ describe('MCPClient', () => {
       await client.deactivate('stop-server');
 
       expect(stoppedHandler).toHaveBeenCalledWith({ name: 'stop-server' });
+    });
+  });
+
+  describe('Timeout Configuration', () => {
+    it('should use server-specific timeout over default timeout', async () => {
+      const slowMockServer = new MockMCPServer();
+
+      // Setup a tool that takes 150ms to complete
+      slowMockServer.setupSlowToolCall('slow-tool', 150);
+      slowMockServer.setTools([
+        {
+          name: 'slow-tool',
+          description: 'A slow tool for timeout testing',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ]);
+
+      const serverWithShortTimeout: BuiltInMCPServer = {
+        name: 'short-timeout-server',
+        mcpServer: slowMockServer,
+        status: 'activate',
+        timeout: 0.1, // 100ms - should timeout
+      };
+
+      const serverWithLongTimeout: BuiltInMCPServer = {
+        name: 'long-timeout-server',
+        mcpServer: new MockMCPServer(),
+        status: 'activate',
+        timeout: 0.3, // 300ms - should succeed
+      };
+
+      // Setup the second server with the same slow tool
+      (serverWithLongTimeout.mcpServer as MockMCPServer).setupSlowToolCall(
+        'slow-tool',
+        150,
+      );
+      (serverWithLongTimeout.mcpServer as MockMCPServer).setTools([
+        {
+          name: 'slow-tool',
+          description: 'A slow tool for timeout testing',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ]);
+
+      client = new MCPClient([serverWithShortTimeout, serverWithLongTimeout], {
+        defaultTimeout: 1,
+      });
+      await client.init();
+
+      // Test 1: Server with short timeout should fail
+      await expect(
+        client.callTool({
+          client: 'short-timeout-server',
+          name: 'slow-tool',
+          args: {},
+        }),
+      ).rejects.toThrow();
+
+      // Test 2: Server with long timeout should succeed
+      const result = await client.callTool({
+        client: 'long-timeout-server',
+        name: 'slow-tool',
+        args: {},
+      });
+
+      expect(result).toEqual({
+        content: [{ type: 'text', text: 'Slow tool result' }],
+        isError: false,
+      });
     });
   });
 
