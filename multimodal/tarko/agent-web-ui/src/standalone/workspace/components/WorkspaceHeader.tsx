@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiBookOpen, FiMaximize, FiMonitor } from 'react-icons/fi';
+import { FiArrowLeft, FiBookOpen, FiMaximize, FiMonitor, FiEye, FiCode } from 'react-icons/fi';
 import { formatTimestamp } from '@/common/utils/formatters';
 import { useTool } from '@/common/hooks/useTool';
 import { normalizeFilePath } from '@/common/utils/pathNormalizer';
@@ -134,6 +134,8 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             rightValue="raw"
             leftLabel="UI"
             rightLabel="RAW"
+            leftIcon={<FiEye size={12} />}
+            rightIcon={<FiCode size={12} />}
           />
         )}
 
