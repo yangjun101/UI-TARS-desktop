@@ -8,6 +8,7 @@ import { ReplayControlPanel } from '@/standalone/replay/ReplayControlPanel';
 import { FullscreenModal } from './components/FullscreenModal';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FullscreenFileData } from './types/panelContent';
+import { getFileTypeInfo } from './utils/fileTypeUtils';
 import './Workspace.css';
 
 /**
@@ -22,9 +23,7 @@ function getFocusParam(): string | null {
  * Check if file should be displayed in fullscreen based on extension
  */
 function shouldShowFullscreen(filePath: string): boolean {
-  const fileName = filePath.split('/').pop() || '';
-  const extension = fileName.toLowerCase().split('.').pop() || '';
-  return ['html', 'htm', 'md', 'markdown'].includes(extension);
+  return getFileTypeInfo(filePath).isRenderableFile;
 }
 
 /**
@@ -54,20 +53,15 @@ export const WorkspacePanel: React.FC = () => {
         typeof content === 'string' &&
         shouldShowFullscreen(filePath)
       ) {
-        const isHtmlFile =
-          fileName.toLowerCase().endsWith('.html') || fileName.toLowerCase().endsWith('.htm');
-        const isMarkdownFile =
-          fileName.toLowerCase().endsWith('.md') || fileName.toLowerCase().endsWith('.markdown');
-
-        console.log('[WorkspacePanel] Setting fullscreen for focused file:', fileName);
+        const { isMarkdown, isHtml } = getFileTypeInfo(filePath);
 
         setFullscreenData({
           content,
           fileName,
           filePath,
           displayMode: 'rendered', // Default to rendered for focus mode
-          isMarkdown: isMarkdownFile,
-          isHtml: isHtmlFile,
+          isMarkdown,
+          isHtml,
         });
 
         // Mark focus parameter as processed

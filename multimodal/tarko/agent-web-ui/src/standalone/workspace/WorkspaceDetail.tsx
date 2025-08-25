@@ -13,6 +13,7 @@ import { FileDisplayMode } from './types';
 import { ToggleSwitchProps } from './renderers/generic/components';
 import { workspaceDisplayModeAtom, WorkspaceDisplayMode } from '@/common/state/atoms/workspace';
 import { rawToolMappingAtom } from '@/common/state/atoms/rawEvents';
+import { getFileTypeInfo, getDefaultDisplayMode } from './utils/fileTypeUtils';
 
 /**
  * All renderers
@@ -73,42 +74,30 @@ export const WorkspaceDetail: React.FC = () => {
 
   // Determine initial display mode based on content type and streaming state
   const getInitialDisplayMode = (): FileDisplayMode => {
-    if (!activePanelContent) return 'rendered';
-
-    if (activePanelContent.type === 'file' && activePanelContent.arguments?.path) {
-      const fileName = activePanelContent.arguments.path.split('/').pop() || '';
-      const isHtmlFile =
-        fileName.toLowerCase().endsWith('.html') || fileName.toLowerCase().endsWith('.htm');
-
-      // For HTML files during streaming, default to source mode
-      if (isHtmlFile && activePanelContent.isStreaming) {
-        return 'source';
-      }
+    if (!activePanelContent || activePanelContent.type !== 'file' || !activePanelContent.arguments?.path) {
+      return 'rendered';
     }
 
-    return 'rendered';
+    return getDefaultDisplayMode(activePanelContent.arguments.path, Boolean(activePanelContent.isStreaming));
   };
 
   const [displayMode, setDisplayMode] = useState<FileDisplayMode>(getInitialDisplayMode());
 
   // Auto-switch HTML files from source to rendered when streaming completes
   useEffect(() => {
-    if (!activePanelContent || !activePanelContent.isStreaming) return;
+    if (!activePanelContent || activePanelContent.type !== 'file' || !activePanelContent.arguments?.path) {
+      return;
+    }
 
-    if (activePanelContent.type === 'file' && activePanelContent.arguments?.path) {
-      const fileName = activePanelContent.arguments.path.split('/').pop() || '';
-      const isHtmlFile =
-        fileName.toLowerCase().endsWith('.html') || fileName.toLowerCase().endsWith('.htm');
+    const { isHtml } = getFileTypeInfo(activePanelContent.arguments.path);
 
-      // When streaming completes for HTML files, auto-switch to rendered mode
-      if (isHtmlFile && !activePanelContent.isStreaming && displayMode === 'source') {
-        // Add a small delay to ensure content is fully processed
-        const timer = setTimeout(() => {
-          setDisplayMode('rendered');
-        }, 500);
+    // When streaming completes for HTML files, auto-switch to rendered mode
+    if (isHtml && !activePanelContent.isStreaming && displayMode === 'source') {
+      const timer = setTimeout(() => {
+        setDisplayMode('rendered');
+      }, 500);
 
-        return () => clearTimeout(timer);
-      }
+      return () => clearTimeout(timer);
     }
   }, [activePanelContent?.isStreaming, displayMode]);
 
@@ -133,12 +122,6 @@ export const WorkspaceDetail: React.FC = () => {
 
   // Handle research reports and deliverables
   if (isResearchReportType(panelContent)) {
-    console.log(
-      '%c🎯 [WorkspaceDetail] Using Renderer: %cResearchReportRenderer',
-      'color: #ff6b6b; font-weight: bold; font-size: 12px;',
-      'color: #4ecdc4; font-weight: bold; background: #1a1a1a; padding: 2px 8px; border-radius: 4px;',
-    );
-
     return (
       <ResearchReportRenderer
         panelContent={panelContent}
@@ -176,49 +159,33 @@ export const WorkspaceDetail: React.FC = () => {
       panelContent.arguments?.path &&
       panelContent.arguments?.content
     ) {
-      const fileName = panelContent.arguments.path.split('/').pop() || panelContent.arguments.path;
-      const isMarkdownFile =
-        fileName.toLowerCase().endsWith('.md') || fileName.toLowerCase().endsWith('.markdown');
-      const isHtmlFile =
-        fileName.toLowerCase().endsWith('.html') || fileName.toLowerCase().endsWith('.htm');
+      const { fileName, isMarkdown, isHtml } = getFileTypeInfo(panelContent.arguments.path);
 
       setFullscreenData({
         content: panelContent.arguments.content,
         fileName,
         filePath: panelContent.arguments.path,
         displayMode,
-        isMarkdown: isMarkdownFile,
-        isHtml: isHtmlFile,
+        isMarkdown,
+        isHtml,
       });
     }
   };
 
   // Check if the toggle button needs to be displayed
   const shouldShowToggle = () => {
-    if (workspaceDisplayMode === 'raw') return false; // Hide file toggle in RAW mode
+    if (workspaceDisplayMode === 'raw') return false;
     if (panelContent.type === 'file' && panelContent.arguments?.path) {
-      const fileName = panelContent.arguments.path.split('/').pop() || '';
-      return (
-        fileName.toLowerCase().endsWith('.html') ||
-        fileName.toLowerCase().endsWith('.htm') ||
-        fileName.toLowerCase().endsWith('.md') ||
-        fileName.toLowerCase().endsWith('.markdown')
-      );
+      return getFileTypeInfo(panelContent.arguments.path).isRenderableFile;
     }
     return false;
   };
 
   // Check if fullscreen button should be displayed
   const shouldShowFullscreen = () => {
-    if (workspaceDisplayMode === 'raw') return false; // Hide fullscreen in RAW mode
+    if (workspaceDisplayMode === 'raw') return false;
     if (panelContent.type === 'file' && panelContent.arguments?.path) {
-      const fileName = panelContent.arguments.path.split('/').pop() || '';
-      return (
-        fileName.toLowerCase().endsWith('.html') ||
-        fileName.toLowerCase().endsWith('.htm') ||
-        fileName.toLowerCase().endsWith('.md') ||
-        fileName.toLowerCase().endsWith('.markdown')
-      );
+      return getFileTypeInfo(panelContent.arguments.path).isRenderableFile;
     }
     return false;
   };
@@ -231,13 +198,9 @@ export const WorkspaceDetail: React.FC = () => {
   // Get switch configuration
   const getToggleConfig = (): ToggleSwitchProps<FileDisplayMode> | undefined => {
     if (panelContent.type === 'file' && panelContent.arguments?.path) {
-      const fileName = panelContent.arguments.path.split('/').pop() || '';
-      const isHtmlFile =
-        fileName.toLowerCase().endsWith('.html') || fileName.toLowerCase().endsWith('.htm');
-      const isMarkdownFile =
-        fileName.toLowerCase().endsWith('.md') || fileName.toLowerCase().endsWith('.markdown');
+      const { isHtml, isMarkdown } = getFileTypeInfo(panelContent.arguments.path);
 
-      if (isHtmlFile) {
+      if (isHtml) {
         return {
           leftLabel: 'Source Code',
           rightLabel: 'Preview',
@@ -250,7 +213,7 @@ export const WorkspaceDetail: React.FC = () => {
         };
       }
 
-      if (isMarkdownFile) {
+      if (isMarkdown) {
         return {
           leftLabel: 'Source',
           rightLabel: 'Rendered',
@@ -290,15 +253,6 @@ export const WorkspaceDetail: React.FC = () => {
 
     // Default interaction mode rendering
     const RendererComponent = CONTENT_RENDERERS[panelContent.type] || GenericResultRenderer;
-    const rendererName = CONTENT_RENDERERS[panelContent.type]
-      ? `${panelContent.type}`
-      : 'GenericResultRenderer';
-
-    console.log(
-      '%c🎯 [WorkspaceDetail] Using Renderer: %c' + `[${rendererName}]`,
-      'color: #ff6b6b; font-weight: bold; font-size: 12px;',
-      'color: #4ecdc4; font-weight: bold; background: #1a1a1a; padding: 2px 8px; border-radius: 4px;',
-    );
 
     return (
       <RendererComponent
