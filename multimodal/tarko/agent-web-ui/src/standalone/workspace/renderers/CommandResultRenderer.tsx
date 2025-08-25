@@ -84,7 +84,7 @@ const highlightCommand = (command: string) => {
 
   const lines = command.split('\n');
   return lines.map((line, index) => (
-    <div key={index} className="command-line whitespace-nowrap">
+    <div key={index} className="command-line whitespace-pre-wrap break-words">
       {tokenize(line)}
     </div>
   ));
@@ -126,7 +126,7 @@ export const CommandResultRenderer: React.FC<CommandResultRendererProps> = ({ pa
             <div className="overflow-x-auto min-w-full">
               {/* Command section */}
               {command && (
-                <div className="flex items-start whitespace-nowrap">
+                <div className="flex items-start">
                   <span className="select-none text-green-400 mr-2 font-bold terminal-prompt-symbol">
                     $
                   </span>
@@ -134,16 +134,16 @@ export const CommandResultRenderer: React.FC<CommandResultRendererProps> = ({ pa
                 </div>
               )}
 
-              {/* Output section - disable auto-wrapping */}
+              {/* Output section - enable line wrapping */}
               {stdout && (
-                <pre className="whitespace-pre overflow-x-visible text-gray-200 mt-3 ml-3">
+                <pre className="whitespace-pre-wrap text-gray-200 mt-3 ml-3">
                   {stdout}
                 </pre>
               )}
 
               {/* Error output */}
               {stderr && (
-                <pre className="whitespace-pre overflow-x-visible text-red-400 my-3 ml-3">
+                <pre className="whitespace-pre-wrap text-red-400 my-3 ml-3">
                   {stderr}
                 </pre>
               )}
