@@ -1,9 +1,10 @@
 import React from 'react';
 import { DiffEditor } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import { FiCopy, FiGitBranch } from 'react-icons/fi';
 import { StandardPanelContent } from '../types/panelContent';
 import { FileDisplayMode } from '../types';
+import { normalizeFilePath } from '@/common/utils/pathNormalizer';
+import { CodeEditorHeader } from '@/sdk/code-editor/CodeEditorHeader';
 import '@/sdk/code-editor/MonacoCodeEditor.css';
 
 /**
@@ -42,6 +43,7 @@ export const EditFileRenderer: React.FC<EditFileRendererProps> = ({
 
   const { oldContent, newContent, path } = diffData;
   const fileName = path ? path.split('/').pop() || path : 'Edited File';
+  const displayPath = path ? normalizeFilePath(path) : undefined;
 
   return (
     <div className="space-y-4">
@@ -49,7 +51,7 @@ export const EditFileRenderer: React.FC<EditFileRendererProps> = ({
         oldContent={oldContent}
         newContent={newContent}
         fileName={fileName}
-        filePath={path}
+        filePath={displayPath}
         maxHeight="calc(100vh - 215px)"
       />
     </div>
@@ -171,34 +173,19 @@ const StrReplaceEditorDiffViewer: React.FC<StrReplaceEditorDiffViewerProps> = ({
     <div className="code-editor-container">
       <div className="code-editor-wrapper">
         {/* Header */}
-        <div className="code-editor-header">
-          <div className="code-editor-header-left">
-            <div className="code-editor-controls">
-              <div className="code-editor-control-btn code-editor-control-red" />
-              <div className="code-editor-control-btn code-editor-control-yellow" />
-              <div className="code-editor-control-btn code-editor-control-green" />
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center">
-                <FiGitBranch className="mr-1" size={12} />
-                <span className="code-editor-file-name">{fileName}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-xs">
-                <span className="text-green-400">+{actualAdditions}</span>
-                <span className="text-red-400">-{deletions}</span>
-              </div>
-            </div>
+        <CodeEditorHeader
+          fileName={fileName}
+          filePath={filePath}
+          language={language}
+          onCopy={handleCopy}
+          copyButtonTitle="Copy new content"
+        >
+          {/* Diff stats */}
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="text-green-400">+{actualAdditions}</span>
+            <span className="text-red-400">-{deletions}</span>
           </div>
-          <div className="code-editor-actions">
-            <button
-              onClick={handleCopy}
-              className="code-editor-action-btn"
-              title="Copy new content"
-            >
-              <FiCopy size={14} />
-            </button>
-          </div>
-        </div>
+        </CodeEditorHeader>
 
         {/* Diff Editor */}
         <div className="code-editor-monaco-container" style={{ height: maxHeight }}>
@@ -221,7 +208,11 @@ const StrReplaceEditorDiffViewer: React.FC<StrReplaceEditorDiffViewerProps> = ({
           <div className="code-editor-status-left">
             <span className="code-editor-status-item text-green-400">+{actualAdditions}</span>
             <span className="code-editor-status-item text-red-400">-{deletions}</span>
-            {filePath && <span className="code-editor-status-item text-gray-400">{filePath}</span>}
+            {filePath && (
+              <span className="code-editor-status-item text-gray-400 code-editor-file-name truncate max-w-md">
+                {filePath}
+              </span>
+            )}
           </div>
         </div>
       </div>

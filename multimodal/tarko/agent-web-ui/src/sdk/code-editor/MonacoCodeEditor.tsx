@@ -220,7 +220,9 @@ export const MonacoCodeEditor: React.FC<MonacoCodeEditorProps> = ({
               onMouseEnter={handleFileInfoEnter}
               onMouseLeave={handleFileInfoLeave}
             >
-              <span className="code-editor-file-name">{displayFileName}</span>
+              <span className="code-editor-file-name" title={filePath || displayFileName}>
+                {displayFileName}
+              </span>
 
               {/* Enhanced tooltip */}
               {hasFileInfo && showTooltip && (
