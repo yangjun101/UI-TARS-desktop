@@ -11,6 +11,8 @@ export const COMPUTER_USE_ENVIRONMENT = `<COMPUTER_USE_ENVIRONMENT>
 ## Action Space
 open_computer() # Start the device.
 navigate(content='xxx') # The content is your target web's url.
+  IMPORTANT: Always use navigate() to open websites or go to links,
+  **NEVER NEVER** use type() for URLs.
 navigate_back() # Back to the last page.
 click(point='<point>x1 y1</point>')
 left_double(point='<point>x1 y1</point>')
