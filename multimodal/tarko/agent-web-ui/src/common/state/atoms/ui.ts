@@ -1,11 +1,8 @@
 import { atom } from 'jotai';
-import { AgentProcessingPhase, AgentStatusInfo } from '@tarko/interface';
+import { AgentProcessingPhase, AgentStatusInfo, SessionItemInfo } from '@tarko/interface';
 import {
   ConnectionStatus,
-  ModelInfo,
   PanelContent,
-  AgentInfo,
-  WorkspaceInfo,
   SanitizedAgentOptions,
 } from '@/common/types';
 
@@ -25,29 +22,10 @@ export const connectionStatusAtom = atom<ConnectionStatus>({
 });
 
 /**
- * FIXME: Merge "modelInfoAtom" and "agentInfoAtom", just using "sessionMetadataAtom".
- * Atom for model info (provider and model name)
+ * Session metadata atom using server-side SessionItemInfo metadata type
+ * This eliminates type duplication and ensures consistency with persistence layer
  */
-export const modelInfoAtom = atom<ModelInfo>({
-  provider: '',
-  model: '',
-  displayName: '',
-});
-
-/**
- * Atom for agent info (agent name)
- */
-export const agentInfoAtom = atom<AgentInfo>({
-  name: 'Unknown Agent',
-});
-
-/**
- * Atom for workspace info (workspace name and path)
- */
-export const workspaceInfoAtom = atom<WorkspaceInfo>({
-  name: 'Unknown',
-  path: '',
-});
+export const sessionMetadataAtom = atom<SessionItemInfo['metadata']>({});
 
 /**
  * Atom for agent options (sanitized configuration)
@@ -65,16 +43,22 @@ export const sidebarCollapsedAtom = atom<boolean>(true);
 export const workspacePanelCollapsedAtom = atom<boolean>(false);
 
 /**
- * Atom for tracking processing status (when agent is running)
- */
-export const isProcessingAtom = atom<boolean>(false);
-
-/**
  * Enhanced agent status atom for TTFT optimization
+ * Replaces the redundant isProcessingAtom
  */
 export const agentStatusAtom = atom<AgentStatusInfo>({
   isProcessing: false,
 });
+
+/**
+ * Derived atom for backward compatibility
+ */
+export const isProcessingAtom = atom(
+  (get) => get(agentStatusAtom).isProcessing,
+  (get, set, update: boolean) => {
+    set(agentStatusAtom, (prev) => ({ ...prev, isProcessing: update }));
+  },
+);
 
 /**
  * Atom for offline mode state (view-only when disconnected)

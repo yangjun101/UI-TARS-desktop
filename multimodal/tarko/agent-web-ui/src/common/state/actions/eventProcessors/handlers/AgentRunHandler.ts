@@ -1,7 +1,8 @@
-import { isProcessingAtom, modelInfoAtom, agentInfoAtom } from '@/common/state/atoms/ui';
+import { isProcessingAtom, sessionMetadataAtom } from '@/common/state/atoms/ui';
 import { AgentEventStream } from '@/common/types';
 import { EventHandler, EventHandlerContext } from '../types';
 import { apiService } from '@/common/services/apiService';
+import { SessionItemInfo } from '@tarko/interface';
 
 export class AgentRunStartHandler implements EventHandler<AgentEventStream.AgentRunStartEvent> {
   canHandle(event: AgentEventStream.Event): event is AgentEventStream.AgentRunStartEvent {
@@ -15,33 +16,37 @@ export class AgentRunStartHandler implements EventHandler<AgentEventStream.Agent
   ): Promise<void> {
     const { set } = context;
 
+    // Update session metadata with model and agent info from event
+    const metadataUpdates: Partial<NonNullable<SessionItemInfo['metadata']>> = {};
+    
     if (event.provider || event.model) {
-      set(modelInfoAtom, {
+      metadataUpdates.modelConfig = {
         provider: event.provider || '',
-        model: event.model || '',
-        displayName: event.modelDisplayName,
-      });
+        modelId: event.model || '',
+        configuredAt: Date.now(),
+      };
     }
 
-    // FIXME: Migrate these codes to the server, no need to maintain them on the front-end 🤡
-    // Capture and persist agent name in session metadata
     if (event.agentName) {
-      set(agentInfoAtom, {
+      metadataUpdates.agentInfo = {
         name: event.agentName,
-      });
+        configuredAt: Date.now(),
+      };
+    }
 
-      // Store agent info in session metadata for persistence
+    if (Object.keys(metadataUpdates).length > 0) {
+      set(sessionMetadataAtom, (prev) => ({
+        ...prev,
+        ...metadataUpdates,
+      }));
+
+      // Persist to server
       try {
         await apiService.updateSessionItemInfo(sessionId, {
-          metadata: {
-            agentInfo: {
-              name: event.agentName,
-              configuredAt: Date.now(),
-            },
-          },
+          metadata: metadataUpdates,
         });
       } catch (error) {
-        console.warn('Failed to persist agent info in session metadata:', error);
+        console.warn('Failed to persist session metadata:', error);
       }
     }
 
