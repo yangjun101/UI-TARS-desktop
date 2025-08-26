@@ -121,7 +121,7 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
    * @returns Web UI config or undefined
    */
   getAgentConstructorWebConfig(): Record<string, any> | undefined {
-    return this.currentAgentResolution?.agentConstructor.webUIConfig;
+    return this.currentAgentResolution?.agentConstructor.webuiConfig;
   }
 
   /**

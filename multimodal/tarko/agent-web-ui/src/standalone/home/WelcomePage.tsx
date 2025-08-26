@@ -15,12 +15,12 @@ const WelcomePage: React.FC = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Get configuration from global window object with fallback defaults
-  const webUIConfig = getWebUIConfig();
+  const webuiConfig = getWebUIConfig();
   const logoUrl = getLogoUrl();
-  const pageTitle = webUIConfig?.title;
-  const pageSubtitle = webUIConfig?.subtitle;
-  const webclomeTitle = webUIConfig?.welcomTitle ?? webUIConfig?.title;
-  const examplePrompts = webUIConfig?.welcomePrompts ?? [];
+  const pageTitle = webuiConfig?.title;
+  const pageSubtitle = webuiConfig?.subtitle;
+  const webclomeTitle = webuiConfig?.welcomTitle ?? webuiConfig?.title;
+  const examplePrompts = webuiConfig?.welcomePrompts ?? [];
 
   useEffect(() => {
     // Focus the input field when component mounts

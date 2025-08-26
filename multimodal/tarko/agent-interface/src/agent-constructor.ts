@@ -14,7 +14,7 @@ export type AgentConstructor<
   U extends AgentOptions = AgentOptions,
 > = (new (options: U) => T) & {
   label?: string;
-  // FIXME: find a better solution for webUIConfig
+  // FIXME: find a better solution for webuiConfig
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  webUIConfig?: Record<string, any>;
+  webuiConfig?: Record<string, any>;
 };

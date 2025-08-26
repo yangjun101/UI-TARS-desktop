@@ -47,7 +47,7 @@ import { AgentWebUIImplementation } from '@agent-tars/interface';
  */
 export class AgentTARS<T extends AgentTARSOptions = AgentTARSOptions> extends MCPAgent<T> {
   static label = '@agent-tars/core';
-  
+
   /**
    * Default Web UI configuration for Agent TARS
    */

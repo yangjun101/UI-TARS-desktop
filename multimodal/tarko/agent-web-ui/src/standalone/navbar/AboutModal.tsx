@@ -13,19 +13,15 @@ interface AboutModalProps {
   sessionMetadata?: SessionItemInfo['metadata'];
 }
 
-export const AboutModal: React.FC<AboutModalProps> = ({
-  isOpen,
-  onClose,
-  sessionMetadata,
-}) => {
+export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, sessionMetadata }) => {
   const [versionInfo, setVersionInfo] = useState<AgentServerVersionInfo | null>(null);
   const [copiedModel, setCopiedModel] = useState(false);
   const [copiedAgent, setCopiedAgent] = useState(false);
 
   // Get configuration from global window object
-  const webUIConfig = getWebUIConfig();
+  const webuiConfig = getWebUIConfig();
   const logoUrl = getLogoUrl();
-  const subtitle = webUIConfig?.subtitle;
+  const subtitle = webuiConfig?.subtitle;
 
   // Load version info when modal opens
   useEffect(() => {
