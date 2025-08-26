@@ -340,6 +340,53 @@ export namespace AgentEventStream {
   }
 
   /**
+   * Base metadata interface for environment input events
+   */
+  export interface BaseEnvironmentInputMetadata {
+    /** Type of environment input */
+    type: string;
+  }
+
+  /**
+   * Screenshot-specific metadata
+   */
+  export interface ScreenshotMetadata extends BaseEnvironmentInputMetadata {
+    type: 'screenshot';
+    /** Device pixel ratio for the screenshot */
+    devicePixelRatio?: number;
+  }
+
+  /**
+   * Text content metadata
+   */
+  export interface TextMetadata extends BaseEnvironmentInputMetadata {
+    type: 'text';
+  }
+
+  /**
+   * Codebase metadata
+   */
+  export interface CodebaseMetadata extends BaseEnvironmentInputMetadata {
+    type: 'codebase';
+  }
+
+  /**
+   * Generic metadata for other types
+   */
+  export interface GenericMetadata extends BaseEnvironmentInputMetadata {
+    type: string;
+  }
+
+  /**
+   * Union type for all environment input metadata types
+   */
+  export type EnvironmentInputMetadata =
+    | ScreenshotMetadata
+    | TextMetadata
+    | CodebaseMetadata
+    | GenericMetadata;
+
+  /**
    * Environment input event - for injecting contextual information
    *
    * This allows agents to receive multimodal context from their environment
@@ -351,8 +398,44 @@ export namespace AgentEventStream {
     /** The environment content (can be multimodal) */
     content: string | ChatCompletionContentPart[];
 
-    /** Optional description of the environment input */
+    /**
+     * Optional description of the environment input.
+     * Description is used in Message History for constructing context,
+     * while metadata is not included in the context.
+     */
     description?: string;
+
+    /**
+     * Optional metadata for the environment input.
+     * Metadata provides structured information about the input type and properties
+     * but is NOT included in Message History context construction.
+     */
+    metadata?: EnvironmentInputMetadata;
+  }
+
+  /**
+   * Type guard function to check if metadata is screenshot metadata
+   */
+  export function isScreenshotMetadata(
+    metadata: EnvironmentInputMetadata,
+  ): metadata is ScreenshotMetadata {
+    return metadata.type === 'screenshot';
+  }
+
+  /**
+   * Type guard function to check if an event is an environment input event
+   */
+  export function isEnvironmentInputEvent(event: Event): event is EnvironmentInputEvent {
+    return event.type === 'environment_input';
+  }
+
+  /**
+   * Type guard function to check if an environment input event has screenshot metadata
+   */
+  export function hasScreenshotMetadata(
+    event: EnvironmentInputEvent,
+  ): event is EnvironmentInputEvent & { metadata: ScreenshotMetadata } {
+    return event.metadata !== undefined && isScreenshotMetadata(event.metadata);
   }
 
   /**
