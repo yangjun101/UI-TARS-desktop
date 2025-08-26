@@ -13,6 +13,7 @@ import {
 import { useSession } from '@/common/hooks/useSession';
 import { BrowserShell } from './BrowserShell';
 import { FileDisplayMode } from '../types';
+import { AgentEventStream } from '@tarko/agent-interface';
 
 interface BrowserControlRendererProps {
   panelContent: StandardPanelContent;
@@ -35,6 +36,7 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
     x: number;
     y: number;
   } | null>(null);
+  const [devicePixelRatio, setDevicePixelRatio] = useState<number>(window.devicePixelRatio);
   const imageRef = useRef<HTMLImageElement>(null);
 
   // Extract the visual operation details from panelContent
@@ -112,6 +114,15 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
         if (imgContent && 'image_url' in imgContent && imgContent.image_url.url) {
           setRelatedImage(imgContent.image_url.url);
           foundImage = true;
+
+          // Extract devicePixelRatio from environment input metadata if available
+          if (
+            msg.metadata &&
+            AgentEventStream.isScreenshotMetadata(msg.metadata) &&
+            msg.metadata.devicePixelRatio
+          ) {
+            setDevicePixelRatio(msg.metadata.devicePixelRatio);
+          }
           break;
         }
       }
@@ -158,17 +169,17 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
                   initial={
                     previousMousePosition
                       ? {
-                          left: `${(previousMousePosition.x / imageSize.width) * 100 * window.devicePixelRatio}%`,
-                          top: `${(previousMousePosition.y / imageSize.height) * 100 * window.devicePixelRatio}%`,
+                          left: `${(previousMousePosition.x / imageSize.width) * 100 * devicePixelRatio}%`,
+                          top: `${(previousMousePosition.y / imageSize.height) * 100 * devicePixelRatio}%`,
                         }
                       : {
-                          left: `${(mousePosition.x / imageSize.width) * 100 * window.devicePixelRatio}%`,
-                          top: `${(mousePosition.y / imageSize.height) * 100 * window.devicePixelRatio}%`,
+                          left: `${(mousePosition.x / imageSize.width) * 100 * devicePixelRatio}%`,
+                          top: `${(mousePosition.y / imageSize.height) * 100 * devicePixelRatio}%`,
                         }
                   }
                   animate={{
-                    left: `${(mousePosition.x / imageSize.width) * 100 * window.devicePixelRatio}%`,
-                    top: `${(mousePosition.y / imageSize.height) * 100 * window.devicePixelRatio}%`,
+                    left: `${(mousePosition.x / imageSize.width) * 100 * devicePixelRatio}%`,
+                    top: `${(mousePosition.y / imageSize.height) * 100 * devicePixelRatio}%`,
                   }}
                   transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                   style={{
