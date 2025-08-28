@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSend, FiX, FiRefreshCw, FiImage, FiLoader } from 'react-icons/fi';
+import { FiSend, FiX, FiRefreshCw, FiImage, FiLoader, FiSquare } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectionStatus } from '@/common/types';
 import { ChatCompletionContentPart } from '@tarko/agent-interface';
@@ -214,15 +214,19 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
   };
 
   const handleAbort = async () => {
-    if (!isProcessing) return;
+    if (!isProcessing || isAborting) return;
 
     setIsAborting(true);
     try {
-      await abortQuery();
+      const success = await abortQuery();
+      if (!success) {
+        console.warn('Abort request may have failed');
+      }
     } catch (error) {
       console.error('Failed to abort:', error);
     } finally {
-      setIsAborting(false);
+      // Add a small delay to prevent UI flickering
+      setTimeout(() => setIsAborting(false), 100);
     }
   };
 
@@ -407,22 +411,27 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
               ) : isProcessing ? (
                 <motion.button
                   {...{ ['ke' + 'y']: 'abort-btn' }}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  whileTap={{ scale: 0.9 }}
-                  whileHover={{ scale: 1.05 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
                   type="button"
                   onClick={handleAbort}
                   disabled={isAborting}
-                  className={`absolute right-3 bottom-3 p-2 rounded-full ${
+                  className={`absolute right-3 bottom-3 w-10 h-10 rounded-full flex items-center justify-center ${
                     isAborting
-                      ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                      : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/30 dark:text-gray-400'
-                  } transition-all duration-200`}
-                  title="Abort current operation"
+                      ? 'bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100 dark:from-indigo-800/30 dark:via-purple-800/30 dark:to-pink-800/30 text-indigo-400 dark:text-indigo-500 cursor-not-allowed border-2 border-indigo-200 dark:border-indigo-700/50'
+                      : 'bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 hover:from-indigo-100 hover:via-purple-100 hover:to-pink-100 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 dark:hover:from-indigo-900/30 dark:hover:via-purple-900/30 dark:hover:to-pink-900/30 text-indigo-600 dark:text-indigo-400 border-2 border-indigo-200 dark:border-indigo-700/50'
+                  } transition-all duration-200 shadow-sm bg-[length:200%_200%] animate-border-flow`}
+                  title="Stop generation"
                 >
-                  {isAborting ? <FiLoader className="animate-spin" size={20} /> : <FiX size={20} />}
+                  {isAborting ? (
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <div className="w-3 h-3 bg-current rounded-sm" />
+                  )}
                 </motion.button>
               ) : (
                 <motion.button
