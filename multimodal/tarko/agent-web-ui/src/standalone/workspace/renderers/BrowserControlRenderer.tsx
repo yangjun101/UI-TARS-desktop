@@ -6,14 +6,12 @@ import {
   FiMousePointer,
   FiType,
   FiChevronsRight,
-  FiImage,
   FiCheckCircle,
   FiXCircle,
 } from 'react-icons/fi';
 import { useSession } from '@/common/hooks/useSession';
 import { BrowserShell } from './BrowserShell';
 import { FileDisplayMode } from '../types';
-import { AgentEventStream } from '@tarko/agent-interface';
 
 interface BrowserControlRendererProps {
   panelContent: StandardPanelContent;
@@ -30,13 +28,11 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
 }) => {
   const { activeSessionId, messages, toolResults, replayState } = useSession();
   const [relatedImage, setRelatedImage] = useState<string | null>(null);
-  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
   const [previousMousePosition, setPreviousMousePosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
-  const [devicePixelRatio, setDevicePixelRatio] = useState<number>(window.devicePixelRatio);
   const imageRef = useRef<HTMLImageElement>(null);
 
   // Extract the visual operation details from panelContent
@@ -57,18 +53,18 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
     const matchingResult = sessionResults.find((result) => result.toolCallId === toolCallId);
 
     if (matchingResult && matchingResult.content && matchingResult.content.result) {
-      const { startX, startY } = matchingResult.content.result;
+      const { startXPercent, startYPercent } = matchingResult.content.result;
 
       // Save previous position before updating
       if (mousePosition) {
         setPreviousMousePosition(mousePosition);
       }
 
-      // Set new position if coordinates are valid
-      if (typeof startX === 'number' && typeof startY === 'number') {
+      // Set new position if percentage coordinates are valid
+      if (typeof startXPercent === 'number' && typeof startYPercent === 'number') {
         setMousePosition({
-          x: startX,
-          y: startY,
+          x: startXPercent * 100, // Convert to percentage
+          y: startYPercent * 100, // Convert to percentage
         });
       }
     }
@@ -114,15 +110,6 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
         if (imgContent && 'image_url' in imgContent && imgContent.image_url.url) {
           setRelatedImage(imgContent.image_url.url);
           foundImage = true;
-
-          // Extract devicePixelRatio from environment input metadata if available
-          if (
-            msg.metadata &&
-            AgentEventStream.isScreenshotMetadata(msg.metadata) &&
-            msg.metadata.devicePixelRatio
-          ) {
-            setDevicePixelRatio(msg.metadata.devicePixelRatio);
-          }
           break;
         }
       }
@@ -137,16 +124,6 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
     }
   }, [activeSessionId, messages, toolCallId, environmentImage]);
 
-  // Handler to get image dimensions when loaded
-  const handleImageLoad = () => {
-    if (imageRef.current) {
-      setImageSize({
-        width: imageRef.current.naturalWidth,
-        height: imageRef.current.naturalHeight,
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Screenshot section - moved to the top */}
@@ -159,27 +136,26 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
                 src={relatedImage}
                 alt="Browser Screenshot"
                 className="w-full h-auto object-contain max-h-[70vh]"
-                onLoad={handleImageLoad}
               />
 
               {/* Enhanced mouse cursor overlay */}
-              {mousePosition && imageSize && (
+              {mousePosition && (
                 <motion.div
                   className="absolute pointer-events-none"
                   initial={
                     previousMousePosition
                       ? {
-                          left: `${(previousMousePosition.x / imageSize.width) * 100 * devicePixelRatio}%`,
-                          top: `${(previousMousePosition.y / imageSize.height) * 100 * devicePixelRatio}%`,
+                          left: `${previousMousePosition.x}%`,
+                          top: `${previousMousePosition.y}%`,
                         }
                       : {
-                          left: `${(mousePosition.x / imageSize.width) * 100 * devicePixelRatio}%`,
-                          top: `${(mousePosition.y / imageSize.height) * 100 * devicePixelRatio}%`,
+                          left: `${mousePosition.x}%`,
+                          top: `${mousePosition.y}%`,
                         }
                   }
                   animate={{
-                    left: `${(mousePosition.x / imageSize.width) * 100 * devicePixelRatio}%`,
-                    top: `${(mousePosition.y / imageSize.height) * 100 * devicePixelRatio}%`,
+                    left: `${mousePosition.x}%`,
+                    top: `${mousePosition.y}%`,
                   }}
                   transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                   style={{
