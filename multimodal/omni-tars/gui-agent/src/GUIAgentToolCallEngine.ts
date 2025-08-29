@@ -15,6 +15,7 @@ import {
 } from '@tarko/agent-interface';
 import { actionParser, actionStringParser } from '@gui-agent/action-parser';
 import { getScreenInfo } from './shared';
+import { processStreamingChunk as omniProcessStreamingChunk } from '@omni-tars/core';
 
 /**
  * SimpleKorToolCallEngine - Minimal prompt engineering tool call engine
@@ -65,39 +66,12 @@ export class GUIAgentToolCallEngine extends ToolCallEngine {
 
   /**
    * Process streaming chunks - simply accumulate content
-   *
-   * FIXME: make it optional
    */
   processStreamingChunk(
     chunk: ChatCompletionChunk,
     state: StreamProcessingState,
   ): StreamChunkResult {
-    const delta = chunk.choices[0]?.delta;
-
-    // Accumulate content
-    if (delta?.content) {
-      state.contentBuffer += delta.content;
-    }
-
-    // Record finish reason
-    if (chunk.choices[0]?.finish_reason) {
-      state.finishReason = chunk.choices[0].finish_reason;
-    }
-
-    // Return incremental content without tool call detection during streaming
-    return {
-      content: '',
-      reasoningContent: '',
-      hasToolCallUpdate: false,
-      toolCalls: [],
-    };
-  }
-
-  /**
-   * Generate a tool call ID
-   */
-  private generateToolCallId(): string {
-    return `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    return omniProcessStreamingChunk(chunk, state);
   }
 
   /**
@@ -259,5 +233,12 @@ export class GUIAgentToolCallEngine extends ToolCallEngine {
         content: `Tool "${result.toolName}" result:\n${textContent}`,
       };
     });
+  }
+
+  /**
+   * Generate a tool call ID
+   */
+  private generateToolCallId(): string {
+    return `call_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 }
