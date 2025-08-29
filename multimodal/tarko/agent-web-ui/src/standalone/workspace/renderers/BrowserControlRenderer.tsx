@@ -26,7 +26,7 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
   panelContent,
   onAction,
 }) => {
-  const { activeSessionId, messages, toolResults, replayState } = useSession();
+  const { activeSessionId, messages, toolResults } = useSession();
   const [relatedImage, setRelatedImage] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
   const [previousMousePosition, setPreviousMousePosition] = useState<{
@@ -52,20 +52,38 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
     const sessionResults = toolResults[activeSessionId] || [];
     const matchingResult = sessionResults.find((result) => result.toolCallId === toolCallId);
 
-    if (matchingResult && matchingResult.content && matchingResult.content.result) {
-      const { startXPercent, startYPercent } = matchingResult.content.result;
+    if (matchingResult?.content?.normalizedAction?.inputs) {
+      const { normalizedAction } = matchingResult.content;
+      const { startX, startY } = normalizedAction.inputs;
 
-      // Save previous position before updating
-      if (mousePosition) {
-        setPreviousMousePosition(mousePosition);
-      }
+      // Check if action type supports coordinate display
+      const coordinateBasedActions = [
+        'click',
+        'double_click',
+        'left_double',
+        'right_click',
+        'right_single',
+        'drag',
+        'scroll',
+      ];
 
-      // Set new position if percentage coordinates are valid
-      if (typeof startXPercent === 'number' && typeof startYPercent === 'number') {
-        setMousePosition({
-          x: startXPercent * 100, // Convert to percentage
-          y: startYPercent * 100, // Convert to percentage
-        });
+      if (coordinateBasedActions.includes(normalizedAction.type)) {
+        // Save previous position before updating
+        if (mousePosition) {
+          setPreviousMousePosition(mousePosition);
+        }
+
+        // Set new position if percentage coordinates are valid
+        if (typeof startX === 'number' && typeof startY === 'number') {
+          setMousePosition({
+            x: startX * 100, // Convert to percentage
+            y: startY * 100, // Convert to percentage
+          });
+        }
+      } else {
+        console.log(
+          `[BrowserControlRenderer] Action type '${normalizedAction.type}' does not support coordinate display`,
+        );
       }
     }
   }, [activeSessionId, toolCallId, toolResults]);

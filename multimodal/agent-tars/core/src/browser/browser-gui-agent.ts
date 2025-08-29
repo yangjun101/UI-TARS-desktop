@@ -8,42 +8,17 @@ import { LocalBrowser, Page, RemoteBrowser } from '@agent-infra/browser';
 import { BrowserOperator } from '@gui-agent/operator-browser';
 import { ConsoleLogger, AgentEventStream, Tool, z } from '@tarko/mcp-agent';
 import { ImageCompressor, formatBytes } from '@tarko/shared-media-utils';
-
-/**
- * Coordinate type definition
- */
-export type Coords = [number, number] | [];
-
-/**
- * Action input parameters for browser actions
- */
-export interface ActionInputs {
-  content?: string;
-  start_box?: string;
-  end_box?: string;
-  key?: string;
-  hotkey?: string;
-  direction?: string;
-  start_coords?: Coords;
-  end_coords?: Coords;
-}
+import { ActionInputs, PredictionParsed } from '@agent-tars/interface';
+import {
+  convertToGUIResponse,
+  createGUIErrorResponse,
+  GUIExecuteResult,
+} from '@tarko/shared-utils';
 
 function sleep(time: number) {
   return new Promise(function (resolve) {
     setTimeout(resolve, time);
   });
-}
-
-/**
- * Parsed prediction from GUI agent
- */
-export interface PredictionParsed {
-  /** Action inputs parsed from action_type(action_inputs) */
-  action_inputs: ActionInputs;
-  /** Action type parsed from action_type(action_inputs) */
-  action_type: string;
-  /** Thinking content */
-  thought?: string;
 }
 
 /**
@@ -131,12 +106,8 @@ wait()                                         - Wait 5 seconds and take a scree
           .string()
           .describe('Finally summarize the next action (with its target element) in one sentence'),
         action: z.string().describe('Some action in action space like click or press'),
-        // pageData: z
-        //   .array(z.object({}))
-        //   .describe("The information you see and extract from the page based on the user's query")
-        //   .optional(),
       }),
-      function: async ({ thought, step, action, pageData }) => {
+      function: async ({ thought, step, action }) => {
         try {
           const parsed = this.parseAction(action);
           parsed.thought = thought;
@@ -152,7 +123,7 @@ wait()                                         - Wait 5 seconds and take a scree
             },
           });
 
-          const result = await this.browserOperator.execute({
+          const operatorResult: GUIExecuteResult = await this.browserOperator.execute({
             parsedPrediction: parsed,
             screenWidth: this.screenWidth || 1920,
             screenHeight: this.screenHeight || 1080,
@@ -160,104 +131,18 @@ wait()                                         - Wait 5 seconds and take a scree
 
           await sleep(500);
 
-          // Automatically get page content after browser interaction
-          // await this.capturePageContentAsEnvironmentInfo();
-
-          return { action, status: 'success', result, pageData };
+          const guiResponse = convertToGUIResponse(action, parsed, operatorResult);
+          return guiResponse;
         } catch (error) {
           this.logger.error(
             `Browser action failed: ${error instanceof Error ? error.message : String(error)}`,
           );
-          return {
-            action,
-            status: 'fail',
-            error: error instanceof Error ? error.message : String(error),
-          };
+
+          // Return error response in new format
+          return createGUIErrorResponse(action, error);
         }
       },
     });
-  }
-
-  /**
-   * Capture page content and add it to event stream as environment info
-   * This is called automatically after each browser_vision_control action
-   */
-  private async capturePageContentAsEnvironmentInfo(): Promise<void> {
-    // Only proceed if eventStream is provided
-    if (!this.eventStream) return;
-
-    try {
-      const page = await this.getPage();
-
-      // Get page content as markdown
-      const markdown = await page.evaluate(() => {
-        // Simple function to extract page content as markdown
-        const extractMarkdown = () => {
-          // Get page title
-          const title = document.title || 'Untitled Page';
-
-          const getVisibleText = (node: any) => {
-            if (node.nodeType === Node.TEXT_NODE) {
-              return node.textContent || '';
-            }
-
-            const style = window.getComputedStyle(node);
-            if (
-              style.display === 'none' ||
-              style.visibility === 'hidden' ||
-              style.opacity === '0'
-            ) {
-              return '';
-            }
-
-            let text = '';
-            for (const child of Array.from(node.childNodes)) {
-              // @ts-expect-error
-              if (child.nodeType === Node.ELEMENT_NODE) {
-                text += getVisibleText(child);
-                // @ts-expect-error
-              } else if (child.nodeType === Node.TEXT_NODE) {
-                // @ts-expect-error
-                text += child.textContent || '';
-              }
-            }
-
-            return text.trim();
-          };
-
-          // Get main content, prefer article or main elements
-          const mainContent =
-            document.querySelector('article, main, #content, .content') || document.body;
-          const content = getVisibleText(mainContent);
-
-          // Format as markdown
-          return `# ${title}\n\n${content}`;
-        };
-
-        return extractMarkdown();
-      });
-
-      // If content is available, add it to event stream
-      if (markdown && markdown.trim()) {
-        // Create an environment input event with the markdown content
-        const event = this.eventStream.createEvent('environment_input', {
-          content: markdown,
-          description: 'Page Content After Browser Action',
-          metadata: {
-            type: 'text',
-          },
-        });
-
-        // Send the event
-        this.eventStream.sendEvent(event);
-        this.logger.debug('Added page content to event stream as environment info');
-      }
-    } catch (error) {
-      // Log error but don't fail the main operation
-      this.logger.warn(
-        `Failed to capture page content: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
   }
 
   /**
