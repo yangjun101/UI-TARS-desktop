@@ -5,7 +5,9 @@ import { FiPlus, FiHome, FiSettings } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '@/common/hooks/useSession';
 import { useReplayMode } from '@/common/hooks/useReplayMode';
+import { isLayoutSwitchButtonEnabled } from '@/common/constants/shared';
 import { AgentConfigViewer } from './AgentConfigViewer';
+import { LayoutSwitchButton } from './LayoutSwitchButton';
 
 /**
  * ToolBar Component - Vertical toolbar inspired by modern IDE designs
@@ -22,6 +24,8 @@ export const ToolBar: React.FC = () => {
   const { createSession, connectionStatus } = useSession();
   const [isConfigViewerOpen, setIsConfigViewerOpen] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
+
+  const enableLayoutSwitchButton = isLayoutSwitchButtonEnabled();
 
   // Create new session
   const handleNewSession = useCallback(async () => {
@@ -118,6 +122,9 @@ export const ToolBar: React.FC = () => {
 
         {/* Bottom tool buttons */}
         <div className="flex flex-col items-center gap-4 pb-4">
+          {/* Layout switch button */}
+          {!isReplayMode && enableLayoutSwitchButton && <LayoutSwitchButton />}
+          
           {/* Agent config button */}
           {!isReplayMode && (
             <motion.button
