@@ -63,7 +63,7 @@ export const BrowserControlRenderer: React.FC<BrowserControlRendererProps> = ({
         <StrategySwitch currentStrategy={currentStrategy} onStrategyChange={setCurrentStrategy} />
       )}
 
-      {/* Screenshot section - moved to the top */}
+      {/* Screenshot section */}
       <ScreenshotDisplay
         strategy={currentStrategy}
         relatedImage={relatedImage}
