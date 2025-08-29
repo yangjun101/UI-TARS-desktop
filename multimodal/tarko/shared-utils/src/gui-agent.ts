@@ -180,16 +180,13 @@ export function convertToNormalizedAction(
     }
 
     default: {
-      // Fallback to a generic click action for unknown types
-      console.warn(`Unknown action type: ${action_type}, falling back to click`);
-      const fallbackAction: GUIAgent.ClickAction = {
-        type: 'click',
-        inputs: {
-          startX: startXPercent || 0,
-          startY: startYPercent || 0,
-        },
+      // For unknown action types, return the raw type with empty inputs
+      console.warn(`Unknown action type: ${action_type}, returning raw type`);
+      const fallbackAction: GUIAgent.BaseAction = {
+        type: action_type as any,
+        inputs: {},
       };
-      return fallbackAction;
+      return fallbackAction as GUIAgent.Action;
     }
   }
 }
