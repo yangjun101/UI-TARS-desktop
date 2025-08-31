@@ -17,15 +17,17 @@ export default defineConfig({
     dark: '/agent-tars-dark-logo.png',
   },
   route: {
-    exclude: [
-      'en/sdk/**',
-      'en/api/**',
-      'en/api/runtime/**',
-      'zh/sdk/**',
-      'zh/api/**',
-      'zh/api/runtime/**',
-      isProd ? 'en/banner' : '',
-    ].filter(Boolean),
+    exclude: isProd
+      ? [
+          'en/sdk/**',
+          'en/api/**',
+          'en/api/runtime/**',
+          'zh/sdk/**',
+          'zh/api/**',
+          'zh/api/runtime/**',
+          'en/banner',
+        ].filter(Boolean)
+      : [],
   },
   builderConfig: {
     resolve: {
