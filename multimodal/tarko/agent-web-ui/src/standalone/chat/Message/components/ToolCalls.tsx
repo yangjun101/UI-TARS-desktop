@@ -151,10 +151,10 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
           return args.command || (status === 'constructing' ? 'preparing command...' : '');
         case 'read_file':
         case 'write_file':
+        case 'edit_file':
           if (args.path) {
             const normalizedPath = normalizeFilePath(args.path);
-            const fileName = normalizedPath.split(/[/\\]/).pop();
-            return `file: ${fileName}`;
+            return normalizedPath;
           }
           return status === 'constructing' ? 'preparing file operation...' : '';
         default:
@@ -191,6 +191,8 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
         return '"file read"';
       } else if (toolCall.function.name.startsWith('write_')) {
         return '"file saved"';
+      } else if (toolCall.function.name === 'edit_file') {
+        return '"file edited"';
       }
     }
 
@@ -222,6 +224,8 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
         return 'Read File';
       case 'write_file':
         return 'Write File';
+      case 'edit_file':
+        return 'Edit File';
       default:
         // Title case
         return nameWithSpaces
