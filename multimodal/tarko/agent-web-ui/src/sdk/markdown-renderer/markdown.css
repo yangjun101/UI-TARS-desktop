@@ -24,25 +24,12 @@
 }
 
 .markdown-content table {
-  max-width: 100%;
-  overflow-x: auto;
-  display: block;
-  white-space: nowrap;
-}
-
-.markdown-content table tbody {
-  display: table;
   width: 100%;
+  min-width: max-content;
+  table-layout: auto;
 }
 
-/* Table styling - nth-child and complex selectors */
-.markdown-content table tr:nth-child(even) {
-  background-color: #f8fafc;
-}
-
-.dark .markdown-content table tr:nth-child(even) {
-  background-color: #1e293b;
-}
+/* Table styling - nth-child and complex selectors removed */
 
 /* Table cell content spacing - ensuring proper margin handling */
 .markdown-content table td > * {
