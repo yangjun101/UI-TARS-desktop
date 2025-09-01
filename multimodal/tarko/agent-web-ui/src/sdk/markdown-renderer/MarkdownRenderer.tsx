@@ -8,6 +8,7 @@ import { useMarkdownComponents } from './hooks/useMarkdownComponents';
 import { ImageModal } from './components/ImageModal';
 import { resetFirstH1Flag } from './components/Headings';
 import { scrollToElement } from './utils';
+import { useDarkMode } from '@/common/hooks/useDarkMode';
 import 'remark-github-blockquote-alert/alert.css';
 import './syntax-highlight.css';
 import './markdown.css';
@@ -33,6 +34,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 }) => {
   const [openImage, setOpenImage] = useState<string | null>(null);
   const [renderError, setRenderError] = useState<Error | null>(null);
+  const isDarkMode = useDarkMode();
 
   /**
    * Handle image click for modal preview
@@ -91,8 +93,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   /**
    * Determine theme class and merge with markdown content styles
    */
-  const themeClass = forceDarkTheme ? 'dark' : 'light';
-  const markdownContentClass = `${themeClass} markdown-content font-inter leading-relaxed text-gray-800 dark:text-gray-800 ${className}`;
+  const themeClass = forceDarkTheme || isDarkMode ? 'dark' : 'light';
+  const markdownContentClass = `${themeClass} markdown-content font-inter leading-relaxed text-gray-800 dark:text-gray-200 ${className}`;
 
   try {
     return (
