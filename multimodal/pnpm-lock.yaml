@@ -390,6 +390,9 @@ importers:
       '@agent-infra/browser':
         specifier: 0.1.1
         version: 0.1.1
+      '@agent-infra/logger':
+        specifier: 0.0.2-beta.2
+        version: 0.0.2-beta.2
       '@agent-infra/media-utils':
         specifier: 0.1.5
         version: 0.1.5
@@ -414,10 +417,19 @@ importers:
       '@ui-tars/sdk':
         specifier: 1.2.3
         version: 1.2.3(ws@8.18.2)(zod@3.25.36)
+      '@ui-tars/shared':
+        specifier: 1.2.3
+        version: 1.2.3
+      lodash.isnumber:
+        specifier: 3.0.3
+        version: 3.0.3
     devDependencies:
       '@rslib/core':
         specifier: 0.10.0
         version: 0.10.0(typescript@5.8.3)
+      '@types/lodash.isnumber':
+        specifier: 3.0.3
+        version: 3.0.3
       '@types/node':
         specifier: 22.15.30
         version: 22.15.30

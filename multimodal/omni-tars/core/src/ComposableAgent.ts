@@ -31,7 +31,7 @@ export class ComposableAgent extends Agent {
 
     super({
       // instructions: SYSTEM_PROMPT,
-      instructions: composer.generateSystemPrompt(),
+      // instructions: composer.generateSystemPrompt(),
       //Remove plugins to prevent circular reference from reporting errors
       ...optionsWithoutPlugins,
     });
