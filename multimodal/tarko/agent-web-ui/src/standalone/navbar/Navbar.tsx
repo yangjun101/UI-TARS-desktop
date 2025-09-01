@@ -13,6 +13,7 @@ import { useDarkMode } from '@/common/hooks/useDarkMode';
 import { apiService } from '@/common/services/apiService';
 import { NavbarModelSelector } from './ModelSelector';
 import { getLogoUrl, getAgentTitle } from '@/config/web-ui-config';
+import { getModelDisplayName } from '@/common/utils/modelUtils';
 
 import './Navbar.css';
 
@@ -105,10 +106,7 @@ export const Navbar: React.FC = () => {
         )}
 
         {/* Center section - Agent and Model info display with dynamic sizing */}
-        <DynamicNavbarCenter
-          sessionMetadata={sessionMetadata}
-          activeSessionId={activeSessionId}
-        />
+        <DynamicNavbarCenter sessionMetadata={sessionMetadata} activeSessionId={activeSessionId} />
 
         {/* Right section - reordered buttons: About, Dark mode, Share */}
         <div className="flex items-center space-x-1 md:space-x-2">
@@ -135,7 +133,9 @@ export const Navbar: React.FC = () => {
           </motion.button>
 
           {/* Share button - moved to last position */}
-          {activeSessionId && !isReplayMode && <ShareButton variant="navbar" disabled={isProcessing} />}
+          {activeSessionId && !isReplayMode && (
+            <ShareButton variant="navbar" disabled={isProcessing} />
+          )}
         </div>
       </div>
 
@@ -203,7 +203,12 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
       }
 
       if (sessionMetadata?.modelConfig) {
-        const modelText = [sessionMetadata.modelConfig.modelId, sessionMetadata.modelConfig.provider].filter(Boolean).join(' • ');
+        const modelText = [
+          getModelDisplayName(sessionMetadata.modelConfig),
+          sessionMetadata.modelConfig.provider,
+        ]
+          .filter(Boolean)
+          .join(' • ');
         setModelTextWidth(measureText(modelText, 'font-medium'));
       }
     };
@@ -217,7 +222,12 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [sessionMetadata?.agentInfo?.name, sessionMetadata?.modelConfig?.modelId, sessionMetadata?.modelConfig?.provider]);
+  }, [
+    sessionMetadata?.agentInfo?.name,
+    sessionMetadata?.modelConfig?.modelId,
+    sessionMetadata?.modelConfig?.displayName,
+    sessionMetadata?.modelConfig?.provider,
+  ]);
 
   // Calculate dynamic widths for badges
   const totalTextWidth = agentTextWidth + modelTextWidth;

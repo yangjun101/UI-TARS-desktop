@@ -4,17 +4,14 @@ import { apiService } from '../../services/apiService';
 import { sessionsAtom, activeSessionIdAtom } from '../atoms/session';
 import { messagesAtom } from '../atoms/message';
 import { toolResultsAtom, toolCallResultMap } from '../atoms/tool';
-import {
-  isProcessingAtom,
-  activePanelContentAtom,
-  sessionMetadataAtom,
-} from '../atoms/ui';
+import { isProcessingAtom, activePanelContentAtom, sessionMetadataAtom } from '../atoms/ui';
 import { processEventAction } from './eventProcessors';
 import { Message, SessionItemInfo } from '@/common/types';
 import { connectionStatusAtom } from '../atoms/ui';
 import { replayStateAtom } from '../atoms/replay';
 import { sessionFilesAtom, FileItem } from '../atoms/files';
 import { ChatCompletionContentPart, AgentEventStream } from '@tarko/agent-interface';
+import { createModelConfigFromEvent, createAgentInfoFromEvent } from '../../utils/metadataUtils';
 
 // Priority-based file selection for workspace display: HTML > Markdown > Others
 function selectBestFileToDisplay(files: FileItem[]): FileItem | null {
@@ -181,24 +178,23 @@ export const setActiveSessionAction = atom(null, async (get, set, sessionId: str
 
         if (runStartEvent) {
           const enrichedMetadata = { ...sessionDetails.metadata };
-          
+
           // Enrich with model config if missing
-          if (!enrichedMetadata.modelConfig && ('provider' in runStartEvent || 'model' in runStartEvent)) {
-            enrichedMetadata.modelConfig = {
-              provider: runStartEvent.provider || '',
-              modelId: runStartEvent.model || '',
-              configuredAt: Date.now(),
-            };
+          if (!enrichedMetadata.modelConfig) {
+            const modelConfig = createModelConfigFromEvent(runStartEvent);
+            if (modelConfig) {
+              enrichedMetadata.modelConfig = modelConfig;
+            }
           }
-          
+
           // Enrich with agent info if missing
-          if (!enrichedMetadata.agentInfo?.name && 'agentName' in runStartEvent && runStartEvent.agentName) {
-            enrichedMetadata.agentInfo = {
-              name: runStartEvent.agentName,
-              configuredAt: Date.now(),
-            };
+          if (!enrichedMetadata.agentInfo?.name) {
+            const agentInfo = createAgentInfoFromEvent(runStartEvent);
+            if (agentInfo) {
+              enrichedMetadata.agentInfo = agentInfo;
+            }
           }
-          
+
           set(sessionMetadataAtom, enrichedMetadata);
           console.log(`Enriched session metadata from events for ${sessionId}`);
         }
@@ -321,8 +317,8 @@ export const sendMessageAction = atom(
     // Note: We check message count before sending since user_message will come from stream
     try {
       const messages = get(messagesAtom)[activeSessionId] || [];
-      const userMessageCount = messages.filter(m => m.role === 'user').length;
-      
+      const userMessageCount = messages.filter((m) => m.role === 'user').length;
+
       if (userMessageCount === 0) {
         let summary = '';
         if (typeof content === 'string') {
@@ -383,12 +379,12 @@ export const abortQueryAction = atom(null, async (get, set) => {
 
   try {
     const success = await apiService.abortQuery(activeSessionId);
-    
+
     // Immediately set processing to false on successful abort to prevent flickering
     if (success) {
       set(isProcessingAtom, false);
     }
-    
+
     return success;
   } catch (error) {
     console.error('Error aborting query:', error);

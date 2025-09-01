@@ -6,6 +6,7 @@ import { FaBrain } from 'react-icons/fa';
 import { apiService } from '@/common/services/apiService';
 import { AgentServerVersionInfo, SessionItemInfo } from '@agent-tars/interface';
 import { getWebUIConfig, getLogoUrl, getAgentTitle } from '@/config/web-ui-config';
+import { getModelDisplayName } from '@/common/utils/modelUtils';
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -155,15 +156,19 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, session
                       <div className="flex items-center gap-2 min-w-0">
                         <span
                           className="font-mono text-purple-800 dark:text-purple-200 truncate cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                          title={sessionMetadata.modelConfig.modelId}
-                          onClick={() => copyModelId(sessionMetadata.modelConfig.modelId)}
+                          title={getModelDisplayName(sessionMetadata.modelConfig)}
+                          onClick={() =>
+                            copyModelId(getModelDisplayName(sessionMetadata.modelConfig))
+                          }
                         >
-                          {truncateModel(sessionMetadata.modelConfig.modelId)}
+                          {truncateModel(getModelDisplayName(sessionMetadata.modelConfig))}
                         </span>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={() => copyModelId(sessionMetadata.modelConfig.modelId)}
+                          onClick={() =>
+                            copyModelId(getModelDisplayName(sessionMetadata.modelConfig))
+                          }
                           className="text-gray-400 hover:text-purple-500 dark:hover:text-purple-400 transition-colors flex-shrink-0"
                           title="Copy model ID"
                         >
