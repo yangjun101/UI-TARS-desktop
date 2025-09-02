@@ -11,7 +11,9 @@ import { SlugGenerator } from '../utils/slug-generator';
 import fs from 'fs';
 import path from 'path';
 import { ensureHttps } from '../utils';
+import { mergeWebUIConfig } from '../utils/webui';
 import type { AgentServerVersionInfo, IAgent, AgentAppConfig } from '../types';
+import type { AgentServer } from '../server';
 
 /**
  * ShareService - Centralized service for handling session sharing
@@ -26,6 +28,7 @@ export class ShareService {
   constructor(
     private appConfig: AgentAppConfig,
     private storageProvider: StorageProvider | null,
+    private server?: AgentServer,
   ) {}
 
   /**
@@ -351,11 +354,15 @@ export class ShareService {
         throw new Error('Cannot found static path.');
       }
 
+      // Merge web UI config with agent constructor config
+      const mergedWebUIConfig = mergeWebUIConfig(this.appConfig.webui, this.server);
+
       return ShareUtils.generateShareHtml(
         events,
         metadata,
         this.appConfig.webui.staticPath,
         versionInfo,
+        mergedWebUIConfig,
       );
     }
 
