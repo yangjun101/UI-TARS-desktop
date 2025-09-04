@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSend, FiX, FiRefreshCw, FiImage, FiLoader, FiSquare } from 'react-icons/fi';
+import { FiSend, FiRefreshCw, FiImage, FiSquare, FiX } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectionStatus } from '@/common/types';
 import { ChatCompletionContentPart } from '@tarko/agent-interface';
@@ -9,46 +9,63 @@ import {
   contextualSelectorAtom,
   addContextualItemAction,
   updateSelectorStateAction,
+  clearContextualStateAction,
+  ContextualItem,
 } from '@/common/state/atoms/contextualSelector';
-import { ContextualSelector, ContextualItem } from '../ContextualSelector';
+import { ContextualSelector } from '../ContextualSelector';
+import { MessageAttachments } from './MessageAttachments';
+import { ImagePreviewInline } from './ImagePreviewInline';
 import { getAgentTitle, isContextualSelectorEnabled } from '@/config/web-ui-config';
+import { composeMessageContent, isMessageEmpty, parseContextualReferences } from './utils';
 
-interface MessageInputFieldProps {
-  uploadedImages: ChatCompletionContentPart[];
-  setUploadedImages: (
-    images:
-      | ChatCompletionContentPart[]
-      | ((prev: ChatCompletionContentPart[]) => ChatCompletionContentPart[]),
-  ) => void;
-  isDisabled: boolean;
-  isProcessing: boolean;
+interface ChatInputProps {
+  onSubmit: (content: string | ChatCompletionContentPart[]) => Promise<void>;
+  isDisabled?: boolean;
+  isProcessing?: boolean;
   connectionStatus?: ConnectionStatus;
-  onSubmit: () => Promise<void>;
   onReconnect?: () => void;
   sessionId?: string;
+  placeholder?: string;
+  className?: string;
+  showAttachments?: boolean;
+  showContextualSelector?: boolean;
+  initialValue?: string;
+  autoFocus?: boolean;
 }
 
 /**
- * MessageInputField - Handles text input and contextual selector with jotai state management
+ * ChatInput - Reusable chat input component with multimodal and contextual capabilities
  *
- * Manages text input, @ symbol detection, contextual selector, and file uploads
+ * Features:
+ * - Text input with auto-resize
+ * - Image upload and paste support
+ * - Contextual file/folder selector (@-mentions)
+ * - Connection status handling
+ * - Keyboard shortcuts (Ctrl+Enter to send)
+ * - Customizable appearance and behavior
  */
-export const MessageInputField: React.FC<MessageInputFieldProps> = ({
-  uploadedImages,
-  setUploadedImages,
-  isDisabled,
-  isProcessing,
-  connectionStatus,
+export const ChatInput: React.FC<ChatInputProps> = ({
   onSubmit,
+  isDisabled = false,
+  isProcessing = false,
+  connectionStatus,
   onReconnect,
   sessionId,
+  placeholder,
+  className = '',
+  showAttachments = true,
+  showContextualSelector = true,
+  initialValue = '',
+  autoFocus = true,
 }) => {
+  const [uploadedImages, setUploadedImages] = useState<ChatCompletionContentPart[]>([]);
   const [isAborting, setIsAborting] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
   const [contextualState, setContextualState] = useAtom(contextualSelectorAtom);
   const addContextualItem = useSetAtom(addContextualItemAction);
   const updateSelectorState = useSetAtom(updateSelectorStateAction);
+  const clearContextualState = useSetAtom(clearContextualStateAction);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,13 +73,24 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
   const { abortQuery } = useSession();
 
   // Check if contextual selector is enabled
-  const contextualSelectorEnabled = isContextualSelectorEnabled();
+  const contextualSelectorEnabled = isContextualSelectorEnabled() && showContextualSelector;
+
+  // Initialize with initial value
+  useEffect(() => {
+    if (initialValue && !contextualState.input) {
+      setContextualState((prev) => ({
+        ...prev,
+        input: initialValue,
+        contextualItems: parseContextualReferences(initialValue),
+      }));
+    }
+  }, [initialValue, contextualState.input, setContextualState]);
 
   useEffect(() => {
-    if (!isDisabled && inputRef.current) {
+    if (!isDisabled && autoFocus && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isDisabled]);
+  }, [isDisabled, autoFocus]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const target = e.target;
@@ -116,35 +144,7 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
   };
 
   // Parse contextual references from input text
-  const parseContextualReferences = (text: string): ContextualItem[] => {
-    const contextualReferencePattern = /@(file|dir):([^\s]+)/g;
-    const workspacePattern = /@workspace/g;
 
-    const contextualRefs = Array.from(text.matchAll(contextualReferencePattern)).map(
-      (match, index) => {
-        const [fullMatch, type, relativePath] = match;
-        const name = relativePath.split(/[/\\]/).pop() || relativePath;
-
-        return {
-          id: `${type}-${relativePath}-${index}`,
-          type: type as 'file' | 'directory',
-          name,
-          path: relativePath,
-          relativePath,
-        };
-      },
-    );
-
-    const workspaceRefs = Array.from(text.matchAll(workspacePattern)).map((match, index) => ({
-      id: `workspace-${index}`,
-      type: 'workspace' as const,
-      name: 'workspace',
-      path: '/',
-      relativePath: '.',
-    }));
-
-    return [...contextualRefs, ...workspaceRefs];
-  };
 
   const handleContextualSelect = (item: ContextualItem) => {
     addContextualItem(item);
@@ -192,6 +192,8 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isMessageEmpty(contextualState.input, uploadedImages) || isDisabled) return;
+
     handleSelectorClose();
 
     // Reset textarea height
@@ -199,7 +201,20 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
       inputRef.current.style.height = 'auto';
     }
 
-    await onSubmit();
+    // Compose message content using utility function
+    const messageContent = composeMessageContent(contextualState.input, uploadedImages);
+
+    // Clear both text input and images immediately after sending
+    clearContextualState();
+    setUploadedImages([]);
+
+    try {
+      await onSubmit(messageContent);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      // Note: We don't restore content on failure to keep UX simple
+      return;
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -265,7 +280,7 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
-    if (isDisabled || isProcessing) return;
+    if (isDisabled || isProcessing || !showAttachments) return;
 
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -303,8 +318,30 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
     }
   };
 
+  const handleRemoveImage = (index: number) => {
+    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const defaultPlaceholder =
+    connectionStatus && !connectionStatus.connected
+      ? 'Server disconnected...'
+      : isProcessing
+        ? `${getAgentTitle()} is running...`
+        : contextualSelectorEnabled
+          ? `Ask ${getAgentTitle()} something... (Use @ to reference files/folders, Ctrl+Enter to send)`
+          : `Ask ${getAgentTitle()} something... (Ctrl+Enter to send)`;
+
   return (
-    <>
+    <div className={`relative ${className}`}>
+      {/* Only show contextual items outside, images are now inside input */}
+      {showAttachments && contextualState.contextualItems.length > 0 && (
+        <MessageAttachments
+          images={[]}
+          contextualItems={contextualState.contextualItems}
+          onRemoveImage={handleRemoveImage}
+        />
+      )}
+
       {/* Contextual selector - positioned above input */}
       {contextualSelectorEnabled && contextualState.showSelector && (
         <div className="absolute left-0 right-0 bottom-full mb-2 z-50">
@@ -339,6 +376,11 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
               isDisabled ? 'opacity-90' : ''
             }`}
           >
+            {/* Image previews inside input */}
+            {showAttachments && (
+              <ImagePreviewInline images={uploadedImages} onRemoveImage={handleRemoveImage} />
+            )}
+
             <textarea
               ref={inputRef}
               value={contextualState.input}
@@ -347,48 +389,44 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               onPaste={handlePaste}
-              placeholder={
-                connectionStatus && !connectionStatus.connected
-                  ? 'Server disconnected...'
-                  : isProcessing
-                    ? `${getAgentTitle()} is running...`
-                    : contextualSelectorEnabled
-                      ? `Ask ${getAgentTitle()} something... (Use @ to reference files/folders, Ctrl+Enter to send)`
-                      : `Ask ${getAgentTitle()} something... (Ctrl+Enter to send)`
-              }
+              placeholder={placeholder || defaultPlaceholder}
               disabled={isDisabled}
-              className="w-full px-5 pt-5 pb-12 focus:outline-none resize-none min-h-[100px] max-h-[220px] bg-transparent text-sm leading-relaxed rounded-[1.4rem]"
+              className={`w-full px-5 ${uploadedImages.length > 0 ? 'pt-2' : 'pt-5'} pb-12 focus:outline-none resize-none ${uploadedImages.length > 0 ? 'min-h-[80px]' : 'min-h-[100px]'} max-h-[220px] bg-transparent text-sm leading-relaxed rounded-[1.4rem]`}
               rows={2}
             />
 
-            <div className="absolute left-3 bottom-3 flex items-center gap-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={handleFileUpload}
-                disabled={isDisabled || isProcessing}
-                className={`p-2 rounded-full transition-colors ${
-                  isDisabled || isProcessing
-                    ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                    : 'text-gray-400 hover:text-accent-500 hover:bg-gray-50 dark:hover:bg-gray-700/30 dark:text-gray-400'
-                }`}
-                title="Attach image (or paste directly)"
-              >
-                <FiImage size={18} />
-              </motion.button>
+            {/* File upload button */}
+            {showAttachments && (
+              <div className="absolute left-3 bottom-3 flex items-center gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  onClick={handleFileUpload}
+                  disabled={isDisabled || isProcessing}
+                  className={`p-2 rounded-full transition-colors ${
+                    isDisabled || isProcessing
+                      ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                      : 'text-gray-400 hover:text-accent-500 hover:bg-gray-50 dark:hover:bg-gray-700/30 dark:text-gray-400'
+                  }`}
+                  title="Attach image (or paste directly)"
+                >
+                  <FiImage size={18} />
+                </motion.button>
 
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                multiple
-                className="hidden"
-                disabled={isDisabled || isProcessing}
-              />
-            </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  disabled={isDisabled || isProcessing}
+                />
+              </div>
+            )}
 
+            {/* Action buttons */}
             <AnimatePresence mode="wait">
               {connectionStatus && !connectionStatus.connected ? (
                 <motion.button
@@ -442,11 +480,9 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
                   whileTap={{ scale: 0.9 }}
                   whileHover={{ scale: 1.05 }}
                   type="submit"
-                  disabled={
-                    (!contextualState.input.trim() && uploadedImages.length === 0) || isDisabled
-                  }
+                  disabled={isMessageEmpty(contextualState.input, uploadedImages) || isDisabled}
                   className={`absolute right-3 bottom-3 p-3 rounded-full ${
-                    (!contextualState.input.trim() && uploadedImages.length === 0) || isDisabled
+                    isMessageEmpty(contextualState.input, uploadedImages) || isDisabled
                       ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 text-white dark:text-gray-900 shadow-sm'
                   } transition-all duration-200`}
@@ -459,6 +495,7 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
         </div>
       </form>
 
+      {/* Status text */}
       <div className="flex justify-center mt-2 text-xs">
         {connectionStatus && !connectionStatus.connected ? (
           <motion.span
@@ -500,6 +537,6 @@ export const MessageInputField: React.FC<MessageInputFieldProps> = ({
           </motion.span>
         )}
       </div>
-    </>
+    </div>
   );
 };
