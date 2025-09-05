@@ -314,14 +314,14 @@ export const deleteSessionAction = atom(null, async (get, set, sessionId: string
         delete newResults[sessionId];
         return newResults;
       });
-      
+
       // Clean up session-specific UI state
       set(sessionPanelContentAtom, (prev) => {
         const newPanelContent = { ...prev };
         delete newPanelContent[sessionId];
         return newPanelContent;
       });
-      
+
       set(sessionAgentStatusAtom, (prev) => {
         const newAgentStatus = { ...prev };
         delete newAgentStatus[sessionId];
@@ -401,17 +401,6 @@ export const sendMessageAction = atom(
     try {
       await apiService.sendStreamingQuery(activeSessionId, content, (event) => {
         set(processEventAction, { sessionId: activeSessionId, event });
-
-        // Maintain processing state until explicit end
-        if (event.type !== 'agent_run_end' && event.type !== 'assistant_message') {
-          set(sessionAgentStatusAtom, (prev) => ({
-            ...prev,
-            [activeSessionId]: {
-              ...(prev[activeSessionId] || {}),
-              isProcessing: true,
-            },
-          }));
-        }
       });
     } catch (error) {
       console.error('Error sending message:', error);
