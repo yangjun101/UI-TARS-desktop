@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { EventHandler, EventHandlerContext } from '../types';
 import { AgentEventStream, Message } from '@/common/types';
 import { messagesAtom } from '@/common/state/atoms/message';
-import { sessionPanelContentAtom, sessionAgentStatusAtom } from '@/common/state/atoms/ui';
-import { shouldUpdatePanelContent, shouldUpdateProcessingState } from '../utils/panelContentUpdater';
+import { sessionPanelContentAtom } from '@/common/state/atoms/ui';
+import { shouldUpdatePanelContent } from '../utils/panelContentUpdater';
 
 // Constants for thinking message newline trimming performance
 const LEADING_NEWLINES_REGEX = /^\n+/;
@@ -129,16 +129,7 @@ export class AssistantMessageHandler
       };
     });
 
-    // Update processing state for the specific session
-    if (shouldUpdateProcessingState(sessionId)) {
-      set(sessionAgentStatusAtom, (prev) => ({
-        ...prev,
-        [sessionId]: {
-          ...(prev[sessionId] || {}),
-          isProcessing: false,
-        },
-      }));
-    }
+
   }
 }
 
@@ -214,15 +205,7 @@ export class StreamingMessageHandler
       };
     });
 
-    if (event.isComplete && shouldUpdateProcessingState(sessionId)) {
-      set(sessionAgentStatusAtom, (prev) => ({
-        ...prev,
-        [sessionId]: {
-          ...(prev[sessionId] || {}),
-          isProcessing: false,
-        },
-      }));
-    }
+
   }
 }
 
