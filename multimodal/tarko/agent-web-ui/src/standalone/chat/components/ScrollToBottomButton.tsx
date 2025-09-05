@@ -8,12 +8,12 @@ interface ScrollToBottomButtonProps {
 }
 
 /**
- * ScrollToBottomButton Component - Floating button to scroll to bottom of chat
- * 
+ * ScrollToBottomButton Component - Modern gradient button matching ChatInput style
+ *
  * Features:
- * - Smooth fade in/out animation
- * - Gradient background for visibility
- * - Hover and tap animations
+ * - Gradient border design matching ChatInput aesthetic
+ * - Glass morphism background effect
+ * - Smooth animations and micro-interactions
  * - Positioned above the input area
  */
 export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({ show, onClick }) => {
@@ -21,37 +21,60 @@ export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({ show
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 0, y: 10, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          initial={{ opacity: 0, x: -16, y: 10, scale: 0.9 }}
+          animate={{ opacity: 1, x: -16, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.9 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="absolute -top-16 right-4 z-50"
+          transition={{
+            duration: 0.3,
+            ease: 'easeOut',
+          }}
+          className="absolute -top-10 left-1/2 z-50"
         >
-          {/* Gradient backdrop for better visibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/60 to-transparent dark:from-gray-900/80 dark:via-gray-900/60 dark:to-transparent rounded-full blur-sm scale-110" />
-          
           <motion.button
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{
+              scale: 1.02,
+              y: -1,
+            }}
+            whileTap={{ scale: 0.98 }}
             onClick={onClick}
-            className="relative flex items-center justify-center w-10 h-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-full shadow-lg border border-gray-200/50 dark:border-gray-600/50 transition-colors group"
+            className="
+              relative flex items-center justify-center 
+              w-8 h-8 
+              bg-white/70 dark:bg-gray-900/70
+              hover:bg-white/80 dark:hover:bg-gray-900/80
+              rounded-full 
+              shadow-lg hover:shadow-xl
+              backdrop-blur-md
+              transition-all duration-200 ease-out
+              group
+            "
             aria-label="Scroll to bottom"
           >
+            {/* Subtle glass effect */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-t from-transparent via-white/3 to-white/6 dark:via-white/1 dark:to-white/3" />
+
+            {/* Icon with minimal animation */}
             <motion.div
-              animate={{ y: [0, 2, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+              animate={{ y: [0, 0.5, 0] }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                repeatDelay: 3,
+              }}
+              className="relative z-10"
             >
-              <FiChevronDown 
-                size={18} 
-                className="text-gray-600 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-gray-100 transition-colors" 
+              <FiChevronDown
+                size={14}
+                className="text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-all duration-200"
               />
             </motion.div>
-            
-            {/* Subtle pulse effect */}
+
+            {/* Subtle hover effect */}
             <motion.div
-              animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0, 0.3] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute inset-0 bg-accent-500/20 dark:bg-accent-400/20 rounded-full"
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 0.05 }}
+              className="absolute inset-0 rounded-full bg-gray-500"
             />
           </motion.button>
         </motion.div>
