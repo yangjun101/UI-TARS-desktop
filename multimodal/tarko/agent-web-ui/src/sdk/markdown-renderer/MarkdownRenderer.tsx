@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -9,7 +9,7 @@ import rehypeHighlight from 'rehype-highlight';
 import { useMarkdownComponents } from './hooks/useMarkdownComponents';
 import { ImageModal } from './components/ImageModal';
 import { resetFirstH1Flag } from './components/Headings';
-import { scrollToElement } from './utils';
+import { scrollToElement, preprocessMarkdownLinks } from './utils';
 import { MarkdownThemeProvider, useMarkdownStyles } from './context/MarkdownThemeContext';
 import 'katex/dist/katex.min.css';
 import 'remark-github-blockquote-alert/alert.css';
@@ -106,6 +106,18 @@ const MarkdownRendererContent: React.FC<MarkdownRendererProps> = ({
   }
 
   /**
+   * Preprocess content to fix URL parsing issues with Chinese text
+   * Memoized to avoid unnecessary regex operations on every render
+   */
+  const processedContent = useMemo(() => {
+    // Quick check: only process if content contains URLs that might need fixing
+    if (!content.includes('http')) {
+      return content;
+    }
+    return preprocessMarkdownLinks(content);
+  }, [content]);
+
+  /**
    * Determine theme class and merge with markdown content styles
    */
   const finalThemeClass = forceDarkTheme ? 'dark' : themeClass;
@@ -125,7 +137,7 @@ const MarkdownRendererContent: React.FC<MarkdownRendererProps> = ({
           ]}
           components={components}
         >
-          {content}
+          {processedContent}
         </ReactMarkdown>
 
         <ImageModal isOpen={!!openImage} imageSrc={openImage} onClose={handleCloseModal} />
