@@ -72,7 +72,7 @@ export interface TarkoWebUIGUIAgentConfig {
    *
    * @defaultValue 'afterAction'
    */
-  defaultScreenshotRenderStrategy: 'both' | 'beforeAction' | 'afterAction';
+  defaultScreenshotRenderStrategy?: 'both' | 'beforeAction' | 'afterAction';
   /**
    * Whether to enable runtime screenshot rendering strategy switch
    *
@@ -81,7 +81,7 @@ export interface TarkoWebUIGUIAgentConfig {
    *
    * @defaultValue false
    */
-  enableScreenshotRenderStrategySwitch: boolean;
+  enableScreenshotRenderStrategySwitch?: boolean;
   /**
    * Whether to enable GUI Agent action rendering
    *
@@ -91,7 +91,16 @@ export interface TarkoWebUIGUIAgentConfig {
    *
    * @defaultValue true
    */
-  renderGUIAction: boolean;
+  renderGUIAction?: boolean;
+  /**
+   * Whether to render browser shell around screenshots
+   *
+   * - `true`: Display screenshots wrapped in browser shell UI
+   * - `false`: Display screenshots directly without browser shell, suitable for screenshots that already contain browser chrome or computer use scenarios
+   *
+   * @defaultValue true
+   */
+  renderBrowserShell?: boolean;
 }
 
 /**
@@ -183,10 +192,10 @@ export type AgentWebUIImplementation =
  */
 export type AgentWebUIImplementationByType<T extends AgentWebUIImplementationType> =
   T extends 'static'
-    ? StaticAgentWebUIImplementation
-    : T extends 'remote'
-      ? RemoteAgentWebUIImplementation
-      : never;
+  ? StaticAgentWebUIImplementation
+  : T extends 'remote'
+  ? RemoteAgentWebUIImplementation
+  : never;
 
 /**
  * Type guard to check if implementation is of specific type

@@ -16,6 +16,7 @@ interface ScreenshotDisplayProps {
   previousMousePosition?: { x: number; y: number } | null;
   action?: string;
   showCoordinates?: boolean;
+  renderBrowserShell?: boolean;
 }
 
 export const ScreenshotDisplay: React.FC<ScreenshotDisplayProps> = ({
@@ -30,6 +31,7 @@ export const ScreenshotDisplay: React.FC<ScreenshotDisplayProps> = ({
   previousMousePosition,
   action,
   showCoordinates = true,
+  renderBrowserShell = true,
 }) => {
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -40,16 +42,33 @@ export const ScreenshotDisplay: React.FC<ScreenshotDisplayProps> = ({
     return imageType === 'before' || (imageType === 'single' && strategy === 'beforeAction');
   };
 
+  const wrapWithBrowserShell = (content: React.ReactNode, url?: string, className?: string) => {
+    if (renderBrowserShell) {
+      return (
+        <BrowserShell url={url} className={className}>
+          {content}
+        </BrowserShell>
+      );
+    }
+    return content;
+  };
+
   // Render placeholder when no image available
-  const renderPlaceholder = () => (
-    <div className="flex items-center justify-center bg-gray-50 dark:bg-gray-900 min-h-[400px]">
-      <div className="text-center">
-        <div className="text-gray-400 dark:text-gray-500 text-sm">
-          GUI Agent Environment Not Started
+  const renderPlaceholder = () => {
+    const placeholderClassName = renderBrowserShell
+      ? 'flex items-center justify-center bg-gray-50 dark:bg-gray-900 min-h-[400px]'
+      : 'flex items-center justify-center bg-gray-50 dark:bg-gray-900 min-h-[400px] rounded-xl';
+
+    return (
+      <div className={placeholderClassName}>
+        <div className="text-center">
+          <div className="text-gray-400 dark:text-gray-500 text-sm">
+            GUI Agent Environment Not Started
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderImageContent = (
     image: string | null,
@@ -58,9 +77,13 @@ export const ScreenshotDisplay: React.FC<ScreenshotDisplayProps> = ({
     referenceImage?: string | null,
   ) => {
     if (image) {
+      const imageClassName = renderBrowserShell
+        ? 'w-full h-auto object-contain'
+        : 'w-full h-auto object-contain rounded-xl';
+
       return (
         <div className="relative">
-          <img ref={imageRef} src={image} alt={alt} className="w-full h-auto object-contain" />
+          <img ref={imageRef} src={image} alt={alt} className={imageClassName} />
           {showCursor && mousePosition && (
             <MouseCursor
               position={mousePosition}
@@ -74,10 +97,17 @@ export const ScreenshotDisplay: React.FC<ScreenshotDisplayProps> = ({
 
     // Show placeholder with consistent sizing using reference image
     if (referenceImage) {
+      const imageClassName = renderBrowserShell
+        ? 'w-full h-auto object-contain invisible'
+        : 'w-full h-auto object-contain invisible rounded-xl';
+      const overlayClassName = renderBrowserShell
+        ? 'absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900'
+        : 'absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-xl';
+
       return (
         <div className="relative">
-          <img src={referenceImage} alt={alt} className="w-full h-auto object-contain invisible" />
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <img src={referenceImage} alt={alt} className={imageClassName} />
+          <div className={overlayClassName}>
             <div className="text-center">
               <div className="text-gray-400 dark:text-gray-500 text-sm">
                 GUI Agent Environment Not Started
@@ -102,14 +132,15 @@ export const ScreenshotDisplay: React.FC<ScreenshotDisplayProps> = ({
                 Before Action
               </span>
             </div>
-            <BrowserShell url={beforeActionImageUrl || undefined}>
-              {renderImageContent(
+            {wrapWithBrowserShell(
+              renderImageContent(
                 beforeActionImage,
                 'Browser Screenshot - Before Action',
                 shouldShowMouseCursor('before'),
                 afterActionImage,
-              )}
-            </BrowserShell>
+              ),
+              beforeActionImageUrl || undefined,
+            )}
           </div>
           <div>
             <div className="flex items-center justify-center mb-2">
@@ -117,14 +148,15 @@ export const ScreenshotDisplay: React.FC<ScreenshotDisplayProps> = ({
                 After Action
               </span>
             </div>
-            <BrowserShell url={afterActionImageUrl || undefined}>
-              {renderImageContent(
+            {wrapWithBrowserShell(
+              renderImageContent(
                 afterActionImage,
                 'Browser Screenshot - After Action',
                 shouldShowMouseCursor('after'),
                 beforeActionImage,
-              )}
-            </BrowserShell>
+              ),
+              afterActionImageUrl || undefined,
+            )}
           </div>
         </div>
       </div>
@@ -132,9 +164,9 @@ export const ScreenshotDisplay: React.FC<ScreenshotDisplayProps> = ({
   }
 
   // Show single screenshot
-  return (
-    <BrowserShell className="mb-4" url={relatedImageUrl || undefined}>
-      {renderImageContent(relatedImage, 'Browser Screenshot', shouldShowMouseCursor('single'))}
-    </BrowserShell>
+  return wrapWithBrowserShell(
+    renderImageContent(relatedImage, 'Browser Screenshot', shouldShowMouseCursor('single')),
+    relatedImageUrl || undefined,
+    'mb-4',
   );
 };
