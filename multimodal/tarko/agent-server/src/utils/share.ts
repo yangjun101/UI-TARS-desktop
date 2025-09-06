@@ -183,13 +183,15 @@ export class ShareUtils {
 
         // Add session metadata fields
         if (options.sessionItemInfo) {
-          formData.append('name', options.sessionItemInfo.metadata?.name || '');
+          const sessionName = options.sessionItemInfo.metadata?.name || '';
+          formData.append('name', sessionName);
           // Add tags if available
           if (
             options.sessionItemInfo.metadata?.tags &&
             options.sessionItemInfo.metadata.tags.length > 0
           ) {
-            formData.append('tags', JSON.stringify(options.sessionItemInfo.metadata.tags));
+            const tagsJson = JSON.stringify(options.sessionItemInfo.metadata.tags);
+            formData.append('tags', tagsJson);
           }
         }
       }
@@ -204,6 +206,7 @@ export class ShareUtils {
       fs.unlinkSync(filePath);
 
       if (!response.ok) {
+        const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 

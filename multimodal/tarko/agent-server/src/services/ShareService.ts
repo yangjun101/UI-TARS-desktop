@@ -29,7 +29,7 @@ export class ShareService {
     private appConfig: AgentAppConfig,
     private storageProvider: StorageProvider | null,
     private server?: AgentServer,
-  ) {}
+  ) { }
 
   /**
    * Share a session
@@ -101,6 +101,7 @@ export class ShareService {
         sessionId,
       };
     } catch (error) {
+      console.error(`Error in shareSession for ${sessionId}:`, error);
       return {
         success: false,
         sessionId,
@@ -144,7 +145,6 @@ export class ShareService {
     workspace: string,
     imageCache: Map<string, string>,
   ): Promise<AgentEventStream.Event> {
-    console.log('processEventImages');
 
     let content = '';
 
@@ -407,7 +407,7 @@ export class ShareService {
           }
         }
       } catch (error) {
-        console.warn('Failed to extract query for normalized slug:', error);
+        console.error('Failed to extract query for normalized slug:', error);
       }
     }
 
