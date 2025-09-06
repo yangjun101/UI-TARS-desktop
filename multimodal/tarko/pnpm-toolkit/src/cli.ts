@@ -101,11 +101,14 @@ export function bootstrapCli() {
     .option('--apiKey, --api-key <apiKey>', 'Custom API key for LLM')
     .option('--baseURL, --base-url <baseURL>', 'Custom base URL for LLM')
     .option('--filter-scopes <scopes>', 'Comma-separated list of scopes to include in changelog', {
-      default: 'tars,agent,tarko,browser,infra,mcp,all',
+      default: 'tars,agent,tarko,o-agent,tars-stack,browser,infra,mcp,all',
     })
     .option(
       '--filter-types <types>',
       'Comma-separated list of commit types to include in changelog',
+      {
+        default: 'feat,fix',
+      },
     )
     .alias('release')
     .action((opts) => {
@@ -113,8 +116,10 @@ export function bootstrapCli() {
       if (opts.filterScopes) {
         opts.filterScopes = opts.filterScopes.split(',').map((s: string) => s.trim());
       }
-      if (opts.filterTypes) {
+      if (opts.filterTypes && opts.filterTypes.trim()) {
         opts.filterTypes = opts.filterTypes.split(',').map((s: string) => s.trim());
+      } else {
+        opts.filterTypes = [];
       }
       return wrapCommand(release, opts);
     });
@@ -167,19 +172,24 @@ export function bootstrapCli() {
     .option('--apiKey, --api-key <apiKey>', 'Custom API key for LLM')
     .option('--baseURL, --base-url <baseURL>', 'Custom base URL for LLM')
     .option('--filter-scopes <scopes>', 'Comma-separated list of scopes to include in changelog', {
-      default: 'tars,agent,tarko,browser,infra,mcp,all',
+      default: 'tars,agent,tarko,o-agent,tars-stack,browser,infra,mcp,all',
     })
     .option(
       '--filter-types <types>',
       'Comma-separated list of commit types to include in changelog',
+      {
+        default: 'feat,fix',
+      },
     )
     .action((opts) => {
       // Process filter options
       if (opts.filterScopes) {
         opts.filterScopes = opts.filterScopes.split(',').map((s: string) => s.trim());
       }
-      if (opts.filterTypes) {
+      if (opts.filterTypes && opts.filterTypes.trim()) {
         opts.filterTypes = opts.filterTypes.split(',').map((s: string) => s.trim());
+      } else {
+        opts.filterTypes = [];
       }
       return wrapCommand(changelog, opts);
     });
