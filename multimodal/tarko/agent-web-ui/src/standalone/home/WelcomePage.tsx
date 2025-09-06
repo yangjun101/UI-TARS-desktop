@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowUpRight } from 'react-icons/fi';
+import { FiArrowUpRight, FiRefreshCw } from 'react-icons/fi';
+import { Tooltip } from '@mui/material';
 import { useSession } from '@/common/hooks/useSession';
 import { getWebUIConfig, getLogoUrl, getAgentTitle } from '@/config/web-ui-config';
 import { ChatInput } from '@/standalone/chat/MessageInput';
 import { ChatCompletionContentPart } from '@tarko/agent-interface';
+import { getTooltipProps } from '@/common/components/TooltipConfig';
 
 const WelcomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +21,70 @@ const WelcomePage: React.FC = () => {
   const pageTitle = webuiConfig?.title;
   const pageSubtitle = webuiConfig?.subtitle;
   const webclomeTitle = webuiConfig?.welcomTitle ?? webuiConfig?.title;
-  const examplePrompts = webuiConfig?.welcomePrompts ?? [];
+  const allPrompts = webuiConfig?.welcomePrompts ?? [];
+  
+  // State for managing displayed prompts
+  const [displayedPrompts, setDisplayedPrompts] = useState<string[]>([]);
+  const [usedPrompts, setUsedPrompts] = useState<Set<string>>(new Set());
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [truncatedPrompts, setTruncatedPrompts] = useState<Set<string>>(new Set());
+  
+  // Function to check if text is truncated
+  const checkTextTruncation = (element: HTMLElement) => {
+    return element.scrollWidth > element.clientWidth;
+  };
+  
+  // Constants for prompt management
+  const MAX_DISPLAYED_PROMPTS = 3;
+  const shouldShowShuffle = allPrompts.length > MAX_DISPLAYED_PROMPTS;
+  
+  // Function to get random prompts, avoiding recently used ones when possible
+  const getRandomPrompts = (count: number): string[] => {
+    if (allPrompts.length === 0) return [];
+    
+    // Get unused prompts first
+    const unusedPrompts = allPrompts.filter(prompt => !usedPrompts.has(prompt));
+    
+    // If we have enough unused prompts, use them
+    if (unusedPrompts.length >= count) {
+      const shuffled = [...unusedPrompts].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, count);
+    }
+    
+    // If not enough unused prompts, reset used prompts and use all
+    const shuffled = [...allPrompts].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  };
+  
+  // Initialize displayed prompts on component mount
+  useEffect(() => {
+    if (allPrompts.length > 0) {
+      const initialPrompts = getRandomPrompts(Math.min(MAX_DISPLAYED_PROMPTS, allPrompts.length));
+      setDisplayedPrompts(initialPrompts);
+      setUsedPrompts(new Set(initialPrompts));
+    }
+  }, [allPrompts.length]);
+  
+  // Function to shuffle prompts
+  const handleShuffle = () => {
+    setIsShuffling(true);
+    
+    // Add a small delay to show animation
+    setTimeout(() => {
+      const newPrompts = getRandomPrompts(MAX_DISPLAYED_PROMPTS);
+      setDisplayedPrompts(newPrompts);
+      
+      // Update used prompts, reset if we've used most of them
+      const newUsedPrompts = new Set([...usedPrompts, ...newPrompts]);
+      if (newUsedPrompts.size >= allPrompts.length - 1) {
+        setUsedPrompts(new Set(newPrompts));
+      } else {
+        setUsedPrompts(newUsedPrompts);
+      }
+      
+      setIsShuffling(false);
+    }, 200);
+  };
 
   const handleChatSubmit = async (content: string | ChatCompletionContentPart[]) => {
     if (isLoading) return;
@@ -183,22 +248,74 @@ const WelcomePage: React.FC = () => {
           </motion.div>
 
           {/* Example prompts - Use configuration with fallback */}
-          {examplePrompts.length > 0 && (
+          {displayedPrompts.length > 0 && (
             <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {examplePrompts.map((prompt, index) => (
+              {displayedPrompts.map((prompt, index) => {
+                const isTruncated = truncatedPrompts.has(prompt);
+                
+                const buttonElement = (
+                  <motion.button
+                    ref={(el) => {
+                      if (el) {
+                        const isTextTruncated = checkTextTruncation(el);
+                        setTruncatedPrompts(prev => {
+                          const newSet = new Set(prev);
+                          if (isTextTruncated) {
+                            newSet.add(prompt);
+                          } else {
+                            newSet.delete(prompt);
+                          }
+                          return newSet;
+                        });
+                      }
+                    }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.4 + index * 0.1 }}
+                    type="button"
+                    onClick={() => handleChatSubmit(prompt)}
+                    className="text-sm px-4 py-2 rounded-full bg-white dark:bg-gray-800 border border-gray-200/50 dark:border-gray-700/30 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300 transition-colors max-w-xs whitespace-nowrap overflow-hidden text-ellipsis"
+                    disabled={isLoading || isDirectChatLoading}
+                  >
+                    {prompt}
+                  </motion.button>
+                );
+                
+                return isTruncated ? (
+                  <Tooltip
+                    key={`${prompt}-${index}`}
+                    title={prompt}
+                    {...getTooltipProps('top')}
+                  >
+                    {buttonElement}
+                  </Tooltip>
+                ) : (
+                  <div key={`${prompt}-${index}`}>
+                    {buttonElement}
+                  </div>
+                );
+              })}
+              {shouldShowShuffle && (
                 <motion.button
-                  key={index}
+                  key={`shuffle-${displayedPrompts.join('-')}`}
                   initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.4 + index * 0.1 }}
+                  animate={{ opacity: isShuffling ? 0.5 : 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: isShuffling ? 0 : 0.4 + displayedPrompts.length * 0.1 }}
                   type="button"
-                  onClick={() => handleChatSubmit(prompt)}
-                  className="text-sm px-4 py-2 rounded-full bg-white dark:bg-gray-800 border border-gray-200/50 dark:border-gray-700/30 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300 transition-colors"
-                  disabled={isLoading || isDirectChatLoading}
+                  onClick={handleShuffle}
+                  className="text-sm px-4 py-2 rounded-full bg-white dark:bg-gray-800 border border-gray-200/50 dark:border-gray-700/30 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300 transition-colors flex items-center gap-1.5"
+                  disabled={isLoading || isDirectChatLoading || isShuffling}
+                  title="Shuffle"
                 >
-                  {prompt}
+                  <motion.div
+                    animate={{ rotate: isShuffling ? 360 : 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                  >
+                    <FiRefreshCw size={14} />
+                  </motion.div>
+                  <span>Shuffle</span>
                 </motion.button>
-              ))}
+              )}
             </div>
           )}
         </motion.div>
