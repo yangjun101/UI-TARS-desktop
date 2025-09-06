@@ -12,6 +12,7 @@ interface UseScrollToBottomOptions {
   dependencies?: React.DependencyList; // Dependencies to trigger re-check (e.g., messages)
   sessionId?: string; // Session ID to reset state on session change
   isReplayMode?: boolean; // Whether we're in replay mode
+  autoScrollOnUserMessage?: boolean; // Whether to auto-scroll when user sends message
 }
 
 interface UseScrollToBottomReturn {
@@ -35,6 +36,7 @@ export const useScrollToBottom = ({
   dependencies = [],
   sessionId,
   isReplayMode = false,
+  autoScrollOnUserMessage = true,
 }: UseScrollToBottomOptions = {}): UseScrollToBottomReturn => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,6 +45,8 @@ export const useScrollToBottom = ({
   const lastSessionIdRef = useRef<string | undefined>(sessionId);
   const replayState = useAtomValue(replayStateAtom);
   const lastEventIndexRef = useRef<number>(-1);
+  const lastMessageCountRef = useRef<number>(0);
+  const lastUserMessageIdRef = useRef<string | null>(null);
 
   // Check if container is at bottom
   const checkIsAtBottom = useCallback(() => {
@@ -82,27 +86,7 @@ export const useScrollToBottom = ({
   }, [threshold]);
 
   // Smooth scroll to bottom
-  const scrollToBottom = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    
-    isScrollingRef.current = true;
-    
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: 'smooth'
-    });
-    
-    // Reset scrolling flag after animation completes and force check scroll position
-    setTimeout(() => {
-      isScrollingRef.current = false;
-      // Force check scroll position to ensure button hides when at bottom
-      handleScroll();
-    }, SCROLL_ANIMATION_DELAY);
-  }, []);
-
-  // Auto-scroll to bottom for replay mode
-  const autoScrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((forceCheck = true) => {
     const container = messagesContainerRef.current;
     if (!container) return;
     
@@ -116,8 +100,13 @@ export const useScrollToBottom = ({
     // Reset scrolling flag after animation completes
     setTimeout(() => {
       isScrollingRef.current = false;
+      // Force check scroll position to ensure button hides when at bottom
+      if (forceCheck) handleScroll();
     }, SCROLL_ANIMATION_DELAY);
-  }, []);
+  }, [handleScroll]);
+
+  // Auto-scroll to bottom (reuse scrollToBottom without force check)
+  const autoScrollToBottom = useCallback(() => scrollToBottom(false), [scrollToBottom]);
 
   // Delayed scroll check helper
   const scheduleScrollCheck = useCallback(() => {
@@ -186,10 +175,43 @@ export const useScrollToBottom = ({
     }
   }, [isReplayMode, replayState.isActive, replayState.currentEventIndex, autoScrollToBottom]);
 
+  // Auto-scroll for user messages in normal mode
+  useEffect(() => {
+    if (!autoScrollOnUserMessage || isReplayMode || !Array.isArray(dependencies[0])) {
+      return;
+    }
+
+    const messages = dependencies[0] as any[];
+    const currentMessageCount = messages.length;
+    
+    // Only check for new user messages when message count increases
+    if (currentMessageCount <= lastMessageCountRef.current) {
+      lastMessageCountRef.current = currentMessageCount;
+      return;
+    }
+
+    // Get all user messages and check if we have a new one
+    const allUserMessages = messages
+      .flatMap((group: any) => group?.messages || [group])
+      .filter((msg: any) => msg?.role === 'user');
+    
+    const latestUserMessage = allUserMessages[allUserMessages.length - 1];
+    
+    // Auto-scroll if we have a new user message
+    if (latestUserMessage?.id && latestUserMessage.id !== lastUserMessageIdRef.current) {
+      lastUserMessageIdRef.current = latestUserMessage.id;
+      
+      const timer = setTimeout(autoScrollToBottom, SCROLL_CHECK_DELAY);
+      return () => clearTimeout(timer);
+    }
+    
+    lastMessageCountRef.current = currentMessageCount;
+  }, [autoScrollOnUserMessage, isReplayMode, autoScrollToBottom, ...dependencies]);
+
   return {
     messagesContainerRef,
     messagesEndRef,
     showScrollToBottom,
-    scrollToBottom,
+    scrollToBottom: () => scrollToBottom(),
   };
 };
