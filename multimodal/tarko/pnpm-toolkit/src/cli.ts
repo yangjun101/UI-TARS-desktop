@@ -7,7 +7,7 @@
  * CLI entry point for PTK
  */
 import { cac } from 'cac';
-import { dev, release, patch, changelog } from './index';
+import { dev, release, patch, changelog, githubRelease } from './index';
 import { logger } from './utils/logger';
 
 /**
@@ -110,6 +110,9 @@ export function bootstrapCli() {
         default: 'feat,fix',
       },
     )
+    .option('--create-github-release', 'Create GitHub release after successful release', {
+      default: false,
+    })
     .alias('release')
     .action((opts) => {
       // Process filter options
@@ -127,7 +130,7 @@ export function bootstrapCli() {
   // Patch command
   cli
     .command('p', 'Patch the failure of release process')
-    .option('--version <version>', 'Version (e.g. 1.0.0, 2.0.0-alpha.9)', {
+    .option('--patch-version <version>', 'Version (e.g. 1.0.0, 2.0.0-alpha.9)', {
       // There is no default value here, because the default is read from package.json
     })
     .option('--tag <tag>', 'Tag (e.g. latest, next, beta)')
@@ -138,12 +141,18 @@ export function bootstrapCli() {
       default: false,
     })
     .alias('patch')
-    .action((opts) => wrapCommand(patch, opts));
+    .action((opts) => {
+      // Map patch-version to version for compatibility
+      if (opts.patchVersion) {
+        opts.version = opts.patchVersion;
+      }
+      return wrapCommand(patch, opts);
+    });
 
   // Changelog command
   cli
     .command('changelog', 'Create changelog')
-    .option('--version <version>', 'Version', {
+    .option('--changelog-version <version>', 'Version', {
       // There is no default value here, because the default is read from package.json
     })
     .option('--tag-prefix <prefix>', 'Prefix for git tags', {
@@ -182,6 +191,10 @@ export function bootstrapCli() {
       },
     )
     .action((opts) => {
+      // Map changelog-version to version for compatibility
+      if (opts.changelogVersion) {
+        opts.version = opts.changelogVersion;
+      }
       // Process filter options
       if (opts.filterScopes) {
         opts.filterScopes = opts.filterScopes.split(',').map((s: string) => s.trim());
@@ -192,6 +205,28 @@ export function bootstrapCli() {
         opts.filterTypes = [];
       }
       return wrapCommand(changelog, opts);
+    });
+
+  // GitHub Release command
+  cli
+    .command('github-release', 'Create GitHub release from changelog')
+    .option(
+      '--release-version <version>',
+      'Version to release (reads from package.json if not provided)',
+    )
+    .option('--tag-prefix <prefix>', 'Prefix for git tags', {
+      default: 'v',
+    })
+    .option('--dry-run', 'Preview execution without creating actual release', {
+      default: false,
+    })
+    .alias('gh-release')
+    .action((opts) => {
+      // Map release-version to version for compatibility
+      if (opts.releaseVersion) {
+        opts.version = opts.releaseVersion;
+      }
+      return wrapCommand(githubRelease, opts);
     });
 
   cli.version(pkg.version);

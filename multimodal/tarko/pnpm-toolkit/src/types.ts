@@ -68,6 +68,7 @@ export interface ReleaseOptions extends CommandOptions {
   provider?: string;
   filterScopes?: string[];
   filterTypes?: string[];
+  createGithubRelease?: boolean;
 }
 
 // Patch command options
@@ -108,4 +109,11 @@ export interface ChangelogSection {
   type: string;
   title: string;
   commits: import('tiny-conventional-commits-parser').GitCommit[];
+}
+
+// GitHub Release command options
+export interface GitHubReleaseOptions extends CommandOptions {
+  version?: string;
+  tagPrefix?: string;
+  dryRun?: boolean;
 }
