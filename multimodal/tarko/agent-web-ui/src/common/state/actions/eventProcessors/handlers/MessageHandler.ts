@@ -23,17 +23,17 @@ export class UserMessageHandler implements EventHandler<AgentEventStream.UserMes
 
     set(messagesAtom, (prev: Record<string, Message[]>) => {
       const sessionMessages = prev[sessionId] || [];
-      
+
       // Check if we have any local user messages - if so, skip this server event entirely
       const hasLocalUserMessage = sessionMessages.some(
-        msg => msg.role === 'user' && msg.isLocalMessage
+        (msg) => msg.role === 'user' && msg.isLocalMessage,
       );
-      
+
       // If we have a local user message, ignore the server event to prevent flicker
       if (hasLocalUserMessage) {
         return prev; // Return unchanged state
       }
-      
+
       // No local message found, add the server message normally
       const userMessage: Message = {
         id: event.id,
@@ -41,7 +41,7 @@ export class UserMessageHandler implements EventHandler<AgentEventStream.UserMes
         content: event.content,
         timestamp: event.timestamp,
       };
-      
+
       return {
         ...prev,
         [sessionId]: [...sessionMessages, userMessage],
@@ -140,8 +140,6 @@ export class AssistantMessageHandler
         ],
       };
     });
-
-
   }
 }
 
@@ -216,8 +214,6 @@ export class StreamingMessageHandler
         [sessionId]: [...sessionMessages, newMessage],
       };
     });
-
-
   }
 }
 
@@ -247,49 +243,59 @@ export class ThinkingMessageHandler
       | AgentEventStream.AssistantStreamingThinkingMessageEvent,
   ): void {
     const { set } = context;
+    const eventMessageId = event.messageId || `${sessionId}-thinking`;
 
     set(messagesAtom, (prev: Record<string, Message[]>) => {
       const sessionMessages = prev[sessionId] || [];
-      const eventMessageId = event.messageId;
       let existingMessageIndex = -1;
 
-      // Only try to find by messageId if available - no fallback to last assistant message
       if (eventMessageId) {
         existingMessageIndex = sessionMessages.findIndex(
           (msg) => msg.messageId === eventMessageId && msg.role === 'assistant',
         );
       }
 
+      const thinkingDuration =
+        event.type === 'assistant_thinking_message'
+          ? (event as AgentEventStream.AssistantThinkingMessageEvent).thinkingDurationMs
+          : undefined;
+
       if (existingMessageIndex !== -1) {
-        // Update existing assistant message
         const message = sessionMessages[existingMessageIndex];
         let newThinking: string;
 
         if (event.type === 'assistant_streaming_thinking_message') {
-          // For streaming thinking messages, append to existing thinking content
-          // Only trim leading newlines if this is the first chunk (thinking is empty)
           const contentToAdd =
             (message.thinking || '').length === 0 && event.content.startsWith(NEWLINE_CHAR)
               ? event.content.replace(LEADING_NEWLINES_REGEX, '')
               : event.content;
           newThinking = (message.thinking || '') + contentToAdd;
         } else {
-          // For final thinking messages, only trim if content starts with newline
           newThinking = event.content.startsWith(NEWLINE_CHAR)
             ? event.content.replace(LEADING_NEWLINES_REGEX, '')
             : event.content;
+        }
+
+        const updatedMessage = {
+          ...message,
+          thinking: newThinking,
+          messageId: eventMessageId || message.messageId,
+          isStreaming: event.type === 'assistant_streaming_thinking_message' && !event.isComplete,
+        };
+
+        if (thinkingDuration !== undefined) {
+          updatedMessage.thinkingDuration = thinkingDuration;
         }
 
         return {
           ...prev,
           [sessionId]: [
             ...sessionMessages.slice(0, existingMessageIndex),
-            { ...message, thinking: newThinking, messageId: eventMessageId || message.messageId },
+            updatedMessage,
             ...sessionMessages.slice(existingMessageIndex + 1),
           ],
         };
       } else {
-        // No existing assistant message found, create a new one with thinking content
         const newMessage: Message = {
           id: event.id || uuidv4(),
           role: 'assistant',
@@ -301,6 +307,10 @@ export class ThinkingMessageHandler
           messageId: eventMessageId,
           isStreaming: event.type === 'assistant_streaming_thinking_message' && !event.isComplete,
         };
+
+        if (thinkingDuration !== undefined) {
+          newMessage.thinkingDuration = thinkingDuration;
+        }
 
         return {
           ...prev,

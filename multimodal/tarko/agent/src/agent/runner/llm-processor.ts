@@ -40,6 +40,7 @@ export class LLMProcessor {
   private llmClient?: OpenAI;
   private enableStreamingToolCallEvents: boolean;
   private enableMetrics: boolean;
+  private thinkingStartTimes = new Map<string, number>();
 
   constructor(
     private agent: Agent,
@@ -297,6 +298,8 @@ export class LLMProcessor {
     // Track TTFT (Time to First Token) only if metrics are enabled
     let firstTokenTime: number | null = null;
     let hasReceivedFirstContent = false;
+    let lastReasoningContentLength = 0;
+    let reasoningCompleted = false;
 
     this.logger.info(`llm stream start`);
 
@@ -331,6 +334,14 @@ export class LLMProcessor {
       if (streamingMode) {
         // Send reasoning content if any
         if (chunkResult.reasoningContent) {
+          // Track thinking start time for the first reasoning chunk
+          if (!this.thinkingStartTimes.has(messageId)) {
+            this.thinkingStartTimes.set(messageId, Date.now());
+          }
+
+          // Update reasoning content length tracking
+          const currentReasoningLength = (processingState.reasoningBuffer || '').length;
+
           // Create thinking streaming event
           const thinkingEvent = this.eventStream.createEvent(
             'assistant_streaming_thinking_message',
@@ -341,6 +352,33 @@ export class LLMProcessor {
             },
           );
           this.eventStream.sendEvent(thinkingEvent);
+
+          lastReasoningContentLength = currentReasoningLength;
+        }
+
+        // Check if reasoning has completed (no new reasoning content in this chunk but we had it before)
+        if (
+          !chunkResult.reasoningContent &&
+          lastReasoningContentLength > 0 &&
+          !reasoningCompleted
+        ) {
+          reasoningCompleted = true;
+
+          // Calculate and send final thinking duration immediately when reasoning ends
+          if (this.thinkingStartTimes.has(messageId)) {
+            const startTime = this.thinkingStartTimes.get(messageId)!;
+            const thinkingDurationMs = Date.now() - startTime;
+            this.thinkingStartTimes.delete(messageId);
+
+            // Send final thinking message with duration
+            const finalThinkingEvent = this.eventStream.createEvent('assistant_thinking_message', {
+              content: processingState.reasoningBuffer || '',
+              isComplete: true,
+              messageId: messageId,
+              thinkingDurationMs: thinkingDurationMs,
+            });
+            this.eventStream.sendEvent(finalThinkingEvent);
+          }
         }
 
         // Only send content chunk if it contains actual content
@@ -404,6 +442,7 @@ export class LLMProcessor {
       messageId, // Pass the message ID to final events
       ttftMs, // Pass the TTFT only if metrics were calculated
       ttltMs, // Pass the TTLT only if metrics were calculated
+      streamingMode, // Pass streaming mode to determine duration calculation
     );
 
     // Call response hooks with session ID
@@ -462,6 +501,7 @@ export class LLMProcessor {
     messageId?: string,
     ttftMs?: number,
     ttltMs?: number,
+    streamingMode?: boolean,
   ): void {
     // If we have complete content, create a consolidated assistant message event
     if (content || currentToolCalls.length > 0) {
@@ -478,12 +518,14 @@ export class LLMProcessor {
       this.eventStream.sendEvent(assistantEvent);
     }
 
-    // If we have complete reasoning content, create a consolidated thinking message event
-    if (reasoningBuffer) {
+    // If we have complete reasoning content and NOT in streaming mode, create a consolidated thinking message event
+    // (In streaming mode, final thinking event is already sent when reasoning ends)
+    if (reasoningBuffer && !streamingMode) {
       const thinkingEvent = this.eventStream.createEvent('assistant_thinking_message', {
         content: reasoningBuffer,
         isComplete: true,
         messageId: messageId,
+        // No thinkingDurationMs in non-streaming mode as it's not meaningful
       });
 
       this.eventStream.sendEvent(thinkingEvent);
