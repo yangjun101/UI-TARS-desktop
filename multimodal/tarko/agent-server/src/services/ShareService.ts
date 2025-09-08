@@ -6,7 +6,7 @@
 import crypto from 'crypto';
 import { AgentEventStream, isAgentWebUIImplementationType } from '@tarko/interface';
 import { SessionInfo, StorageProvider } from '../storage';
-import { ShareUtils } from '../utils/share';
+import { AgentUIBuilder } from '@tarko/agent-ui-builder';
 import { SlugGenerator } from '../utils/slug-generator';
 import fs from 'fs';
 import path from 'path';
@@ -29,7 +29,7 @@ export class ShareService {
     private appConfig: AgentAppConfig,
     private storageProvider: StorageProvider | null,
     private server?: AgentServer,
-  ) { }
+  ) {}
 
   /**
    * Share a session
@@ -82,11 +82,74 @@ export class ShareService {
       }
 
       // Generate HTML content
-      const shareHtml = this.generateShareHtml(keyFrameEvents, metadata, serverInfo);
+      if (!isAgentWebUIImplementationType(this.appConfig.webui!, 'static')) {
+        throw new Error(`Unsupported web ui type: ${this.appConfig.webui!.type}`);
+      }
+
+      if (!this.appConfig.webui?.staticPath) {
+        throw new Error('Cannot found static path.');
+      }
+
+      // Merge web UI config with agent constructor config
+      const mergedWebUIConfig = mergeWebUIConfig(this.appConfig.webui, this.server);
+      const builder = new AgentUIBuilder({
+        events: keyFrameEvents,
+        sessionInfo: metadata,
+        staticPath: this.appConfig.webui.staticPath,
+        serverInfo,
+        uiConfig: mergedWebUIConfig,
+      });
+
+      // Generate HTML
+      const html = builder.dump();
 
       // Upload if requested and provider is configured
       if (upload && this.appConfig.share?.provider) {
-        const shareUrl = await this.uploadShareHtml(shareHtml, sessionId, metadata, agent);
+        // Generate normalized slug if agent is available
+        let normalizedSlug = '';
+        let originalQuery = '';
+
+        if (this.storageProvider && agent) {
+          try {
+            const events = await this.storageProvider.getSessionEvents(sessionId);
+            const firstUserMessage = events.find((e) => e.type === 'user_message');
+
+            if (firstUserMessage && firstUserMessage.content) {
+              originalQuery =
+                typeof firstUserMessage.content === 'string'
+                  ? firstUserMessage.content
+                  : firstUserMessage.content.find((c) => c.type === 'text')?.text || '';
+
+              if (originalQuery) {
+                const slugGenerator = new SlugGenerator(agent);
+                normalizedSlug = await slugGenerator.generateSlug(originalQuery);
+
+                // Additional safety check to ensure slug is URL-safe
+                normalizedSlug = normalizedSlug
+                  .replace(/[^\x00-\x7F]+/g, '')
+                  .replace(/[^\w-]/g, '');
+              }
+            }
+          } catch (error) {
+            console.error('Failed to extract query for normalized slug:', error);
+          }
+        }
+
+        if (normalizedSlug) {
+          // Generate 6-digit hash from sessionId to avoid conflicts
+          const sessionHash = await this.generateSessionHash(sessionId);
+          normalizedSlug = `${normalizedSlug}-${sessionHash}`;
+        } else {
+          // fallback to sessionId
+          normalizedSlug = sessionId;
+        }
+
+        // Upload HTML and get share URL
+        const shareUrl = await builder.upload(html, this.appConfig.share.provider, {
+          slug: normalizedSlug,
+          query: originalQuery,
+        });
+
         return {
           success: true,
           url: shareUrl,
@@ -97,7 +160,7 @@ export class ShareService {
       // Return HTML content if not uploading
       return {
         success: true,
-        html: shareHtml,
+        html,
         sessionId,
       };
     } catch (error) {
@@ -145,7 +208,6 @@ export class ShareService {
     workspace: string,
     imageCache: Map<string, string>,
   ): Promise<AgentEventStream.Event> {
-
     let content = '';
 
     // Extract content based on event type
@@ -338,93 +400,6 @@ export class ShareService {
     };
 
     return mimeTypes[ext] || 'application/octet-stream';
-  }
-
-  /**
-   * Generate shareable HTML content
-   */
-
-  private generateShareHtml(
-    events: AgentEventStream.Event[],
-    metadata: SessionInfo,
-    versionInfo?: AgentServerVersionInfo,
-  ): string {
-    if (isAgentWebUIImplementationType(this.appConfig.webui!, 'static')) {
-      if (!this.appConfig.webui?.staticPath) {
-        throw new Error('Cannot found static path.');
-      }
-
-      // Merge web UI config with agent constructor config
-      const mergedWebUIConfig = mergeWebUIConfig(this.appConfig.webui, this.server);
-
-      return ShareUtils.generateShareHtml(
-        events,
-        metadata,
-        this.appConfig.webui.staticPath,
-        versionInfo,
-        mergedWebUIConfig,
-      );
-    }
-
-    // TODO: implement remote web ui
-    throw new Error(`Unsupported web ui type: ${this.appConfig.webui!.type}`);
-  }
-
-  /**
-   * Upload share HTML to provider
-   */
-  private async uploadShareHtml(
-    html: string,
-    sessionId: string,
-    sessionInfo: SessionInfo,
-    agent?: IAgent,
-  ): Promise<string> {
-    if (!this.appConfig.share?.provider) {
-      throw new Error('Share provider not configured');
-    }
-
-    // Generate normalized slug if agent is available
-    let normalizedSlug = '';
-    let originalQuery = '';
-
-    if (this.storageProvider && agent) {
-      try {
-        const events = await this.storageProvider.getSessionEvents(sessionId);
-        const firstUserMessage = events.find((e) => e.type === 'user_message');
-
-        if (firstUserMessage && firstUserMessage.content) {
-          originalQuery =
-            typeof firstUserMessage.content === 'string'
-              ? firstUserMessage.content
-              : firstUserMessage.content.find((c) => c.type === 'text')?.text || '';
-
-          if (originalQuery) {
-            const slugGenerator = new SlugGenerator(agent);
-            normalizedSlug = await slugGenerator.generateSlug(originalQuery);
-
-            // Additional safety check to ensure slug is URL-safe
-            normalizedSlug = normalizedSlug.replace(/[^\x00-\x7F]+/g, '').replace(/[^\w-]/g, '');
-          }
-        }
-      } catch (error) {
-        console.error('Failed to extract query for normalized slug:', error);
-      }
-    }
-
-    if (normalizedSlug) {
-      // Generate 6-digit hash from sessionId to avoid conflicts
-      const sessionHash = await this.generateSessionHash(sessionId);
-      normalizedSlug = `${normalizedSlug}-${sessionHash}`;
-    } else {
-      // fallback to sessionId
-      normalizedSlug = sessionId;
-    }
-
-    return ShareUtils.uploadShareHtml(html, sessionId, this.appConfig.share?.provider as string, {
-      sessionInfo,
-      slug: normalizedSlug,
-      query: originalQuery,
-    });
   }
 
   /**
