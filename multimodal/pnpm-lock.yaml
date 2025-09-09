@@ -304,8 +304,8 @@ importers:
         specifier: 0.1.5
         version: 0.1.5
       '@agent-infra/sandbox':
-        specifier: 0.0.2-beta7
-        version: 0.0.2-beta7
+        specifier: 0.0.5
+        version: 0.0.5
       '@ui-tars/sdk':
         specifier: 1.2.3
         version: 1.2.3(ws@8.18.3)(zod@3.25.36)
@@ -363,8 +363,8 @@ importers:
   omni-tars/code-agent:
     dependencies:
       '@agent-infra/sandbox':
-        specifier: 0.0.3
-        version: 0.0.3
+        specifier: 0.0.5
+        version: 0.0.5
       '@omni-tars/core':
         specifier: workspace:*
         version: link:../core
@@ -440,8 +440,8 @@ importers:
         specifier: 0.1.5
         version: 0.1.5
       '@agent-infra/sandbox':
-        specifier: 0.0.2-beta7
-        version: 0.0.2-beta7
+        specifier: 0.0.5
+        version: 0.0.5
       '@gui-agent/action-parser':
         specifier: workspace:*
         version: link:../../gui-agent/action-parser
@@ -1594,12 +1594,8 @@ packages:
   '@agent-infra/puppeteer-enhance@0.1.6':
     resolution: {integrity: sha512-LiWZJDNqmPbH9J3ZkCbOfn3/ffmCJPpUdCXLV45ZNB1kawLC7XW6F5Mygu/CDRFs7wxDF2wDFrhMy+65qlAQwg==}
 
-  '@agent-infra/sandbox@0.0.2-beta7':
-    resolution: {integrity: sha512-Ppyy5TM3s7i1xr0amRoOYV3nlFH0is20Ggz1Ru/1VvlPIhGp1txyYEKdK+bZUTjXIpsyzdm04Oo/fRsrvdUfMw==}
-    engines: {node: '>=18.0.0'}
-
-  '@agent-infra/sandbox@0.0.3':
-    resolution: {integrity: sha512-4BEgGjR0TyTbusWpmeRqsL4k/NlnAQVu6CxCcNjvdUoCVSyV8ytfX+csrW2koZZex8mXpFRyPAwAxHPuA8nvpw==}
+  '@agent-infra/sandbox@0.0.5':
+    resolution: {integrity: sha512-P7CF7oHC0+vCctUaVXs3KvKK650ceEBnF4IYWA5PyvrTJOKK4QggLOfa9CqbiVnv+mdlufoD6kJdoj1nr2wDtw==}
     engines: {node: '>=18.0.0'}
 
   '@agent-infra/search@0.0.5':
@@ -1875,19 +1871,16 @@ packages:
   '@computer-use/libnut-darwin@2.7.1':
     resolution: {integrity: sha512-7B/aPcIYS4a4S7D3IYIHSpZ4B4m8Z3CjlYq0efTr+/JYmEu+LlO67ZhPvisLKifhagxf7goqEfnphg1F4jq5jw==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-linux@2.7.1':
     resolution: {integrity: sha512-QJD5URTFJ/2+JwBwRyajRF2BB+3eXpd4+t5btGeRVeiRQLKQ4lgorbMHySo6IrfAbSfnU1OVOrxAUygGxj0cFg==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-win32@2.7.1':
     resolution: {integrity: sha512-nDvH5kP1zoO2cBtFYWV0om9xtTu523cc1LIk8r/wizqPrIAm0wCizTU+odF3Fi42zcKJWT6J+Pguy8fKrZyIuA==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut@4.2.0':
@@ -1907,7 +1900,6 @@ packages:
   '@computer-use/nut-js@4.2.0':
     resolution: {integrity: sha512-Xyq5ixrAEdy6qu/mtX021XfU0Y//YFgL0CW1xF6L05KUCbJcZZqViiEeSPulhKfLdvXuhIjnhf+exMb2T6jQIg==}
     engines: {node: '>=16'}
-    cpu: [x64, arm64]
     os: [linux, darwin, win32]
 
   '@computer-use/provider-interfaces@4.2.0':
@@ -11317,11 +11309,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@agent-infra/sandbox@0.0.2-beta7':
-    dependencies:
-      '@agent-infra/logger': 0.0.1
-
-  '@agent-infra/sandbox@0.0.3':
+  '@agent-infra/sandbox@0.0.5':
     dependencies:
       '@agent-infra/logger': 0.0.2-beta.2
 
