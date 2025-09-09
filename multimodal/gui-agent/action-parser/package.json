@@ -1,6 +1,6 @@
 {
   "name": "@gui-agent/action-parser",
-  "version": "0.3.0-beta.10",
+  "version": "0.3.0-beta.11",
   "description": "Action parser SDK for general action parser",
   "repository": {
     "type": "git",

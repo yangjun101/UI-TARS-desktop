@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.3.0-beta.11](https://github.com/bytedance/UI-TARS-desktop/compare/@agent-tars@0.3.0-beta.10...v0.3.0-beta.11) (2025-09-09)
+
+### Features
+
+* **gui-agent:** improve page visibility detection in AIOBrowser ([#1431](https://github.com/bytedance/UI-TARS-desktop/pull/1431)) ([230853e](https://github.com/bytedance/UI-TARS-desktop/commit/230853e5)) [@heh](https://github.com/heh)
+* **mcp-servers:** support mcp offical registry ([#1447](https://github.com/bytedance/UI-TARS-desktop/pull/1447)) ([5d773cf](https://github.com/bytedance/UI-TARS-desktop/commit/5d773cfc)) [@Charles](https://github.com/Charles)
+* **o-agent:** update sandbox sdk and gui-agent operator ([#1437](https://github.com/bytedance/UI-TARS-desktop/pull/1437)) ([8e2d7bb](https://github.com/bytedance/UI-TARS-desktop/commit/8e2d7bbb)) [@小健](https://github.com/小健)
+* **tarko:** implement MongoDB provider for agent server ([#1450](https://github.com/bytedance/UI-TARS-desktop/pull/1450)) ([b69aa5a](https://github.com/bytedance/UI-TARS-desktop/commit/b69aa5ac)) [@小健](https://github.com/小健)
+* **tarko:** `agui` cli for agent ui builder ([#1446](https://github.com/bytedance/UI-TARS-desktop/pull/1446)) ([7bb9184](https://github.com/bytedance/UI-TARS-desktop/commit/7bb9184e)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** add navbar logo display options ([#1443](https://github.com/bytedance/UI-TARS-desktop/pull/1443)) ([4b1ed1f](https://github.com/bytedance/UI-TARS-desktop/commit/4b1ed1fc)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** init `@tarko/agent-ui-builder` ([#1436](https://github.com/bytedance/UI-TARS-desktop/pull/1436)) ([a99ac0c](https://github.com/bytedance/UI-TARS-desktop/commit/a99ac0ca)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** move workspace navItems from header to navbar ([#1441](https://github.com/bytedance/UI-TARS-desktop/pull/1441)) ([73fa2dc](https://github.com/bytedance/UI-TARS-desktop/commit/73fa2dcc)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** add tabbed file viewer for `read_multiple_files` tool ([#1438](https://github.com/bytedance/UI-TARS-desktop/pull/1438)) ([88f3568](https://github.com/bytedance/UI-TARS-desktop/commit/88f35682)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** refine collected files ([#1422](https://github.com/bytedance/UI-TARS-desktop/pull/1422)) ([95b1bfb](https://github.com/bytedance/UI-TARS-desktop/commit/95b1bfbd)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** add `guiAgent.renderBrowserShell` option ([#1421](https://github.com/bytedance/UI-TARS-desktop/pull/1421)) ([5a9d8e4](https://github.com/bytedance/UI-TARS-desktop/commit/5a9d8e49)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko-agent:** thinking duration protocol and modernize thinking ui ([#1423](https://github.com/bytedance/UI-TARS-desktop/pull/1423)) ([094d40e](https://github.com/bytedance/UI-TARS-desktop/commit/094d40e8)) [@ULIVZ](https://github.com/ULIVZ)
+
+### Bug Fixes
+
+* **tarko:** fetch actual remote config instead of local file ([#1449](https://github.com/bytedance/UI-TARS-desktop/pull/1449)) ([083f842](https://github.com/bytedance/UI-TARS-desktop/commit/083f8420)) [@Ryan](https://github.com/Ryan)
+* **tarko:** external `@tarko/agent-ui-builder` in agent-cli build ([#1445](https://github.com/bytedance/UI-TARS-desktop/pull/1445)) ([fe579ae](https://github.com/bytedance/UI-TARS-desktop/commit/fe579ae6)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** improve markdown inline code wrapping ([#1439](https://github.com/bytedance/UI-TARS-desktop/pull/1439)) ([df9f553](https://github.com/bytedance/UI-TARS-desktop/commit/df9f5535)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** resolve react key spread warning and hooks render issue ([#1435](https://github.com/bytedance/UI-TARS-desktop/pull/1435)) ([f3f4bf6](https://github.com/bytedance/UI-TARS-desktop/commit/f3f4bf66)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** make thinking toggle default expanded without initial animation ([#1432](https://github.com/bytedance/UI-TARS-desktop/pull/1432)) ([ce0947d](https://github.com/bytedance/UI-TARS-desktop/commit/ce0947d2)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** prevent frequent `api/v1/models` calls by memoizing callbacks ([#1378](https://github.com/bytedance/UI-TARS-desktop/pull/1378)) ([e07ec41](https://github.com/bytedance/UI-TARS-desktop/commit/e07ec41a)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** improve scroll-to-bottom indicator edge case handling ([#1429](https://github.com/bytedance/UI-TARS-desktop/pull/1429)) ([50eb9f2](https://github.com/bytedance/UI-TARS-desktop/commit/50eb9f29)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko:** prevent duplicate session loading in SessionRouter ([#1427](https://github.com/bytedance/UI-TARS-desktop/pull/1427)) ([f96d4ff](https://github.com/bytedance/UI-TARS-desktop/commit/f96d4ff0)) [@ULIVZ](https://github.com/ULIVZ)
+* **tarko-agent:** improve JSON parsing in PromptEngineeringToolCallEngine (close: #1360) (close: [#1360](https://github.com/bytedance/UI-TARS-desktop/issues/1360)) ([#1361](https://github.com/bytedance/UI-TARS-desktop/pull/1361)) ([b2d5817](https://github.com/bytedance/UI-TARS-desktop/commit/b2d5817f)) [@ULIVZ](https://github.com/ULIVZ)
+
+### Chores
+
+* **all:** fix changelog generation ([#1420](https://github.com/bytedance/UI-TARS-desktop/pull/1420)) ([e53360b](https://github.com/bytedance/UI-TARS-desktop/commit/e53360bc)) [@ULIVZ](https://github.com/ULIVZ)
+* **tars-stack:** release 0.3.0-beta.11 ([be3cfab](https://github.com/bytedance/UI-TARS-desktop/commit/be3cfabf)) [@chenhaoli](https://github.com/chenhaoli)
+* **tars-stack:** release 0.3.0-beta.10 ([#1419](https://github.com/bytedance/UI-TARS-desktop/pull/1419)) ([7922050](https://github.com/bytedance/UI-TARS-desktop/commit/7922050f)) [@ULIVZ](https://github.com/ULIVZ)
+* **tars-stack:** release 0.3.0-beta.10 ([59b59ef](https://github.com/bytedance/UI-TARS-desktop/commit/59b59efb)) [@chenhaoli](https://github.com/chenhaoli)
+
+
 ## [0.3.0-beta.10](https://github.com/bytedance/UI-TARS-desktop/compare/@agent-tars@0.3.0-beta.9...@agent-tars@0.3.0-beta.10) (2025-09-06)
 
 ### Features
