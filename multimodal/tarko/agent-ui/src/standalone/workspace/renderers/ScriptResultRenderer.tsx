@@ -30,6 +30,9 @@ const LANGUAGE_EXTENSIONS: Record<string, string> = {
   javascript: 'js',
   typescript: 'ts',
   python: 'py',
+  bash: 'sh',
+  sh: 'sh',
+  text: 'txt',
 };
 
 /**
@@ -67,8 +70,6 @@ export const ScriptResultRenderer: React.FC<ScriptResultRendererProps> = ({ pane
   const isError = exitCode !== 0 && exitCode !== undefined;
   const hasOutput = stdout || stderr;
 
-
-
   return (
     <div className="space-y-4">
       {/* Display mode toggle */}
@@ -77,11 +78,10 @@ export const ScriptResultRenderer: React.FC<ScriptResultRendererProps> = ({ pane
           <button
             type="button"
             onClick={() => setDisplayMode('both')}
-            className={`px-3 py-1.5 text-xs font-medium ${
-              displayMode === 'both'
+            className={`px-3 py-1.5 text-xs font-medium ${displayMode === 'both'
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                 : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/30'
-            } rounded-l-lg border border-gray-200 dark:border-gray-600`}
+              } rounded-l-lg border border-gray-200 dark:border-gray-600`}
           >
             <div className="flex items-center">
               <FiCode size={12} className="mr-1.5" />
@@ -91,11 +91,10 @@ export const ScriptResultRenderer: React.FC<ScriptResultRendererProps> = ({ pane
           <button
             type="button"
             onClick={() => setDisplayMode('script')}
-            className={`px-3 py-1.5 text-xs font-medium ${
-              displayMode === 'script'
+            className={`px-3 py-1.5 text-xs font-medium ${displayMode === 'script'
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                 : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/30'
-            } border-t border-b border-gray-200 dark:border-gray-600`}
+              } border-t border-b border-gray-200 dark:border-gray-600`}
           >
             <div className="flex items-center">
               <FiCode size={12} className="mr-1.5" />
@@ -105,11 +104,10 @@ export const ScriptResultRenderer: React.FC<ScriptResultRendererProps> = ({ pane
           <button
             type="button"
             onClick={() => setDisplayMode('execution')}
-            className={`px-3 py-1.5 text-xs font-medium ${
-              displayMode === 'execution'
+            className={`px-3 py-1.5 text-xs font-medium ${displayMode === 'execution'
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                 : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/30'
-            } rounded-r-lg border border-gray-200 dark:border-gray-600 border-l-0`}
+              } rounded-r-lg border border-gray-200 dark:border-gray-600 border-l-0`}
           >
             <div className="flex items-center">
               <FiTerminal size={12} className="mr-1.5" />
@@ -129,7 +127,7 @@ export const ScriptResultRenderer: React.FC<ScriptResultRendererProps> = ({ pane
           {/* Professional code editor */}
           <CodeEditor
             code={script || ''}
-            fileName={`script.${LANGUAGE_EXTENSIONS[getLanguageFromInterpreter(interpreter)]}`}
+            fileName={`script.${LANGUAGE_EXTENSIONS[getLanguageFromInterpreter(interpreter)] || 'txt'}`}
             showLineNumbers={true}
             maxHeight={displayMode === 'both' ? '40vh' : '80vh'}
           />
@@ -144,20 +142,20 @@ export const ScriptResultRenderer: React.FC<ScriptResultRendererProps> = ({ pane
           transition={{ delay: displayMode === 'both' ? 0.1 : 0 }}
         >
           <TerminalOutput
-            title={(
+            title={
               <div className="flex items-center gap-1.5 whitespace-nowrap">
                 <FiPlay size={10} />
                 <span>Script Execution - {interpreter}</span>
               </div>
-            )}
-            command={(
+            }
+            command={
               <>
                 {highlightCommand(`${interpreter} << 'EOF'`)}
                 <div className="mt-2">
                   <span className="text-gray-500 text-xs">EOF</span>
                 </div>
               </>
-            )}
+            }
             stdout={stdout}
             stderr={stderr}
             exitCode={exitCode}
