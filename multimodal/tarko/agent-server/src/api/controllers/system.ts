@@ -38,29 +38,15 @@ export function getAgentOptions(req: Request, res: Response) {
 }
 
 /**
+ * FIXME: implement it.
  * Get available model providers and configurations
  */
 export function getAvailableModels(req: Request, res: Response) {
-  try {
-    const server = req.app.locals.server;
-    const availableModels = server.getAvailableModels();
-    const defaultModel = server.getDefaultModelConfig();
-
-    // Only return model lists, no sensitive information
-    const modelsResponse = availableModels.map((provider) => ({
-      provider: provider.name,
-      models: provider.models,
-    }));
-
-    res.status(200).json({
-      models: modelsResponse,
-      defaultModel,
-      hasMultipleProviders: availableModels.length > 0,
-    });
-  } catch (error) {
-    console.error('Failed to get available models:', error);
-    res.status(500).json({ error: 'Failed to get available models' });
-  }
+  res.status(200).json({
+    models: [],
+    defaultModel: {},
+    hasMultipleProviders: false,
+  });
 }
 
 /**

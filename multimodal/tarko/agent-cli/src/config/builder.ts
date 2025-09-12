@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import path from 'path';
 import { deepMerge, isTest } from '@tarko/shared-utils';
 import { getStaticPath } from '@tarko/agent-ui-builder';
 import {
@@ -147,29 +146,13 @@ function handleCoreDeprecatedOptions(
 
   // Handle deprecated model configuration
   if (provider || deprecatedApiKey || baseURL) {
-    if (config.model) {
-      if (typeof config.model === 'string') {
-        config.model = {
-          id: config.model,
-        };
-      }
-    } else {
-      config.model = {};
-    }
-
-    if (provider && !config.model.provider) {
-      config.model.provider = provider as ModelProviderName;
-    }
-
-    if (deprecatedApiKey && !config.model.apiKey) {
-      config.model['apiKey'] = deprecatedApiKey;
-    }
-
-    if (baseURL && !config.model.baseURL) {
-      config.model.baseURL = baseURL;
-    }
+    config.model = {
+      id: (typeof config.model === 'string' ? config.model : config.model?.id)!,
+      provider: (config.model?.provider ?? provider) as ModelProviderName,
+      apiKey: config.model?.apiKey ?? deprecatedApiKey,
+      baseURL: config.model?.baseURL ?? baseURL,
+    };
   }
-
   // Handle deprecated share provider
   if (shareProvider) {
     if (!config.share) {

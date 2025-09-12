@@ -85,7 +85,7 @@ export class AgentSession {
     const agentOptions = { ...server.appConfig };
 
     // Create agent instance using the server's session-aware factory method
-    const agent = server.createAgentWithSessionModel(sessionInfo);
+    const agent = server.createAgent();
 
     // Initialize agent snapshot if enabled
     if (agentOptions.snapshot?.enable) {
@@ -231,18 +231,6 @@ export class AgentSession {
       };
 
       // Run agent to process the query
-
-      // Add model configuration if available in session metadata
-      if (this.sessionInfo?.metadata?.modelConfig) {
-        runOptions.provider = this.sessionInfo.metadata.modelConfig
-          .provider as ModelProviderName;
-        runOptions.model = this.sessionInfo.metadata.modelConfig.modelId;
-        console.log(
-          `🎯 [AgentSession] Using session model: ${runOptions.provider}:${runOptions.model}`,
-        );
-      }
-
-      // Run agent to process the query
       const result = await this.agent.run(runOptions);
 
       // Debug logging for issue #1150
@@ -322,16 +310,6 @@ export class AgentSession {
         sessionId: this.id,
         environmentInput: options.environmentInput,
       };
-
-      // Add model configuration if available in session metadata
-      if (this.sessionInfo?.metadata?.modelConfig) {
-        runOptions.provider = this.sessionInfo.metadata.modelConfig
-          .provider as ModelProviderName;
-        runOptions.model = this.sessionInfo.metadata.modelConfig.modelId;
-        console.log(
-          `🎯 [AgentSession] Using session model for streaming: ${runOptions.provider}:${runOptions.model}`,
-        );
-      }
 
       // Run agent in streaming mode
       const stream = await this.agent.run(runOptions);

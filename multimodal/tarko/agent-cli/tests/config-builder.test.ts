@@ -433,6 +433,7 @@ describe('buildAppConfig', () => {
           "model": {
             "apiKey": "test-key",
             "baseURL": "https://api.test.com",
+            "id": undefined,
             "provider": "openai",
           },
           "server": {

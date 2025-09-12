@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { Agent, Tool, z } from '../../../src';
-import { TEST_MODEL_PROVIDERS } from '../../../src/_config';
 
 const locationTool = new Tool({
   id: 'getCurrentLocation',
@@ -44,7 +43,6 @@ const agent = new Agent({
   `,
   maxIterations: 10,
   model: {
-    providers: TEST_MODEL_PROVIDERS,
     provider: 'azure-openai',
     id: 'aws_sdk_claude37_sonnet',
   },

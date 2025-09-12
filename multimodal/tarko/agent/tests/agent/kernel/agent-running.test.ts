@@ -55,7 +55,7 @@ describe('Agent Running Behavior', () => {
       agent.setCustomLLMClient(mockLLMClient);
 
       // Mock model resolution to avoid errors
-      vi.spyOn(agent, 'getCurrentResolvedModel').mockReturnValue({
+      vi.spyOn(agent, 'getCurrentModel').mockReturnValue({
         // @ts-expect-error
         provider: 'x',
         id: 'mock-model',
@@ -279,7 +279,7 @@ describe('Agent Running Behavior', () => {
       agent.setCustomLLMClient(mockLLMClient);
 
       // Mock model resolution
-      vi.spyOn(agent, 'getCurrentResolvedModel').mockReturnValue({
+      vi.spyOn(agent, 'getCurrentModel').mockReturnValue({
         // @ts-expect-error
         provider: 'x',
         id: 'mock-model',

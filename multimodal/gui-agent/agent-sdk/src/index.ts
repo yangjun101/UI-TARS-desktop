@@ -10,7 +10,7 @@ import * as p from '@clack/prompts';
 import { Command } from 'commander';
 import { SYSTEM_PROMPT_LATEST, SYSTEM_PROMPT } from './constants';
 import { SeedGUIAgent } from './SeedGUIAgent';
-import { ProviderOptions } from '@tarko/agent-interface';
+import { AgentModel } from '@tarko/agent-interface';
 
 interface TestOptions {
   target?: string;
@@ -39,7 +39,7 @@ function validateEnvironmentVariables() {
   }
 }
 
-function getModelConfig(): ProviderOptions {
+function getModelConfig(): AgentModel {
   return {
     provider: 'openai-non-streaming',
     baseURL: env.ARK_BASE_URL!,
@@ -87,7 +87,7 @@ async function runWithOperator(
     model: {
       provider: 'openai-non-streaming',
       baseURL: modelConfig.baseURL,
-      id: modelConfig.model, // 注意这里是model而不是id
+      id: modelConfig.model!, // 注意这里是model而不是id
       apiKey: modelConfig.apiKey, // secretlint-disable-line
     },
     uiTarsVersion: 'latest',

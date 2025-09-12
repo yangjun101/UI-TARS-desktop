@@ -19,7 +19,7 @@ import {
   Tool,
 } from '@tarko/agent-interface';
 import {
-  ResolvedModel,
+  AgentModel,
   LLMReasoningOptions,
   OpenAI,
   ChatCompletionMessageToolCall,
@@ -83,7 +83,7 @@ export class LLMProcessor {
   /**
    * Process an LLM request for a single iteration
    *
-   * @param resolvedModel The resolved model configuration
+   * @param currentModel The current model configuration
    * @param systemPrompt The configured base system prompt
    * @param toolCallEngine The tool call engine to use
    * @param sessionId Session identifier
@@ -92,7 +92,7 @@ export class LLMProcessor {
    * @param abortSignal Optional signal to abort the execution
    */
   async processRequest(
-    resolvedModel: ResolvedModel,
+    currentModel: AgentModel,
     systemPrompt: string,
     toolCallEngine: ToolCallEngine,
     sessionId: string,
@@ -120,7 +120,7 @@ export class LLMProcessor {
     // Create or reuse llm client
     if (!this.llmClient) {
       this.llmClient = getLLMClient(
-        resolvedModel,
+        currentModel,
         this.reasoningOptions,
         // Pass session ID to request interceptor hook
         (provider, request, baseURL) => {
@@ -195,11 +195,11 @@ export class LLMProcessor {
       finalTools,
     );
 
-    this.logger.info(`[LLM] Requesting ${resolvedModel.provider}/${resolvedModel.id}`);
+    this.logger.info(`[LLM] Requesting ${currentModel.provider}/${currentModel.id}`);
 
     // Prepare request context with final tools
     const prepareRequestContext: ToolCallEnginePrepareRequestContext = {
-      model: resolvedModel.id,
+      model: currentModel.id,
       messages,
       tools: finalTools,
       temperature: this.temperature,
@@ -210,7 +210,7 @@ export class LLMProcessor {
     const startTime = this.enableMetrics ? Date.now() : 0;
 
     await this.sendRequest(
-      resolvedModel,
+      currentModel,
       prepareRequestContext,
       sessionId,
       toolCallEngine,
@@ -229,7 +229,7 @@ export class LLMProcessor {
    * Send the actual request to the LLM and process the response
    */
   private async sendRequest(
-    resolvedModel: ResolvedModel,
+    currentModel: AgentModel,
     context: ToolCallEnginePrepareRequestContext,
     sessionId: string,
     toolCallEngine: ToolCallEngine,
@@ -253,7 +253,7 @@ export class LLMProcessor {
 
     // Use either the custom LLM client or create one using model resolver
     this.logger.info(
-      `[LLM] Sending streaming request to ${resolvedModel.provider} | ${resolvedModel.id} | SessionId: ${sessionId}`,
+      `[LLM] Sending streaming request to ${currentModel.provider} | ${currentModel.id} | SessionId: ${sessionId}`,
     );
 
     // Make the streaming request with abort signal if available
@@ -264,7 +264,7 @@ export class LLMProcessor {
 
     await this.handleStreamingResponse(
       stream,
-      resolvedModel,
+      currentModel,
       sessionId,
       toolCallEngine,
       streamingMode,
@@ -279,7 +279,7 @@ export class LLMProcessor {
    */
   private async handleStreamingResponse(
     stream: AsyncIterable<ChatCompletionChunk>,
-    resolvedModel: ResolvedModel,
+    currentModel: AgentModel,
     sessionId: string,
     toolCallEngine: ToolCallEngine,
     streamingMode: boolean,
@@ -447,7 +447,7 @@ export class LLMProcessor {
 
     // Call response hooks with session ID
     this.agent.onLLMResponse(sessionId, {
-      provider: resolvedModel.provider,
+      provider: currentModel.provider,
       response: {
         id: allChunks[0]?.id || '',
         choices: [
@@ -463,18 +463,18 @@ export class LLMProcessor {
           },
         ],
         created: Date.now(),
-        model: resolvedModel.id,
+        model: currentModel.id,
         object: 'chat.completion',
       } as ChatCompletion,
     });
 
     this.agent.onLLMStreamingResponse(sessionId, {
-      provider: resolvedModel.provider,
+      provider: currentModel.provider,
       chunks: allChunks,
     });
 
     this.logger.info(
-      `[LLM] Streaming response completed from ${resolvedModel.provider} | SessionId: ${sessionId}`,
+      `[LLM] Streaming response completed from ${currentModel.provider} | SessionId: ${sessionId}`,
     );
 
     // Process any tool calls

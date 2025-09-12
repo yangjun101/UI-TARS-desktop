@@ -10,17 +10,7 @@
 import { Agent } from '../../src';
 
 async function main() {
-  const agent = new Agent({
-    model: {
-      providers: [
-        {
-          name: 'azure-openai',
-          baseURL: process.env.OPENAI_API_BASE_URL,
-          models: [],
-        },
-      ],
-    },
-  });
+
 
   const answer = await agent.run({
     provider: 'azure-openai',

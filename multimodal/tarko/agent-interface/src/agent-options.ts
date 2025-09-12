@@ -6,7 +6,7 @@
 
 import { ToolCallEngineType } from './tool-call-engine';
 import { Tool } from './tool';
-import { ProviderOptions, LLMReasoningOptions } from '@tarko/model-provider/types';
+import { AgentModel, LLMReasoningOptions } from '@tarko/model-provider/types';
 import { AgentEventStream } from './agent-event-stream';
 import { LogLevel } from '@agent-infra/logger';
 
@@ -66,7 +66,7 @@ export interface AgentModelOptions {
    *
    * @defaultValue {undefined}
    */
-  model?: ProviderOptions;
+  model?: AgentModel;
 
   /**
    * Maximum number of tokens allowed in the context window.

@@ -126,18 +126,18 @@ console.log(`当前在第 ${iteration} 次迭代`);
 
 **返回：** `number` - 当前循环迭代次数（从1开始，未运行时为0）
 
-### `getCurrentResolvedModel()`
+### `getCurrentModel()`
 
 获取当前解析的模型配置。
 
 ```typescript
-const model = agent.getCurrentResolvedModel();
+const model = agent.getCurrentModel();
 if (model) {
   console.log(`使用 ${model.provider}/${model.id}`);
 }
 ```
 
-**返回：** `ResolvedModel | undefined` - 当前解析的模型
+**返回：** `AgentModel | undefined` - 当前解析的模型
 
 ### `getEventStream()`
 

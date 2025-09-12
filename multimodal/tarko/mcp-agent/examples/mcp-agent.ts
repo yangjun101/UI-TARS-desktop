@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { MCPAgent } from '../src';
-import { TEST_MODEL_PROVIDERS } from '@tarko/agent/_config';
 
 async function main() {
   const agent = new MCPAgent({
@@ -15,9 +14,7 @@ async function main() {
         args: ['@playwright/mcp@latest'],
       },
     },
-    model: {
-      providers: TEST_MODEL_PROVIDERS,
-    },
+    model: {},
   });
 
   try {

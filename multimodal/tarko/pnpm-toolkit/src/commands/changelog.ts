@@ -10,7 +10,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { execa } from 'execa';
-import semver from 'semver';
 
 import { resolveWorkspaceConfig } from '../utils/workspace';
 import { gitCommit, gitPush, getCommitAuthorMap } from '../utils/git';
@@ -19,6 +18,7 @@ import { AIChangelogGenerator } from '../utils/ai-changelog';
 
 import type { ChangelogOptions, CommitAuthor, ChangelogSection } from '../types';
 import type { GitCommit, Reference } from 'tiny-conventional-commits-parser';
+import { ModelProviderName } from '@tarko/model-provider';
 
 /**
  * Filters commits based on configured filters
@@ -359,8 +359,8 @@ export async function changelog(options: ChangelogOptions = {}): Promise<void> {
   if (useAi) {
     logger.info(`Generating changelog for ${version} using AI...`);
     const generator = new AIChangelogGenerator(cwd, tagPrefix, {
-      provider,
-      model,
+      provider: provider as ModelProviderName,
+      id: model,
       apiKey,
       baseURL,
     });

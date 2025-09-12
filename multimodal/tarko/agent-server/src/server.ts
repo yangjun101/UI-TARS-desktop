@@ -142,41 +142,13 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
   }
 
   /**
-   * Get currently available model providers
-   */
-  getAvailableModels(): Array<{ name: string; models: string[]; baseURL?: string }> {
-    const providers = this.appConfig.model?.providers || [];
-
-    // Convert new format to legacy format for API compatibility
-    return providers.map((provider) => ({
-      name: provider.name,
-      models: provider.models.map((model) => (typeof model === 'string' ? model : model.id)),
-      baseURL: provider.baseURL,
-    }));
-  }
-
-  /**
    * Validate if a model configuration is still valid
+   * @deprecated With simplified model configuration, all provider/model combinations are considered valid
    */
   isModelConfigValid(provider: string, modelId: string): boolean {
-    const providers = this.appConfig.model?.providers || [];
-    return providers.some(
-      (p) =>
-        p.name === provider &&
-        p.models.some((model) =>
-          typeof model === 'string' ? model === modelId : model.id === modelId,
-        ),
-    );
-  }
-
-  /**
-   * Get default model configuration
-   */
-  getDefaultModelConfig(): { provider: string; modelId: string } {
-    return {
-      provider: this.appConfig.model?.provider || '',
-      modelId: this.appConfig.model?.id || '',
-    };
+    // With simplified model configuration, we accept any provider/model combination
+    // The actual validation happens during model resolution
+    return true;
   }
 
   /**
@@ -218,40 +190,6 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
    */
   getRunningSessionId(): string | null {
     return this.runningSessionId;
-  }
-
-  /**
-   * Create Agent with session-specific model configuration
-   */
-  createAgentWithSessionModel(sessionInfo?: import('./storage').SessionInfo): IAgent {
-    let modelConfig = this.getDefaultModelConfig();
-
-    // If session has specific model config and it's still valid, use session config
-    if (sessionInfo?.metadata?.modelConfig) {
-      const { provider, modelId } = sessionInfo.metadata.modelConfig;
-      if (this.isModelConfigValid(provider, modelId)) {
-        modelConfig = { provider, modelId };
-      } else {
-        console.warn(
-          `Session ${sessionInfo.id} model config is invalid, falling back to default`,
-        );
-      }
-    }
-
-    const agentAppOptionsWithModelConfig: T = {
-      ...this.appConfig,
-      name: this.getCurrentAgentName(),
-      model: {
-        ...this.appConfig.model,
-        provider: modelConfig.provider,
-        id: modelConfig.modelId,
-      },
-    };
-
-    if (!this.currentAgentResolution) {
-      throw new Error('Cannot found available resolved agent');
-    }
-    return new this.currentAgentResolution.agentConstructor(agentAppOptionsWithModelConfig);
   }
 
   /**
