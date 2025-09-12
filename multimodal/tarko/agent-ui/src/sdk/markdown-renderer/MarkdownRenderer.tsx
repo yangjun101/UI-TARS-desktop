@@ -22,6 +22,7 @@ interface MarkdownRendererProps {
   author?: string;
   className?: string;
   forceDarkTheme?: boolean;
+  codeBlockStyle?: React.CSSProperties;
 }
 
 /**
@@ -46,6 +47,7 @@ const MarkdownRendererContent: React.FC<MarkdownRendererProps> = ({
   author,
   className = '',
   forceDarkTheme = false,
+  codeBlockStyle,
 }) => {
   const [openImage, setOpenImage] = useState<string | null>(null);
   const [renderError, setRenderError] = useState<Error | null>(null);
@@ -91,6 +93,7 @@ const MarkdownRendererContent: React.FC<MarkdownRendererProps> = ({
    */
   const components = useMarkdownComponents({
     onImageClick: handleImageClick,
+    codeBlockStyle,
   });
 
   /**
