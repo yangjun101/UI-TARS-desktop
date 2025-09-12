@@ -5,6 +5,9 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [pluginReact()],
   source: {
+    define: {
+      'process.env.AGENT_BASE_URL': JSON.stringify(process.env.AGENT_BASE_URL || ''),
+    },
     entry: {
       index: './src/entry.tsx',
     },

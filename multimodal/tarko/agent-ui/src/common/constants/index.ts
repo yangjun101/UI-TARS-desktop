@@ -1,8 +1,19 @@
 /**
  * Base API URL for server communication
+ * Priority: window.AGENT_BASE_URL > process.env.AGENT_BASE_URL > production fallback > development default
  */
 
-export const API_BASE_URL = window.AGENT_BASE_URL ?? 'http://localhost:3000';
+export const ENV_CONFIG = {
+  AGENT_BASE_URL: process.env.AGENT_BASE_URL || '',
+} as const;
+
+export const API_BASE_URL = (() => {
+  if (ENV_CONFIG.AGENT_BASE_URL) {
+    return ENV_CONFIG.AGENT_BASE_URL;
+  }
+
+  return window.AGENT_BASE_URL ?? 'http://localhost:3000';
+})();
 
 /**
  * Default API endpoints
@@ -80,5 +91,3 @@ export const CONNECTION_SETTINGS = {
   RECONNECTION_DELAY: 1000,
   RECONNECTION_DELAY_MAX: 5000,
 };
-
-
