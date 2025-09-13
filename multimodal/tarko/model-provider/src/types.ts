@@ -4,6 +4,7 @@
  */
 
 import { ChatCompletionMessageParam } from 'openai/resources';
+import type { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions';
 import type { models } from '@tarko/llm-client';
 
 export * from './third-party';
@@ -105,10 +106,11 @@ export interface LLMReasoningOptions {
 
 /**
  * Extended LLM request with reasoning parameters
+ * Extends OpenAI's ChatCompletionCreateParamsBase for full type safety
  */
-export type LLMRequest = ChatCompletionMessageParam & {
+export interface LLMRequest extends ChatCompletionCreateParamsBase {
   /**
    * Agent reasoning options
    */
   thinking?: LLMReasoningOptions;
-};
+}
