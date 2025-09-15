@@ -1,11 +1,7 @@
 import { atom } from 'jotai';
-import { AgentProcessingPhase, AgentStatusInfo, SessionInfo, LayoutMode } from '@tarko/interface';
+import { SessionItemMetadata, AgentStatusInfo, LayoutMode } from '@tarko/interface';
 import { getDefaultLayoutMode } from '@/config/web-ui-config';
-import {
-  ConnectionStatus,
-  PanelContent,
-  SanitizedAgentOptions,
-} from '@/common/types';
+import { ConnectionStatus, PanelContent, SanitizedAgentOptions } from '@/common/types';
 import { activeSessionIdAtom } from './session';
 
 /**
@@ -45,15 +41,9 @@ export const connectionStatusAtom = atom<ConnectionStatus>({
 });
 
 /**
- * Session metadata atom using server-side SessionInfo metadata type
- * This eliminates type duplication and ensures consistency with persistence layer
+ * Atom for agent options (sanitized)
  */
-export const sessionMetadataAtom = atom<SessionInfo['metadata']>({});
-
-/**
- * Atom for agent options (sanitized configuration)
- */
-export const agentOptionsAtom = atom<SanitizedAgentOptions>({});
+export const agentOptionsAtom = atom<SanitizedAgentOptions | null>(null);
 
 /**
  * Atom for sidebar collapsed state
@@ -77,7 +67,7 @@ export const agentStatusAtom = atom(
   (get) => {
     const activeSessionId = get(activeSessionIdAtom);
     const sessionAgentStatus = get(sessionAgentStatusAtom);
-    return activeSessionId 
+    return activeSessionId
       ? sessionAgentStatus[activeSessionId] || { isProcessing: false }
       : { isProcessing: false };
   },
@@ -138,7 +128,7 @@ export const layoutModeAtom = atom(
 export const initializeLayoutModeAtom = atom(null, (get, set) => {
   try {
     const defaultLayout = getDefaultLayoutMode();
-    
+
     // Try to get from localStorage first
     const savedLayout = localStorage.getItem('tarko-layout-mode') as LayoutMode;
     if (savedLayout && (savedLayout === 'default' || savedLayout === 'narrow-chat')) {

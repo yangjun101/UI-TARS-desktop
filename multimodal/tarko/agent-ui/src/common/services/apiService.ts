@@ -6,7 +6,7 @@ import {
   WorkspaceInfo,
 } from '@/common/types';
 import { socketService } from './socketService';
-import { ChatCompletionContentPart } from '@tarko/agent-interface';
+import { ChatCompletionContentPart, AgentModel } from '@tarko/agent-interface';
 import { AgentServerVersionInfo } from '@agent-tars/interface';
 
 /**
@@ -17,21 +17,6 @@ export interface WorkspaceItem {
   path: string;
   type: 'file' | 'directory';
   relativePath: string;
-}
-
-/**
- * Available models response interface
- */
-export interface AvailableModelsResponse {
-  models: Array<{
-    provider: string;
-    models: string[];
-  }>;
-  defaultModel: {
-    provider: string;
-    modelId: string;
-  };
-  hasMultipleProviders: boolean;
 }
 
 /**
@@ -507,10 +492,7 @@ class ApiService {
     }
   }
 
-  /**
-   * Get available model providers and configurations
-   */
-  async getAvailableModels(): Promise<AvailableModelsResponse> {
+  async getAvailableModels(): Promise<{ models: AgentModel[] }> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/models`, {
         method: 'GET',
@@ -525,53 +507,33 @@ class ApiService {
       return await response.json();
     } catch (error) {
       console.error('Error getting available models:', error);
-      return {
-        models: [],
-        defaultModel: { provider: '', modelId: '' },
-        hasMultipleProviders: false,
-      };
+      return { models: [] };
     }
   }
 
-  /**
-   * Update session model configuration
-   */
-  async updateSessionModel(sessionId: string, provider: string, modelId: string): Promise<boolean> {
+  async updateSessionModel(
+    sessionId: string,
+    model: AgentModel,
+  ): Promise<{ success: boolean; sessionInfo?: SessionInfo }> {
     try {
-      console.log('🔄 [ModelSelector] Updating session model:', {
-        sessionId,
-        provider,
-        modelId,
-        endpoint: `${API_BASE_URL}/api/v1/sessions/model`,
-      });
-
-      const requestBody = { sessionId, provider, modelId };
-      console.log('📤 [ModelSelector] Request payload:', requestBody);
-
       const response = await fetch(`${API_BASE_URL}/api/v1/sessions/model`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ sessionId, model }),
       });
 
-      console.log('📥 [ModelSelector] Response status:', response.status, response.statusText);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ [ModelSelector] Server error response:', errorText);
         throw new Error(`Failed to update session model: ${response.statusText}`);
       }
 
       const responseData = await response.json();
-      console.log('✅ [ModelSelector] Response data:', responseData);
-
-      const { success } = responseData;
-      console.log('🎯 [ModelSelector] Update result:', success ? 'SUCCESS' : 'FAILED');
-
-      return success;
+      return {
+        success: responseData.success,
+        sessionInfo: responseData.sessionInfo,
+      };
     } catch (error) {
-      console.error('💥 [ModelSelector] Error updating session model:', error);
-      return false;
+      console.error('Error updating session model:', error);
+      return { success: false };
     }
   }
 }

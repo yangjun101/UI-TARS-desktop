@@ -8,6 +8,7 @@ import { nanoid } from 'nanoid';
 import { SessionInfo } from '../../storage';
 import { AgentSession } from '../../core';
 import { ShareService } from '../../services';
+import { getDefaultModel } from '../../utils/model-utils';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -77,6 +78,8 @@ export async function createSession(req: Request, res: Response) {
     // Store session metadata if we have storage
     if (server.storageProvider) {
       const now = Date.now();
+
+      const defaultModel = getDefaultModel(server.appConfig);
       const sessionInfo: SessionInfo = {
         id: sessionId,
         createdAt: now,
@@ -87,6 +90,9 @@ export async function createSession(req: Request, res: Response) {
             name: server.getCurrentAgentName()!,
             configuredAt: now,
           },
+          ...(defaultModel && {
+            modelConfig: defaultModel,
+          }),
         },
       };
 

@@ -2,11 +2,7 @@ import { atom } from 'jotai';
 import { SOCKET_EVENTS } from '@/common/constants';
 import { apiService } from '@/common/services/apiService';
 import { socketService } from '@/common/services/socketService';
-import {
-  connectionStatusAtom,
-  sessionMetadataAtom,
-  agentOptionsAtom,
-} from '@/common/state/atoms/ui';
+import { connectionStatusAtom, agentOptionsAtom } from '@/common/state/atoms/ui';
 
 /**
  * Check server connection status
@@ -24,26 +20,14 @@ export const checkConnectionStatusAction = atom(null, async (get, set) => {
       lastError: isConnected ? null : currentStatus.lastError,
     });
 
-    // Load workspace info when connection is successful
-    // Agent info will be loaded from session metadata when a session is active
+    // Load agent options on successful connection
     if (isConnected) {
       try {
-        const agentOptions = await apiService.getAgentOptions();
-        set(agentOptionsAtom, agentOptions);
-
-        // Extract workspace info from agent options
-        set(sessionMetadataAtom, (prev) => ({
-          ...prev,
-          metadata: {
-            ...prev.metadata,
-            workspace: {
-              name: agentOptions.workspaceName || 'Unknown',
-              path: agentOptions.workspace || '',
-            },
-          },
-        }));
+        const options = await apiService.getAgentOptions();
+        set(agentOptionsAtom, options);
       } catch (error) {
-        console.warn('Failed to load agent options:', error);
+        console.error('Failed to load agent options:', error);
+        set(agentOptionsAtom, {});
       }
     }
 
