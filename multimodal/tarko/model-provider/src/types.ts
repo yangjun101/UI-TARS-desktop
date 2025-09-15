@@ -38,6 +38,10 @@ export interface Model {
    * Provider's base URL
    */
   baseURL?: string;
+  /**
+   * Additional headers to include in requests
+   */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -60,6 +64,11 @@ export interface AgentModel extends Model {
    * Base provider name
    */
   baseProvider?: BaseModelProviderName;
+  /**
+   * Experimental parameters passed directly through request body
+   * @warning Use with caution - these parameters bypass validation
+   */
+  params?: Record<string, any>;
 }
 
 /**

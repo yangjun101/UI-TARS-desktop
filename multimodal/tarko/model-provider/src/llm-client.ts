@@ -28,11 +28,12 @@ export function createLLMClient(
   agentModel: AgentModel,
   requestInterceptor?: LLMRequestInterceptor,
 ): OpenAI {
-  const { provider, id, baseProvider, baseURL, apiKey } = agentModel;
+  const { provider, id, baseProvider, baseURL, apiKey, headers, params } = agentModel;
 
   const client = new TokenJS({
     apiKey,
     baseURL,
+    defaultHeaders: headers,
   });
 
   // Add extended model support for non-native providers
@@ -60,11 +61,13 @@ export function createLLMClient(
   return {
     chat: {
       completions: {
-        async create(params: ChatCompletionCreateParamsBase) {
+        async create(requestParams: ChatCompletionCreateParamsBase) {
           const requestPayload = {
-            ...params,
+            ...requestParams,
             provider,
             model: id,
+            // Merge experimental params directly into request body
+            ...params,
           };
 
           const finalRequest = requestInterceptor

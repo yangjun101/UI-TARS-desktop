@@ -5,6 +5,8 @@
 
 import { AgentModel, ModelProviderName, BaseModelProviderName } from './types';
 import { HIGH_LEVEL_MODEL_PROVIDER_CONFIGS } from './constants';
+import { addClaudeHeadersIfNeeded } from './claude-headers';
+import { addAzureClaudeParamsIfNeeded } from './azure-claude-params';
 
 /**
  * Get the actual provider implementation name
@@ -50,12 +52,20 @@ export function resolveModel(
     apiKey = apiKey || defaultConfig.apiKey;
   }
 
+  // Automatically add Claude headers if it's a Claude model
+  const headers = addClaudeHeadersIfNeeded(model, agentModel?.headers);
+
+  // Automatically add Azure Claude params if needed
+  const params = addAzureClaudeParamsIfNeeded(model, provider, agentModel?.params);
+
   return {
     provider,
     id: model,
     displayName,
     baseURL,
     apiKey,
+    headers,
+    params,
     baseProvider: getActualProvider(provider),
   };
 }

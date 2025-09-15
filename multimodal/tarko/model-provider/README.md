@@ -14,6 +14,7 @@ npm install @tarko/model-provider
 - 🎯 **Unified Interface**: Single API for all providers with OpenAI-compatible interface
 - ⚙️ **Smart Resolution**: Automatic model configuration resolution with fallbacks
 - 🔧 **Extensible**: Easy to add new providers through configuration
+- 🔗 **Custom Headers**: Support for custom headers with automatic provider enhancements
 - 📦 **Type Safe**: Full TypeScript support with strict typing
 
 ## Quick Start
@@ -80,6 +81,30 @@ const resolvedModel = resolveModel(
 );
 ```
 
+### Custom Headers Support
+
+Add custom headers to any model configuration:
+
+```typescript
+// Custom headers for any provider
+const modelWithHeaders = resolveModel({
+  provider: 'openai',
+  id: 'gpt-4',
+  headers: {
+    'X-Custom-Header': 'value',
+    'Authorization': 'Bearer custom-token'
+  }
+});
+
+// Headers are passed through to the underlying HTTP client
+const client = createLLMClient(modelWithHeaders);
+```
+
+**Automatic Provider Enhancements:**
+- Claude models (`claude-*`, `anthropic/*`) automatically get `anthropic-beta` headers
+- Custom headers merge with automatic provider headers
+- Headers are validated and passed to the HTTP client
+
 ## API Reference
 
 ### Types
@@ -93,6 +118,7 @@ interface AgentModel {
   baseProvider?: BaseModelProviderName; // Base implementation
   apiKey?: string;                      // API key
   baseURL?: string;                     // Base URL
+  headers?: Record<string, string>;     // Custom headers (auto-merged with provider defaults)
 }
 ```
 
