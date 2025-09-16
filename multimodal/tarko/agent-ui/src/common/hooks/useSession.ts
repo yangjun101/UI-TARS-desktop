@@ -4,13 +4,7 @@ import { messagesAtom, groupedMessagesAtom } from '../state/atoms/message';
 import { toolResultsAtom } from '../state/atoms/tool';
 
 import { sessionFilesAtom } from '../state/atoms/files';
-import {
-  isProcessingAtom,
-  activePanelContentAtom,
-  connectionStatusAtom,
-  agentStatusAtom,
-  sessionAgentStatusAtom,
-} from '../state/atoms/ui';
+import { isProcessingAtom, activePanelContentAtom, connectionStatusAtom } from '../state/atoms/ui';
 import { replayStateAtom } from '../state/atoms/replay';
 import {
   loadSessionsAction,
@@ -27,7 +21,6 @@ import {
   initConnectionMonitoringAction,
   checkConnectionStatusAction,
 } from '../state/actions/connectionActions';
-import { socketService } from '../services/socketService';
 
 import { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useReplayMode } from '../hooks/useReplayMode';
@@ -40,8 +33,6 @@ export function useSession() {
   const toolResults = useAtomValue(toolResultsAtom);
   const sessionFiles = useAtomValue(sessionFilesAtom);
   const [isProcessing, setIsProcessing] = useAtom(isProcessingAtom);
-  const [agentStatus, setAgentStatus] = useAtom(agentStatusAtom);
-  const setSessionAgentStatus = useSetAtom(sessionAgentStatusAtom);
   const [activePanelContent, setActivePanelContent] = useAtom(activePanelContentAtom);
   const [connectionStatus, setConnectionStatus] = useAtom(connectionStatusAtom);
 
@@ -89,36 +80,6 @@ export function useSession() {
     };
   }, [activeSessionId, connectionStatus.connected, checkSessionStatus, isReplayMode]);
 
-  const handleSessionStatusUpdate = useCallback(
-    (status: any) => {
-      if (status && typeof status.isProcessing === 'boolean' && !isReplayMode && activeSessionId) {
-        setSessionAgentStatus((prev) => ({
-          ...prev,
-          [activeSessionId]: {
-            isProcessing: status.isProcessing,
-            state: status.state,
-            phase: status.phase,
-            message: status.message,
-            estimatedTime: status.estimatedTime,
-          },
-        }));
-      }
-    },
-    [activeSessionId, isReplayMode, setSessionAgentStatus],
-  );
-
-  useEffect(() => {
-    if (!activeSessionId || !socketService.isConnected() || isReplayMode) return;
-
-    socketService.joinSession(activeSessionId, () => {}, handleSessionStatusUpdate);
-
-    socketService.on('agent-status', handleSessionStatusUpdate);
-
-    return () => {
-      socketService.off('agent-status', handleSessionStatusUpdate);
-    };
-  }, [activeSessionId, handleSessionStatusUpdate, isReplayMode]);
-
   const sessionState = useMemo(
     () => ({
       sessions,
@@ -128,7 +89,6 @@ export function useSession() {
       toolResults,
       sessionFiles,
       isProcessing,
-      agentStatus,
       activePanelContent,
       connectionStatus,
 
@@ -160,7 +120,6 @@ export function useSession() {
       toolResults,
       sessionFiles,
       isProcessing,
-      agentStatus,
       activePanelContent,
       connectionStatus,
       replayState,
