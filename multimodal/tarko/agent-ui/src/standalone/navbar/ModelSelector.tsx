@@ -1,14 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Select,
-  MenuItem,
-  FormControl,
-  Box,
-  Typography,
-  CircularProgress,
-  ThemeProvider,
-  Tooltip,
-} from '@mui/material';
 import { useSetAtom } from 'jotai';
 import { updateSessionMetadataAction } from '@/common/state/actions/sessionActions';
 import { apiService } from '@/common/services/apiService';
@@ -17,8 +7,18 @@ import { AgentModel } from '@tarko/agent-interface';
 import { useReplayMode } from '@/common/hooks/useReplayMode';
 import { useAtomValue } from 'jotai';
 import { isProcessingAtom } from '@/common/state/atoms/ui';
-import { getTooltipProps } from '@/common/components/TooltipConfig';
-import { createBasicMuiTheme, createModelSelectorMuiTheme } from '@/common/utils/muiTheme';
+import { 
+  Select,
+  MenuItem,
+  FormControl,
+  Box,
+  Typography,
+  CircularProgress,
+  ThemeProvider,
+  createBasicMuiTheme, 
+  createModelSelectorMuiTheme, 
+  Tooltip 
+} from '@tarko/ui';
 
 interface NavbarModelSelectorProps {
   className?: string;
@@ -116,7 +116,6 @@ const StaticModelDisplay: React.FC<{
     return null;
   }
 
-  const tooltipProps = getTooltipProps('bottom');
   const muiTheme = React.useMemo(() => createBasicMuiTheme(isDarkMode), [isDarkMode]);
 
   const content = (
@@ -176,7 +175,7 @@ const StaticModelDisplay: React.FC<{
 
   if (isDisabled && disabledReason) {
     return (
-      <Tooltip title={disabledReason} {...tooltipProps}>
+      <Tooltip title={disabledReason} placement="bottom">
         <span>{content}</span>
       </Tooltip>
     );

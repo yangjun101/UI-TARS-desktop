@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiX, FiShare2, FiLink, FiDownload, FiCheck } from 'react-icons/fi';
 import { shareService, ShareConfig, ShareResult } from './shareService';
-import { Dialog } from '@/common/components/MuiDialog';
-import { LoadingSpinner } from '@/common/components/LoadingSpinner';
+import { Dialog, DialogPanel, DialogTitle } from '@tarko/ui';
+import { LoadingSpinner } from '@tarko/ui';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -93,12 +93,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, session
 
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="sm">
-      <Dialog.Panel className="p-6">
+      <DialogPanel className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <Dialog.Title className="text-xl font-medium text-gray-800 dark:text-gray-200 flex items-center">
+          <DialogTitle className="text-xl font-medium text-gray-800 dark:text-gray-200 flex items-center">
             <FiShare2 className="mr-3 text-gray-500 dark:text-gray-400" />
             Share Conversation
-          </Dialog.Title>
+          </DialogTitle>
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -299,7 +299,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, session
             </div>
           </div>
         )}
-      </Dialog.Panel>
+      </DialogPanel>
     </Dialog>
   );
 };
