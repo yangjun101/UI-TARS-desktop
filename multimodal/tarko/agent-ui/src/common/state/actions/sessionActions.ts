@@ -13,7 +13,6 @@ import { sessionFilesAtom, FileItem } from '../atoms/files';
 import { ChatCompletionContentPart, AgentEventStream } from '@tarko/agent-interface';
 import { SessionItemMetadata } from '@tarko/interface';
 
-
 // Priority-based file selection for workspace display: HTML > Markdown > Others
 function selectBestFileToDisplay(files: FileItem[]): FileItem | null {
   if (!files || files.length === 0) {
@@ -235,15 +234,7 @@ export const updateSessionAction = atom(
 function preprocessStreamingEvents(events: AgentEventStream.Event[]): AgentEventStream.Event[] {
   const messageStreams: Record<string, AgentEventStream.Event[]> = {};
 
-  events.forEach((event) => {
-    if (event.type === 'final_answer_streaming' && 'messageId' in event) {
-      const messageId = event.messageId as string;
-      if (!messageStreams[messageId]) {
-        messageStreams[messageId] = [];
-      }
-      messageStreams[messageId].push(event);
-    }
-  });
+  // No special preprocessing needed for current event types
 
   return events;
 }
