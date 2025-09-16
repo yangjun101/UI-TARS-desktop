@@ -7,7 +7,6 @@ import {
   Box,
   Typography,
   CircularProgress,
-  createTheme,
   ThemeProvider,
   Tooltip,
 } from '@mui/material';
@@ -20,7 +19,7 @@ import { useReplayMode } from '@/common/hooks/useReplayMode';
 import { useAtomValue } from 'jotai';
 import { isProcessingAtom } from '@/common/state/atoms/ui';
 import { getTooltipProps } from '@/common/components/TooltipConfig';
-import { getModelDisplayName } from '@/common/utils/modelUtils';
+import { createBasicMuiTheme, createModelSelectorMuiTheme } from '@/common/utils/muiTheme';
 
 interface NavbarModelSelectorProps {
   className?: string;
@@ -29,7 +28,6 @@ interface NavbarModelSelectorProps {
   isDarkMode?: boolean;
 }
 
-// Helper functions for model operations
 const isSameModel = (a: AgentModel | null, b: AgentModel | null): boolean => {
   if (!a || !b) return false;
   return a.provider === b.provider && a.id === b.id;
@@ -37,9 +35,8 @@ const isSameModel = (a: AgentModel | null, b: AgentModel | null): boolean => {
 
 const getModelKey = (model: AgentModel): string => `${model.provider}:${model.id}`;
 
+const getModelDisplayText = (model: AgentModel) => model.displayName || model.id;
 
-
-// Shared component for displaying model information
 const ModelDisplayContent: React.FC<{
   model: AgentModel;
   isDarkMode: boolean;
@@ -47,7 +44,7 @@ const ModelDisplayContent: React.FC<{
   isSelected?: boolean;
   showLoading?: boolean;
 }> = ({ model, isDarkMode, fontSize = '12px', isSelected = false, showLoading = false }) => {
-  const displayText = getModelDisplayName(model);
+  const displayText = getModelDisplayText(model);
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
@@ -108,20 +105,19 @@ const ModelDisplayContent: React.FC<{
   );
 };
 
-// Shared static model display component
 const StaticModelDisplay: React.FC<{
   sessionMetadata: SessionItemMetadata;
   isDarkMode: boolean;
   className?: string;
-  muiTheme: any;
   isDisabled?: boolean;
   disabledReason?: string;
-}> = ({ sessionMetadata, isDarkMode, className, muiTheme, isDisabled = false, disabledReason }) => {
+}> = ({ sessionMetadata, isDarkMode, className, isDisabled = false, disabledReason }) => {
   if (!sessionMetadata?.modelConfig) {
     return null;
   }
 
   const tooltipProps = getTooltipProps('bottom');
+  const muiTheme = React.useMemo(() => createBasicMuiTheme(isDarkMode), [isDarkMode]);
 
   const content = (
     <ThemeProvider theme={muiTheme}>
@@ -139,23 +135,31 @@ const StaticModelDisplay: React.FC<{
             minWidth: 'auto',
             maxWidth: '300px',
             background: isDisabled
-              ? isDarkMode ? 'rgba(55, 65, 81, 0.15)' : 'rgba(248, 250, 252, 0.4)'
-              : isDarkMode ? 'rgba(55, 65, 81, 0.3)' : 'rgba(248, 250, 252, 0.8)',
+              ? isDarkMode
+                ? 'rgba(55, 65, 81, 0.15)'
+                : 'rgba(248, 250, 252, 0.4)'
+              : isDarkMode
+                ? 'rgba(55, 65, 81, 0.3)'
+                : 'rgba(248, 250, 252, 0.8)',
             backdropFilter: 'blur(8px)',
             border: isDisabled
-              ? isDarkMode ? '1px solid rgba(75, 85, 99, 0.15)' : '1px solid rgba(203, 213, 225, 0.3)'
+              ? isDarkMode
+                ? '1px solid rgba(75, 85, 99, 0.15)'
+                : '1px solid rgba(203, 213, 225, 0.3)'
               : isDarkMode
-              ? '1px solid rgba(75, 85, 99, 0.3)'
-              : '1px solid rgba(203, 213, 225, 0.6)',
+                ? '1px solid rgba(75, 85, 99, 0.3)'
+                : '1px solid rgba(203, 213, 225, 0.6)',
             borderRadius: '8px',
             opacity: isDisabled ? 0.6 : 1,
             cursor: isDisabled ? 'not-allowed' : 'default',
-            '&:hover': isDisabled ? {} : {
-              background: isDarkMode ? 'rgba(55, 65, 81, 0.8)' : 'rgba(241, 245, 249, 0.9)',
-              boxShadow: isDarkMode
-                ? '0 2px 4px -1px rgba(0, 0, 0, 0.2)'
-                : '0 2px 4px -1px rgba(0, 0, 0, 0.05)',
-            },
+            '&:hover': isDisabled
+              ? {}
+              : {
+                  background: isDarkMode ? 'rgba(55, 65, 81, 0.8)' : 'rgba(241, 245, 249, 0.9)',
+                  boxShadow: isDarkMode
+                    ? '0 2px 4px -1px rgba(0, 0, 0, 0.2)'
+                    : '0 2px 4px -1px rgba(0, 0, 0, 0.05)',
+                },
           }}
         >
           <ModelDisplayContent
@@ -191,137 +195,22 @@ export const NavbarModelSelector: React.FC<NavbarModelSelectorProps> = ({
   const { isReplayMode } = useReplayMode();
   const isProcessing = useAtomValue(isProcessingAtom);
 
-  // Get current model from session metadata - simplified since server always provides modelConfig
   const currentModel = React.useMemo(() => {
-    // Wait for models to be loaded
     if (models.length === 0) return null;
 
-    // Server always provides modelConfig, so we can directly use it
     if (sessionMetadata?.modelConfig) {
       const foundModel = models.find(
         (m) =>
           m.provider === sessionMetadata.modelConfig?.provider &&
           m.id === sessionMetadata.modelConfig?.id,
       );
-      return foundModel || models[0]; // fallback to first model if saved model not found
+      return foundModel || models[0];
     }
 
-    // If sessionMetadata is still loading, don't show any model yet
     return null;
   }, [models, sessionMetadata]);
 
-  const muiTheme = React.useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: isDarkMode ? 'dark' : 'light',
-          primary: {
-            main: '#6366f1',
-          },
-          background: {
-            paper: isDarkMode ? 'rgba(31, 41, 55, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-            default: isDarkMode ? '#1f2937' : '#f9fafb',
-          },
-          text: {
-            primary: isDarkMode ? '#f9fafb' : '#374151',
-            secondary: isDarkMode ? '#d1d5db' : '#6b7280',
-          },
-        },
-        components: {
-          MuiSelect: {
-            styleOverrides: {
-              root: {
-                borderRadius: '8px',
-                height: '28px',
-                minHeight: '28px',
-                fontSize: '12px',
-                fontWeight: 500,
-                background: isDarkMode ? 'rgba(55, 65, 81, 0.3)' : 'rgba(248, 250, 252, 0.8)',
-                backdropFilter: 'blur(8px)',
-                border: isDarkMode
-                  ? '1px solid rgba(75, 85, 99, 0.3)'
-                  : '1px solid rgba(203, 213, 225, 0.6)',
-                '& .MuiOutlinedInput-notchedOutline': {
-                  border: 'none',
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  border: 'none',
-                },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  border: 'none',
-                },
-                '&:hover': {
-                  background: isDarkMode ? 'rgba(55, 65, 81, 0.8)' : 'rgba(241, 245, 249, 0.9)',
-                  boxShadow: isDarkMode
-                    ? '0 2px 4px -1px rgba(0, 0, 0, 0.2)'
-                    : '0 2px 4px -1px rgba(0, 0, 0, 0.05)',
-                },
-                '& .MuiSelect-icon': {
-                  display: 'none',
-                },
-              },
-              select: {
-                padding: '4px 10px !important',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                height: '24px',
-                minHeight: '24px',
-              },
-            },
-          },
-          MuiMenuItem: {
-            styleOverrides: {
-              root: {
-                fontSize: '13px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                margin: '3px 8px',
-                minHeight: '40px',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                '&:hover': {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(99, 102, 241, 0.15)'
-                    : 'rgba(99, 102, 241, 0.08)',
-                  transform: 'translateX(2px)',
-                },
-                '&.Mui-selected': {
-                  backgroundColor: isDarkMode
-                    ? 'rgba(99, 102, 241, 0.25)'
-                    : 'rgba(99, 102, 241, 0.12)',
-                  color: isDarkMode ? '#a5b4fc' : '#6366f1',
-                  '&:hover': {
-                    backgroundColor: isDarkMode
-                      ? 'rgba(99, 102, 241, 0.3)'
-                      : 'rgba(99, 102, 241, 0.18)',
-                    transform: 'translateX(2px)',
-                  },
-                },
-              },
-            },
-          },
-          MuiPaper: {
-            styleOverrides: {
-              root: {
-                borderRadius: '16px',
-                maxWidth: '400px',
-                boxShadow: isDarkMode
-                  ? '0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 8px 16px -4px rgba(0, 0, 0, 0.3)'
-                  : '0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 8px 16px -4px rgba(0, 0, 0, 0.08)',
-                backdropFilter: 'blur(20px)',
-                border: isDarkMode
-                  ? '1px solid rgba(75, 85, 99, 0.4)'
-                  : '1px solid rgba(229, 231, 235, 0.6)',
-                background: isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                animation: 'menuSlideIn 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                transformOrigin: 'top center',
-              },
-            },
-          },
-        },
-      }),
-    [isDarkMode],
-  );
+  const muiTheme = React.useMemo(() => createModelSelectorMuiTheme(isDarkMode), [isDarkMode]);
 
   const handleModelChange = async (selectedModel: AgentModel) => {
     if (!activeSessionId || isLoading || !selectedModel) return;
@@ -330,7 +219,6 @@ export const NavbarModelSelector: React.FC<NavbarModelSelectorProps> = ({
     try {
       const response = await apiService.updateSessionModel(activeSessionId, selectedModel);
       if (response.success && response.sessionInfo?.metadata) {
-        // Update session metadata using utility action
         updateSessionMetadata({
           sessionId: activeSessionId,
           metadata: response.sessionInfo.metadata,
@@ -345,7 +233,7 @@ export const NavbarModelSelector: React.FC<NavbarModelSelectorProps> = ({
 
   useEffect(() => {
     const loadModels = async () => {
-      if (models.length > 0) return; // Only load once
+      if (models.length > 0) return;
 
       try {
         const response = await apiService.getAvailableModels();
@@ -358,16 +246,18 @@ export const NavbarModelSelector: React.FC<NavbarModelSelectorProps> = ({
     loadModels();
   }, [models.length]);
 
-  // In replay mode, share mode (no activeSessionId), or agent processing mode, show static display if we have model config
   if (!activeSessionId || isReplayMode || isProcessing) {
     return (
       <StaticModelDisplay
         sessionMetadata={sessionMetadata}
         isDarkMode={isDarkMode}
         className={className}
-        muiTheme={muiTheme}
         isDisabled={isProcessing && models.length > 1}
-        disabledReason={isProcessing && models.length > 1 ? 'Model selection unavailable during agent execution. Please wait for agent execution to complete' : undefined}
+        disabledReason={
+          isProcessing && models.length > 1
+            ? 'Model selection unavailable during agent execution. Please wait for agent execution to complete'
+            : undefined
+        }
       />
     );
   }
@@ -376,16 +266,18 @@ export const NavbarModelSelector: React.FC<NavbarModelSelectorProps> = ({
     return null;
   }
 
-  // Show selector only if there are multiple models available and agent is not processing
   if (models.length <= 1 || isProcessing) {
     return (
       <StaticModelDisplay
         sessionMetadata={sessionMetadata}
         isDarkMode={isDarkMode}
         className={className}
-        muiTheme={muiTheme}
         isDisabled={isProcessing && models.length > 1}
-        disabledReason={isProcessing && models.length > 1 ? 'Model selection unavailable during agent execution. Please wait for agent execution to complete' : undefined}
+        disabledReason={
+          isProcessing && models.length > 1
+            ? 'Model selection unavailable during agent execution. Please wait for agent execution to complete'
+            : undefined
+        }
       />
     );
   }
