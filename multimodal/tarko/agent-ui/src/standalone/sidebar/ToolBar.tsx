@@ -9,15 +9,6 @@ import { isLayoutSwitchButtonEnabled } from '@/config/web-ui-config';
 import { AgentConfigViewer } from './AgentConfigViewer';
 import { LayoutSwitchButton } from './LayoutSwitchButton';
 
-/**
- * ToolBar Component - Vertical toolbar inspired by modern IDE designs
- *
- * Design principles:
- * - Minimalist vertical bar with icon-only actions
- * - Consistent visual language with subtle animations
- * - Quick access to essential functionality
- * - Always visible regardless of sidebar collapse state
- */
 export const ToolBar: React.FC = () => {
   const navigate = useNavigate();
   const { isReplayMode } = useReplayMode();
@@ -27,7 +18,6 @@ export const ToolBar: React.FC = () => {
 
   const enableLayoutSwitchButton = isLayoutSwitchButtonEnabled();
 
-  // Create new session
   const handleNewSession = useCallback(async () => {
     if (isCreatingSession || !connectionStatus.connected) return;
 
@@ -42,7 +32,6 @@ export const ToolBar: React.FC = () => {
     }
   }, [createSession, navigate, isCreatingSession, connectionStatus.connected]);
 
-  // Navigate to home
   const handleNavigateHome = useCallback(() => {
     navigate('/');
   }, [navigate]);
@@ -50,9 +39,7 @@ export const ToolBar: React.FC = () => {
   return (
     <>
       <div className="w-14 h-full flex flex-col backdrop-blur-sm">
-        {/* Top tool buttons */}
         <div className="flex-1 flex flex-col items-center gap-4">
-          {/* New session button */}
           {!isReplayMode && (
             <motion.button
               whileHover={{
@@ -103,7 +90,6 @@ export const ToolBar: React.FC = () => {
             </motion.button>
           )}
 
-          {/* Home button */}
           {!isReplayMode && (
             <motion.button
               whileHover={{
@@ -120,12 +106,9 @@ export const ToolBar: React.FC = () => {
           )}
         </div>
 
-        {/* Bottom tool buttons */}
         <div className="flex flex-col items-center gap-4 pb-4">
-          {/* Layout switch button */}
           {!isReplayMode && enableLayoutSwitchButton && <LayoutSwitchButton />}
-          
-          {/* Agent config button */}
+
           {!isReplayMode && (
             <motion.button
               whileHover={{
@@ -143,7 +126,6 @@ export const ToolBar: React.FC = () => {
         </div>
       </div>
 
-      {/* Agent Config Viewer Modal */}
       <AgentConfigViewer isOpen={isConfigViewerOpen} onClose={() => setIsConfigViewerOpen(false)} />
     </>
   );

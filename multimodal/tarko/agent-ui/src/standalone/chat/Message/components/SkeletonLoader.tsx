@@ -7,9 +7,6 @@ interface SkeletonLoaderProps {
   className?: string;
 }
 
-/**
- * SkeletonLoader Component - Provides visual feedback during TTFT
- */
 export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   lines = 3,
   showAvatar = true,
@@ -48,9 +45,6 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   );
 };
 
-/**
- * TypewriterLoader Component - Simulates typing effect
- */
 interface TypewriterLoaderProps {
   text: string;
   speed?: number;

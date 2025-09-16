@@ -16,9 +16,6 @@ import { workspaceDisplayModeAtom, WorkspaceDisplayMode } from '@/common/state/a
 import { rawToolMappingAtom } from '@/common/state/atoms/rawEvents';
 import { getFileTypeInfo, getDefaultDisplayMode } from './utils/fileTypeUtils';
 
-/**
- * All renderers
- */
 import { ImageRenderer } from './renderers/ImageRenderer';
 import { LinkRenderer } from './renderers/LinkRenderer';
 import { LinkReaderRenderer } from './renderers/LinkReaderRenderer';
@@ -34,9 +31,6 @@ import { DiffRenderer } from './renderers/DiffRenderer';
 import { FileResultRenderer } from './renderers/FileResultRenderer';
 import { TabbedFilesRenderer } from './renderers/TabbedFilesRenderer';
 
-/**
- * Registry of content renderers that handle StandardPanelContent directly
- */
 const CONTENT_RENDERERS: Record<
   string,
   React.FC<{
@@ -63,9 +57,6 @@ const CONTENT_RENDERERS: Record<
   tabbed_files: TabbedFilesRenderer,
 };
 
-/**
- * WorkspaceDetail Component - Displays details of a single tool result or report
- */
 export const WorkspaceDetail: React.FC = () => {
   const { activePanelContent, setActivePanelContent, activeSessionId } = useSession();
   const { isReplayMode } = useReplayMode();
@@ -74,7 +65,6 @@ export const WorkspaceDetail: React.FC = () => {
   const [zoomedImage, setZoomedImage] = useState<ZoomedImageData | null>(null);
   const [fullscreenData, setFullscreenData] = useState<FullscreenFileData | null>(null);
 
-  // Determine initial display mode based on content type and streaming state
   const getInitialDisplayMode = (): FileDisplayMode => {
     if (
       !activePanelContent ||
@@ -92,7 +82,6 @@ export const WorkspaceDetail: React.FC = () => {
 
   const [displayMode, setDisplayMode] = useState<FileDisplayMode>(getInitialDisplayMode());
 
-  // Auto-switch HTML files from source to rendered when streaming completes
   useEffect(() => {
     if (
       !activePanelContent ||
@@ -104,7 +93,6 @@ export const WorkspaceDetail: React.FC = () => {
 
     const { isHtml } = getFileTypeInfo(activePanelContent.arguments.path);
 
-    // When streaming completes for HTML files, auto-switch to rendered mode
     if (isHtml && !activePanelContent.isStreaming && displayMode === 'source') {
       const timer = setTimeout(() => {
         setDisplayMode('rendered');
@@ -114,7 +102,6 @@ export const WorkspaceDetail: React.FC = () => {
     }
   }, [activePanelContent?.isStreaming, displayMode]);
 
-  // Reset display mode when switching to different content
   useEffect(() => {
     setDisplayMode(getInitialDisplayMode());
   }, [activePanelContent?.toolCallId, activePanelContent?.timestamp]);
@@ -123,17 +110,14 @@ export const WorkspaceDetail: React.FC = () => {
     return null;
   }
 
-  // Type assertion with runtime validation
   const panelContent = activePanelContent as StandardPanelContent;
 
-  // Get raw tool mapping for current tool call
   const getCurrentToolMapping = () => {
     if (!activeSessionId || !panelContent.toolCallId) return null;
     const sessionMappings = rawToolMapping[activeSessionId];
     return sessionMappings?.[panelContent.toolCallId] || null;
   };
 
-  // Handle research reports and deliverables
   if (isResearchReportType(panelContent)) {
     return (
       <ResearchReportRenderer
@@ -144,7 +128,6 @@ export const WorkspaceDetail: React.FC = () => {
     );
   }
 
-  // Handle content actions
   const handleContentAction = (action: string, data: unknown) => {
     switch (action) {
       case 'zoom':
@@ -160,12 +143,10 @@ export const WorkspaceDetail: React.FC = () => {
     }
   };
 
-  // Handle back navigation
   const handleBack = () => {
     setActivePanelContent(null);
   };
 
-  // Handle fullscreen from header
   const handleFullscreen = () => {
     if (
       panelContent.type === 'file' &&
@@ -185,7 +166,6 @@ export const WorkspaceDetail: React.FC = () => {
     }
   };
 
-  // Check if the toggle button needs to be displayed
   const shouldShowToggle = () => {
     if (workspaceDisplayMode === 'raw') return false;
     if (panelContent.type === 'file' && panelContent.arguments?.path) {
@@ -194,7 +174,6 @@ export const WorkspaceDetail: React.FC = () => {
     return false;
   };
 
-  // Check if fullscreen button should be displayed
   const shouldShowFullscreen = () => {
     if (workspaceDisplayMode === 'raw') return false;
     if (panelContent.type === 'file' && panelContent.arguments?.path) {
@@ -203,12 +182,10 @@ export const WorkspaceDetail: React.FC = () => {
     return false;
   };
 
-  // Check if workspace toggle should be displayed
   const shouldShowWorkspaceToggle = () => {
     return Boolean(panelContent.toolCallId && getCurrentToolMapping());
   };
 
-  // Get switch configuration
   const getToggleConfig = (): ToggleSwitchProps<FileDisplayMode> | undefined => {
     if (panelContent.type === 'file' && panelContent.arguments?.path) {
       const { isHtml, isMarkdown } = getFileTypeInfo(panelContent.arguments.path);
@@ -241,7 +218,6 @@ export const WorkspaceDetail: React.FC = () => {
     }
   };
 
-  // Render content based on workspace display mode
   const renderContent = () => {
     if (workspaceDisplayMode === 'raw') {
       const toolMapping = getCurrentToolMapping();
@@ -264,7 +240,6 @@ export const WorkspaceDetail: React.FC = () => {
       }
     }
 
-    // Default interaction mode rendering
     const RendererComponent = CONTENT_RENDERERS[panelContent.type] || GenericResultRenderer;
 
     return (

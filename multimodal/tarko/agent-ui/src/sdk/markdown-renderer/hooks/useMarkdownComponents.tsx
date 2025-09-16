@@ -27,19 +27,17 @@ interface UseMarkdownComponentsProps {
   codeBlockStyle?: React.CSSProperties;
 }
 
-/**
- * Custom hook that provides markdown components configuration
- */
-export const useMarkdownComponents = ({ onImageClick, codeBlockStyle }: UseMarkdownComponentsProps): Components => {
+export const useMarkdownComponents = ({
+  onImageClick,
+  codeBlockStyle,
+}: UseMarkdownComponentsProps): Components => {
   return React.useMemo(
     () => ({
-      // Headings
       h1: ({ children }) => <H1>{children}</H1>,
       h2: ({ children }) => <H2>{children}</H2>,
       h3: ({ children }) => <H3>{children}</H3>,
       h4: ({ children }) => <H4>{children}</H4>,
 
-      // Text elements
       p: ({ children }) => <Paragraph>{children}</Paragraph>,
       ul: ({ children }) => <UnorderedList>{children}</UnorderedList>,
       ol: ({ children }) => <OrderedList>{children}</OrderedList>,
@@ -47,17 +45,14 @@ export const useMarkdownComponents = ({ onImageClick, codeBlockStyle }: UseMarkd
       blockquote: ({ children }) => <Blockquote>{children}</Blockquote>,
       hr: () => <HorizontalRule />,
 
-      // Links
       a: ({ href, children }) => <SmartLink href={href}>{children}</SmartLink>,
 
-      // Code
       code: ({ className, children, ...props }) => (
         <CodeBlock className={className} style={codeBlockStyle} {...props}>
           {children}
         </CodeBlock>
       ),
 
-      // Tables
       table: ({ children }) => <TableWrapper>{children}</TableWrapper>,
       thead: ({ children }) => <TableHead>{children}</TableHead>,
       tbody: ({ children }) => <TableBody>{children}</TableBody>,
@@ -65,10 +60,8 @@ export const useMarkdownComponents = ({ onImageClick, codeBlockStyle }: UseMarkd
       th: ({ children }) => <TableHeaderCell>{children}</TableHeaderCell>,
       td: ({ children }) => <TableDataCell>{children}</TableDataCell>,
 
-      // Images
       img: ({ src, alt }) => <InteractiveImage src={src} alt={alt} onClick={onImageClick} />,
 
-      // Override strikethrough (del) to render as normal text
       del: ({ children }) => <span>{children}</span>,
     }),
     [onImageClick, codeBlockStyle],

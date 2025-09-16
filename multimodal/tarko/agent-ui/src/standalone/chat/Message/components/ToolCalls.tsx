@@ -12,17 +12,6 @@ interface ToolCallsProps {
   toolResults?: any[]; // Add toolResults to check completion status
 }
 
-/**
- * Component for displaying tool calls with enhanced icons and loading states
- *
- * Design principles:
- * - Distinct visual identity for different tool types
- * - Shows loading state for pending tool calls
- * - Shows constructing state for streaming tool calls
- * - Displays success/error status with appropriate icons
- * - Provides clear visual feedback with enhanced tool-specific colors
- * - Privacy-protected path display in tool descriptions
- */
 export const ToolCalls: React.FC<ToolCallsProps> = ({
   toolCalls,
   onToolCallClick,
@@ -30,14 +19,11 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
   isIntermediate = false,
   toolResults = [],
 }) => {
-  // Helper function to get tool call status
   const getToolCallStatus = (toolCall: any) => {
-    // Check if tool call is still being constructed (has incomplete JSON arguments)
     if (toolCall.function?.arguments) {
       try {
         JSON.parse(toolCall.function.arguments);
       } catch (error) {
-        // Arguments are incomplete, still constructing
         return 'pending';
       }
     }
@@ -45,23 +31,21 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
     const result = toolResults.find((result) => result.toolCallId === toolCall.id);
 
     if (!result) {
-      return 'pending'; // No result yet, tool is still running
+      return 'pending';
     }
 
     if (result.error) {
-      return 'error'; // Tool execution failed
+      return 'error';
     }
 
-    return 'success'; // Tool completed successfully
+    return 'success';
   };
 
-  // Helper function to get elapsed time for a tool call
   const getToolCallElapsedTime = (toolCall: any): number | undefined => {
     const result = toolResults.find((result) => result.toolCallId === toolCall.id);
     return result?.elapsedMs;
   };
 
-  // Helper function to get status icon with enhanced visual styling
   const getStatusIcon = (status: string, toolName: string) => {
     switch (status) {
       case 'constructing':
@@ -100,7 +84,6 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
     }
   };
 
-  // Generate tool description text - enhanced readability with path normalization
   const getToolDescription = (toolCall: any, status: string) => {
     try {
       const args =
@@ -162,7 +145,7 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
       }
     } catch (error) {
       console.log(toolCall.function, error);
-      // For constructing state, show partial arguments if available
+
       if (status === 'constructing' && toolCall.function.arguments) {
         return 'constructing parameters...';
       }
@@ -170,7 +153,6 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
     }
   };
 
-  // Get browser operation result info
   const getResultInfo = (toolCall: any, status: string) => {
     const result = toolResults.find((result) => result.toolCallId === toolCall.id);
 
@@ -199,12 +181,9 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
     return '';
   };
 
-  // Get formatted tool display name for better readability
   const getToolDisplayName = (toolName: string) => {
-    // Replace underscores with spaces
     const nameWithSpaces = toolName.replace(/_/g, ' ');
 
-    // Special case handling
     switch (toolName) {
       case 'browser_navigate':
         return 'Navigate';
@@ -227,7 +206,6 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
       case 'edit_file':
         return 'Edit File';
       default:
-        // Title case
         return nameWithSpaces
           .split(' ')
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -235,7 +213,6 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
     }
   };
 
-  // Helper function to determine if a tool is file-related
   const isFileRelatedTool = (toolName: string) => {
     const fileTools = [
       'read_file',
@@ -269,7 +246,7 @@ export const ToolCalls: React.FC<ToolCallsProps> = ({
             status={status === 'constructing' ? 'pending' : status}
             statusIcon={getStatusIcon(status, toolCall.function.name)}
             description={description || browserInfo || undefined}
-            elapsedMs={elapsedMs} // Pass elapsed time to ActionButton
+            elapsedMs={elapsedMs}
             isFileRelated={isFileRelatedTool(toolCall.function.name)}
           />
         );
