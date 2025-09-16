@@ -93,6 +93,9 @@ export function bootstrapCli() {
     .option('--tag-prefix <prefix>', 'Prefix for git tags', {
       default: 'v',
     })
+    .option('--canary', 'Skip version/tag selection and auto-generate canary version', {
+      default: false,
+    })
     .option('--use-ai', 'Use AI to generate changelog', {
       default: false,
     })

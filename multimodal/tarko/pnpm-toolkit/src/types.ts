@@ -61,6 +61,7 @@ export interface ReleaseOptions extends CommandOptions {
   build?: boolean | string;
   pushTag?: boolean;
   tagPrefix?: string;
+  canary?: boolean;
   useAi?: boolean;
   model?: string;
   apiKey?: string;
