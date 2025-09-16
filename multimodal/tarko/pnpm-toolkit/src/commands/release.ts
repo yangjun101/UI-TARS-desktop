@@ -15,7 +15,7 @@ import chalk from 'chalk';
 import { execa } from 'execa';
 
 import { loadWorkspacePackages, resolveWorkspaceConfig } from '../utils/workspace';
-import { gitCommit, gitCreateTag, gitPushTag } from '../utils/git';
+import { gitCommit, gitCreateTag, gitPushTag, getCurrentBranch, createAndSwitchBranch, switchBranch } from '../utils/git';
 import { publishPackage } from '../utils/npm';
 import { logger } from '../utils/logger';
 import { createGitHubRelease } from '../utils/github';
@@ -231,11 +231,16 @@ export async function release(options: ReleaseOptions = {}): Promise<void> {
     canary = false,
     useAi = false,
     createGithubRelease = false,
+    autoCreateReleaseBranch = false,
   } = options;
 
   if (dryRun) {
     logger.info('Dry run mode enabled - no actual changes will be made');
   }
+
+  // Handle auto-create release branch variables
+  let originalBranch: string | null = null;
+  let releaseBranch: string | null = null;
 
   try {
     // Get workspace configuration
@@ -272,6 +277,27 @@ export async function release(options: ReleaseOptions = {}): Promise<void> {
       if (yes === 'N') {
         logger.info('Release cancelled.');
         return;
+      }
+    }
+
+    // Handle auto-create release branch
+    if (autoCreateReleaseBranch) {
+      try {
+        // Get current branch
+        originalBranch = await getCurrentBranch(cwd);
+        releaseBranch = `release/${version}`;
+
+        if (dryRun) {
+          logger.info(`[dry-run] Would create and switch to release branch: ${releaseBranch}`);
+          logger.info(`[dry-run] Original branch: ${originalBranch}`);
+        } else {
+          logger.info(`Creating release branch: ${releaseBranch}`);
+          await createAndSwitchBranch(releaseBranch, cwd);
+          logger.success(`Switched to release branch: ${releaseBranch}`);
+        }
+      } catch (err) {
+        logger.error(`Failed to create release branch: ${(err as Error).message}`);
+        throw err;
       }
     }
 
@@ -542,9 +568,38 @@ export async function release(options: ReleaseOptions = {}): Promise<void> {
       }
     }
 
+    // Switch back to original branch if auto-create release branch was used
+    if (autoCreateReleaseBranch && originalBranch && releaseBranch) {
+      try {
+        if (dryRun) {
+          logger.info(`[dry-run] Would switch back to original branch: ${originalBranch}`);
+          logger.info(`[dry-run] Release branch created: ${releaseBranch}`);
+        } else {
+          logger.info(`Switching back to original branch: ${originalBranch}`);
+          await switchBranch(originalBranch, cwd);
+          logger.success(`Switched back to original branch: ${originalBranch}`);
+          logger.info(`Release branch created: ${chalk.cyan(releaseBranch)}`);
+        }
+      } catch (err) {
+        logger.warn(`Failed to switch back to original branch: ${(err as Error).message}`);
+        logger.info(`You are currently on release branch: ${chalk.cyan(releaseBranch)}`);
+      }
+    }
+
     logger.success(`Release ${version} completed successfully!`);
   } catch (err) {
     logger.error(`Release failed: ${(err as Error).message}`);
+
+    // Switch back to original branch if auto-create release branch was used
+    if (autoCreateReleaseBranch && originalBranch && !dryRun) {
+      try {
+        logger.info(`Switching back to original branch due to error: ${originalBranch}`);
+        await switchBranch(originalBranch, cwd);
+        logger.success(`Switched back to original branch: ${originalBranch}`);
+      } catch (switchErr) {
+        logger.warn(`Failed to switch back to original branch: ${(switchErr as Error).message}`);
+      }
+    }
 
     // Try to patch the failed release
     if (!dryRun) {

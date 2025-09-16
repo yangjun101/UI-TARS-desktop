@@ -116,6 +116,9 @@ export function bootstrapCli() {
     .option('--create-github-release', 'Create GitHub release after successful release', {
       default: false,
     })
+    .option('--auto-create-release-branch', 'Automatically create release branch before release', {
+      default: false,
+    })
     .alias('release')
     .action((opts) => {
       // Process filter options
