@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDarkMode } from '@tarko/ui';
 import { ShareButton } from '@/standalone/share';
+import { ShareModal } from '@/standalone/share/ShareModal';
 import { AboutModal } from './AboutModal';
 
 import {
@@ -32,13 +33,12 @@ import type { WorkspaceNavItemIcon } from '@tarko/interface';
 import { getModelDisplayName } from '@/common/utils/modelUtils';
 import {
   Box,
-  Typography,
-  ThemeProvider,
+  IconButton,
   Menu,
   MenuItem,
-  Divider,
-  IconButton,
-  createBasicMuiTheme,
+  MenuDivider,
+  useNavbarStyles,
+  useHoverHandlers,
 } from '@tarko/ui';
 
 import './Navbar.css';
@@ -47,9 +47,10 @@ export const Navbar: React.FC = () => {
   const { isSidebarCollapsed, toggleSidebar } = useLayout();
   const { activeSessionId, isProcessing, sessionMetadata } = useSession();
   const { isReplayMode } = useReplayMode();
-  const isDarkMode = useDarkMode();
+  const { isDarkMode } = useNavbarStyles();
   const [showAboutModal, setShowAboutModal] = React.useState(false);
-  const [mobileMenuAnchor, setMobileMenuAnchor] = React.useState<null | HTMLElement>(null);
+  const [showShareModal, setShowShareModal] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const workspaceNavItems = getWorkspaceNavItems();
 
   useEffect(() => {
@@ -81,12 +82,21 @@ export const Navbar: React.FC = () => {
     window.open(link, '_blank', 'noopener,noreferrer');
   };
 
-  const handleMobileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMobileMenuAnchor(event.currentTarget);
+  const handleMobileMenuOpen = () => {
+    setMobileMenuOpen(true);
   };
 
   const handleMobileMenuClose = () => {
-    setMobileMenuAnchor(null);
+    setMobileMenuOpen(false);
+  };
+
+  const handleShareOpen = () => {
+    setShowShareModal(true);
+    setMobileMenuOpen(false); // Close mobile menu if open
+  };
+
+  const handleShareClose = () => {
+    setShowShareModal(false);
   };
 
   const getNavItemIcon = (iconType: WorkspaceNavItemIcon = 'default') => {
@@ -116,10 +126,8 @@ export const Navbar: React.FC = () => {
     };
   };
 
-  const muiTheme = React.useMemo(() => createBasicMuiTheme(isDarkMode), [isDarkMode]);
-
   return (
-    <ThemeProvider theme={muiTheme}>
+    <div>
       <div className="h-12 backdrop-blur-sm flex items-center px-3 flex-shrink-0 relative">
         <div className="flex items-center">
           {logoType === 'traffic-lights' ? (
@@ -196,7 +204,7 @@ export const Navbar: React.FC = () => {
             </button>
 
             {activeSessionId && !isReplayMode && (
-              <ShareButton variant="navbar" disabled={isProcessing} />
+              <ShareButton variant="navbar" disabled={isProcessing} onShare={handleShareOpen} />
             )}
           </div>
 
@@ -210,44 +218,10 @@ export const Navbar: React.FC = () => {
               <FiMoreHorizontal size={16} />
             </IconButton>
 
-            <Menu
-              anchorEl={mobileMenuAnchor}
-              open={Boolean(mobileMenuAnchor)}
-              onClose={handleMobileMenuClose}
-              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-              sx={{
-                '& .MuiPaper-root': {
-                  minWidth: 200,
-                  mt: 1,
-                  backgroundColor: isDarkMode
-                    ? 'rgba(30, 41, 59, 0.95)'
-                    : 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(12px)',
-                  border: isDarkMode
-                    ? '1px solid rgba(71, 85, 105, 0.3)'
-                    : '1px solid rgba(226, 232, 240, 0.8)',
-                  borderRadius: '12px',
-                  boxShadow: isDarkMode
-                    ? '0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2)'
-                    : '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                },
-                '& .MuiMenuItem-root': {
-                  color: isDarkMode ? 'rgba(226, 232, 240, 0.9)' : 'rgba(51, 65, 85, 0.9)',
-                  '&:hover': {
-                    backgroundColor: isDarkMode
-                      ? 'rgba(71, 85, 105, 0.3)'
-                      : 'rgba(241, 245, 249, 0.8)',
-                  },
-                },
-                '& .MuiDivider-root': {
-                  borderColor: isDarkMode ? 'rgba(71, 85, 105, 0.3)' : 'rgba(226, 232, 240, 0.6)',
-                },
-              }}
-            >
-              {!isReplayMode &&
-                workspaceNavItems.length > 0 && [
-                  ...workspaceNavItems.map((navItem) => {
+            <Menu open={mobileMenuOpen} onClose={handleMobileMenuClose}>
+              {!isReplayMode && workspaceNavItems.length > 0 && (
+                <>
+                  {workspaceNavItems.map((navItem) => {
                     const IconComponent = getNavItemIcon(navItem.icon);
                     return (
                       <MenuItem
@@ -256,24 +230,23 @@ export const Navbar: React.FC = () => {
                           handleNavItemClick(navItem.link);
                           handleMobileMenuClose();
                         }}
-                        sx={{ gap: 1.5 }}
+                        icon={<IconComponent size={16} />}
                       >
-                        <IconComponent size={16} style={{ opacity: 0.7 }} />
                         {navItem.title}
                       </MenuItem>
                     );
-                  }),
-                  <Divider key="divider" />,
-                ]}
+                  })}
+                  <MenuDivider />
+                </>
+              )}
 
               <MenuItem
                 onClick={() => {
                   setShowAboutModal(true);
                   handleMobileMenuClose();
                 }}
-                sx={{ gap: 1.5 }}
+                icon={<FiInfo size={16} />}
               >
-                <FiInfo size={16} style={{ opacity: 0.7 }} />
                 About {getAgentTitle()}
               </MenuItem>
 
@@ -282,24 +255,17 @@ export const Navbar: React.FC = () => {
                   toggleDarkMode();
                   handleMobileMenuClose();
                 }}
-                sx={{ gap: 1.5 }}
+                icon={isDarkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
               >
-                {isDarkMode ? (
-                  <FiSun size={16} style={{ opacity: 0.7 }} />
-                ) : (
-                  <FiMoon size={16} style={{ opacity: 0.7 }} />
-                )}
                 {isDarkMode ? 'Light Mode' : 'Dark Mode'}
               </MenuItem>
 
               {activeSessionId && !isReplayMode && (
                 <MenuItem
-                  onClick={() => {
-                    handleMobileMenuClose();
-                  }}
-                  sx={{ gap: 1.5 }}
+                  onClick={handleShareOpen}
+                  icon={<FiShare size={16} />}
+                  disabled={isProcessing}
                 >
-                  <FiShare size={16} style={{ opacity: 0.7 }} />
                   Share
                 </MenuItem>
               )}
@@ -313,7 +279,15 @@ export const Navbar: React.FC = () => {
         onClose={() => setShowAboutModal(false)}
         sessionMetadata={sessionMetadata}
       />
-    </ThemeProvider>
+
+      {activeSessionId && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={handleShareClose}
+          sessionId={activeSessionId}
+        />
+      )}
+    </div>
   );
 };
 
@@ -335,7 +309,8 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
 
   const [agentTextWidth, setAgentTextWidth] = useState(0);
   const [modelTextWidth, setModelTextWidth] = useState(0);
-  const isDarkMode = useDarkMode();
+  const { isDarkMode, getAgentBadgeStyles, getTextStyles } = useNavbarStyles();
+  const { applyHoverStyles, resetStyles } = useHoverHandlers();
 
   useEffect(() => {
     const calculateWidths = () => {
@@ -395,13 +370,14 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
   const totalTextWidth = agentTextWidth + modelTextWidth;
   const hasSpace = totalTextWidth <= availableWidth;
 
+  // Prioritize agent name - give it more space and ensure it's not truncated
   const agentMaxWidth = hasSpace
     ? 'none'
-    : `${Math.max((agentTextWidth / totalTextWidth) * availableWidth * 0.85, 120)}px`;
+    : `${Math.min(agentTextWidth + 40, availableWidth * 0.6)}px`; // Give agent name priority
 
   const modelMaxWidth = hasSpace
     ? 'none'
-    : `${Math.max((modelTextWidth / totalTextWidth) * availableWidth * 0.85, 180)}px`;
+    : `${Math.max(availableWidth - (agentTextWidth + 80), 150)}px`; // Model can be truncated if needed
 
   return (
     <div
@@ -410,64 +386,28 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
       style={{ maxWidth: '100%' }}
     >
       {sessionMetadata?.agentInfo?.name && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-            px: 1.25,
-            py: 0.375,
-            height: '28px',
-            minHeight: '28px',
-
-            background: isDarkMode
-              ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 50%, rgba(168, 85, 247, 0.15) 100%)'
-              : 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 50%, rgba(168, 85, 247, 0.08) 100%)',
-            backdropFilter: 'blur(8px)',
-            border: isDarkMode
-              ? '1px solid rgba(139, 92, 246, 0.25)'
-              : '1px solid rgba(99, 102, 241, 0.15)',
-            borderRadius: '8px',
-            position: 'relative',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '8px',
-              background: isDarkMode
-                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 50%, rgba(168, 85, 247, 0.05) 100%)'
-                : 'linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(139, 92, 246, 0.03) 50%, rgba(168, 85, 247, 0.03) 100%)',
-              zIndex: -1,
-            },
-            '&:hover': {
-              background: isDarkMode
-                ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(139, 92, 246, 0.25) 50%, rgba(168, 85, 247, 0.25) 100%)'
-                : 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 50%, rgba(168, 85, 247, 0.12) 100%)',
-              border: isDarkMode
-                ? '1px solid rgba(139, 92, 246, 0.35)'
-                : '1px solid rgba(99, 102, 241, 0.25)',
-              boxShadow: isDarkMode
-                ? '0 2px 8px -1px rgba(99, 102, 241, 0.15)'
-                : '0 2px 8px -1px rgba(99, 102, 241, 0.08)',
-            },
+        <div
+          style={{
+            ...getAgentBadgeStyles().base,
+            maxWidth: agentMaxWidth,
+          }}
+          onMouseEnter={(e) => {
+            applyHoverStyles(e.currentTarget, getAgentBadgeStyles().hover);
+          }}
+          onMouseLeave={(e) => {
+            resetStyles(e.currentTarget, getAgentBadgeStyles().reset);
           }}
         >
           <FiZap size={12} color={isDarkMode ? '#a5b4fc' : '#6366f1'} style={{ flexShrink: 0 }} />
-          <Typography
-            variant="body2"
-            sx={{
-              fontWeight: 500,
-              fontSize: '12px',
-              color: isDarkMode ? '#e0e7ff' : '#4338ca',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+          <span
+            style={{
+              ...getTextStyles().agentName,
             }}
             title={sessionMetadata.agentInfo.name}
           >
             {sessionMetadata.agentInfo.name}
-          </Typography>
-        </Box>
+          </span>
+        </div>
       )}
 
       <NavbarModelSelector

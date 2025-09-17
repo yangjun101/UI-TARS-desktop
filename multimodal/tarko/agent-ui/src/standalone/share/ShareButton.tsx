@@ -2,34 +2,40 @@ import React, { useState } from 'react';
 import { FiShare2 } from 'react-icons/fi';
 import { useSession } from '@/common/hooks/useSession';
 import { ShareModal } from './ShareModal';
-import { Tooltip } from '@tarko/ui';
+import { Tooltip, MenuItem } from '@tarko/ui';
 
 interface ShareButtonProps {
-  variant?: 'default' | 'navbar';
+  variant?: 'default' | 'navbar' | 'mobile';
   disabled?: boolean;
+  onShare?: () => void;
+  showModal?: boolean; // For external modal management
 }
 
 /**
  * Share button component - displayed at the bottom of chat panel or in navigation bar
- *
- * Design principles:
- * - Clean monochrome icon, consistent with the overall black-white-gray style
- * - Circular button design, maintaining elegant visual effect
- * - Fine hover and click animations, enhancing interactive experience
- * - Support different display variants to adapt to different positions
  */
 export const ShareButton: React.FC<ShareButtonProps> = ({
   variant = 'default',
   disabled = false,
+  onShare,
+  showModal,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { activeSessionId } = useSession();
 
-
-
   const handleOpenModal = () => {
+    console.log('ShareButton handleOpenModal called', { disabled, activeSessionId, variant });
     if (disabled) return;
-    setIsModalOpen(true);
+
+    if (onShare) {
+      // External modal management
+      console.log('Using external modal management');
+      onShare();
+    } else {
+      // Internal modal management
+      console.log('Using internal modal management');
+      setIsModalOpen(true);
+    }
   };
 
   const handleCloseModal = () => {
@@ -38,6 +44,21 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
 
   if (!activeSessionId) {
     return null;
+  }
+
+  // Mobile variant for menu items
+  if (variant === 'mobile') {
+    return (
+      <>
+        <MenuItem onClick={handleOpenModal} icon={<FiShare2 size={16} />} disabled={disabled}>
+          Share
+        </MenuItem>
+
+        {!onShare && (
+          <ShareModal isOpen={isModalOpen} onClose={handleCloseModal} sessionId={activeSessionId} />
+        )}
+      </>
+    );
   }
 
   // Navbar variant has different styling
@@ -50,7 +71,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
               ? 'Share unavailable during agent execution. Please wait for agent execution to complete'
               : 'Share this conversation'
           }
-          placement="bottom"
+          placement="bottom-right"
         >
           <span>
             <button
@@ -66,14 +87,13 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
           </span>
         </Tooltip>
 
-        {!disabled && (
+        {!onShare && (
           <ShareModal isOpen={isModalOpen} onClose={handleCloseModal} sessionId={activeSessionId} />
         )}
       </>
     );
   }
 
-  // Default variant (original styling)
   return (
     <>
       <Tooltip
@@ -104,7 +124,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         </span>
       </Tooltip>
 
-      {!disabled && (
+      {!onShare && (
         <ShareModal isOpen={isModalOpen} onClose={handleCloseModal} sessionId={activeSessionId} />
       )}
     </>
