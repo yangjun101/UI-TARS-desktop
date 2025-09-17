@@ -14,6 +14,7 @@ export interface TooltipProps {
     | 'top-right';
   children: React.ReactElement;
   className?: string;
+  maxWidth?: string;
 }
 
 export const Tooltip: React.FC<TooltipProps> = ({
@@ -21,6 +22,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   placement = 'bottom',
   children,
   className,
+  maxWidth = '300px',
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -98,7 +100,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
       borderRadius: '6px',
       zIndex: 9999,
       pointerEvents: 'none',
-      whiteSpace: 'nowrap',
+      maxWidth,
+      wordWrap: 'break-word',
+      whiteSpace: 'normal',
       opacity: isVisible ? 1 : 0,
       transition: 'opacity 150ms ease-in-out',
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',

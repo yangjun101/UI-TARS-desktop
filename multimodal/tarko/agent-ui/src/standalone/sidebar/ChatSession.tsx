@@ -221,13 +221,11 @@ export const ChatSession: React.FC<ChatSessionProps> = ({ isCollapsed }) => {
   }, [deleteSession, sessionToDelete, sessions, activeSessionId, navigate]);
 
   if (isCollapsed) {
-    return (
-      <div className="flex flex-col h-full bg-transparent w-0 border-r border-gray-100/40 dark:border-gray-700/20" />
-    );
+    return null; // Don't render anything when collapsed in modal mode
   }
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-800/95 rounded-xl flex flex-col h-full backdrop-blur-sm mr-3">
+    <div className="w-72 bg-white dark:bg-gray-900/95 flex flex-col h-full backdrop-blur-sm">
       <div className="p-4 flex items-center justify-between border-b border-gray-100/40 dark:border-gray-700/20">
         <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Recent Tasks</div>
         <div className="flex items-center gap-2">
@@ -303,7 +301,7 @@ export const ChatSession: React.FC<ChatSessionProps> = ({ isCollapsed }) => {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto sidebar-scrollbar p-3">
+      <div className="flex-1 overflow-y-auto sidebar-scrollbar px-3 pb-3">
         <AnimatePresence>
           {groupedSessions.map((group) => (
             <div key={group.key} className="mb-4">

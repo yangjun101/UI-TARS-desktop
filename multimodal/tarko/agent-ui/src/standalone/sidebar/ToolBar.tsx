@@ -1,21 +1,26 @@
 import React, { useCallback, useState } from 'react';
 
 import { FiPlus, FiHome, FiSettings } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
+import { GoSidebarCollapse, GoSidebarExpand } from 'react-icons/go';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSession } from '@/common/hooks/useSession';
 import { useReplayMode } from '@/common/hooks/useReplayMode';
-import { isLayoutSwitchButtonEnabled } from '@/config/web-ui-config';
+import { useLayout } from '@/common/hooks/useLayout';
+import { isLayoutSwitchButtonEnabled, getLogoUrl, getAgentTitle } from '@/config/web-ui-config';
 import { AgentConfigViewer } from './AgentConfigViewer';
 import { LayoutSwitchButton } from './LayoutSwitchButton';
 
 export const ToolBar: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isReplayMode } = useReplayMode();
   const { createSession, connectionStatus } = useSession();
+  const { isSidebarCollapsed, toggleSidebar } = useLayout();
   const [isConfigViewerOpen, setIsConfigViewerOpen] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   const enableLayoutSwitchButton = isLayoutSwitchButtonEnabled();
+  const isHomePage = location.pathname === '/';
 
   const handleNewSession = useCallback(async () => {
     if (isCreatingSession || !connectionStatus.connected) return;
@@ -37,13 +42,32 @@ export const ToolBar: React.FC = () => {
 
   return (
     <>
-      <div className="w-14 h-full flex flex-col backdrop-blur-sm">
-        <div className="flex-1 flex flex-col items-center gap-4">
+      <div className="w-12 h-full flex flex-col backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-4 pt-3">
+          <button onClick={handleNavigateHome} title="Back to Home">
+            <img
+              src={getLogoUrl()}
+              alt={getAgentTitle()}
+              className="w-6 h-6 rounded-lg hover:scale-105 transition-transform"
+            />
+          </button>
+
+          {/* Sidebar toggle button */}
+          {!isReplayMode && (
+            <button
+              onClick={toggleSidebar}
+              className="w-6 h-6 rounded-lg flex items-center justify-center bg-white dark:bg-gray-800 text-black dark:text-white hover:shadow-md transition-all hover:scale-105 active:scale-95"
+              title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isSidebarCollapsed ? <GoSidebarCollapse size={12} /> : <GoSidebarExpand size={12} />}
+            </button>
+          )}
+
           {!isReplayMode && (
             <button
               onClick={handleNewSession}
               disabled={!connectionStatus.connected || isCreatingSession}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
+              className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 ${
                 connectionStatus.connected && !isCreatingSession
                   ? 'bg-white dark:bg-gray-800 text-black dark:text-white hover:shadow-md'
                   : isCreatingSession
@@ -76,33 +100,25 @@ export const ToolBar: React.FC = () => {
                   </svg>
                 </div>
               ) : (
-                <FiPlus size={16} />
+                <FiPlus size={12} />
               )}
-            </button>
-          )}
-
-          {!isReplayMode && (
-            <button
-              onClick={handleNavigateHome}
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white dark:bg-gray-800 text-black dark:text-white hover:shadow-md transition-all hover:scale-105 active:scale-95"
-              title="Home"
-            >
-              <FiHome size={16} />
             </button>
           )}
         </div>
 
+        <div className="flex-1" />
+
         <div className="flex flex-col items-center gap-4 pb-4">
-          {!isReplayMode && enableLayoutSwitchButton && <LayoutSwitchButton />}
+          {!isReplayMode && enableLayoutSwitchButton && !isHomePage && <LayoutSwitchButton />}
 
           {/* Agent config button */}
           {!isReplayMode && (
             <button
               onClick={() => setIsConfigViewerOpen(true)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white dark:bg-gray-800 text-black dark:text-white hover:shadow-md transition-all hover:scale-105 active:scale-95"
+              className="w-6 h-6 rounded-lg flex items-center justify-center bg-white dark:bg-gray-800 text-black dark:text-white hover:shadow-md transition-all hover:scale-105 active:scale-95"
               title="Agent Configuration"
             >
-              <FiSettings size={16} />
+              <FiSettings size={12} />
             </button>
           )}
         </div>
