@@ -7,18 +7,20 @@ import { Connection, Model } from 'mongoose';
 import { SessionInfo } from '@tarko/interface';
 import { ISessionDAO } from '../interfaces/ISessionDAO';
 import { SessionDocument } from '../../storage/MongoDBStorageProvider/MongoDBSchemas';
-import { getLogger } from '@tarko/shared-utils';
+import { getLogger } from '../../utils/logger';
+import { ILogger } from '../../types';
 
-const logger = getLogger('SessionDAO');
 
 /**
  * MongoDB implementation of ISessionDAO
  */
 export class SessionDAO implements ISessionDAO {
   private connection: Connection;
+  private logger: ILogger
 
   constructor(connection: Connection) {
     this.connection = connection;
+    this.logger = getLogger('SessionDAO');
   }
 
   private getSessionModel(): Model<SessionDocument> {
@@ -46,13 +48,13 @@ export class SessionDAO implements ISessionDAO {
 
       await session.save();
 
-      logger.debug(`Session created successfully: ${sessionData.id}`);
+      this.logger.info(`Session created successfully: ${sessionData.id}`);
       return sessionData;
     } catch (error) {
       if ((error as any).code === 11000) {
         throw new Error(`Session with ID ${sessionData.id} already exists`);
       }
-      logger.error(`Failed to create session ${sessionData.id}:`, error);
+      this.logger.error(`Failed to create session ${sessionData.id}:`, error);
       throw new Error(
         `Failed to create session: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -87,7 +89,7 @@ export class SessionDAO implements ISessionDAO {
         throw new Error(`Session not found: ${sessionId}`);
       }
 
-      logger.debug(`Session updated successfully: ${sessionId}`);
+      this.logger.info(`Session updated successfully: ${sessionId}`);
 
       return {
         id: updatedSession._id,
@@ -98,7 +100,7 @@ export class SessionDAO implements ISessionDAO {
         metadata: updatedSession.metadata,
       };
     } catch (error) {
-      logger.error(`Failed to update session ${sessionId}:`, error);
+      this.logger.error(`Failed to update session ${sessionId}:`, error);
       throw new Error(
         `Failed to update session: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -124,7 +126,7 @@ export class SessionDAO implements ISessionDAO {
         metadata: session.metadata,
       };
     } catch (error) {
-      logger.error(`Failed to get session ${sessionId}:`, error);
+      this.logger.error(`Failed to get session ${sessionId}:`, error);
       throw new Error(
         `Failed to get session: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -146,7 +148,7 @@ export class SessionDAO implements ISessionDAO {
         metadata: session.metadata,
       }));
     } catch (error) {
-      logger.error('Failed to get all sessions:', error);
+      this.logger.error('Failed to get all sessions:', error);
       throw new Error(
         `Failed to get all sessions: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -172,7 +174,7 @@ export class SessionDAO implements ISessionDAO {
         userId: session.userId,
       }));
     } catch (error) {
-      logger.error(`Failed to get user sessions for ${userId}:`, error);
+      this.logger.error(`Failed to get user sessions for ${userId}:`, error);
       throw new Error(
         `Failed to get user sessions: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -185,21 +187,21 @@ export class SessionDAO implements ISessionDAO {
 
       const sessionExists = await SessionModel.exists({ _id: sessionId });
       if (!sessionExists) {
-        logger.debug(`Session not found: ${sessionId}`);
+        this.logger.info(`Session not found: ${sessionId}`);
         return false;
       }
 
       const deleteResult = await SessionModel.findByIdAndDelete(sessionId);
 
       if (deleteResult) {
-        logger.debug(`Session deleted successfully: ${sessionId}`);
+        this.logger.info(`Session deleted successfully: ${sessionId}`);
         return true;
       } else {
-        logger.debug(`Session not found during deletion: ${sessionId}`);
+        this.logger.info(`Session not found during deletion: ${sessionId}`);
         return false;
       }
     } catch (error) {
-      logger.error(`Failed to delete session ${sessionId}:`, error);
+      this.logger.error(`Failed to delete session ${sessionId}:`, error);
       throw new Error(
         `Failed to delete session: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -212,7 +214,7 @@ export class SessionDAO implements ISessionDAO {
       const exists = await SessionModel.exists({ _id: sessionId });
       return exists !== null;
     } catch (error) {
-      logger.error(`Failed to check session existence ${sessionId}:`, error);
+      this.logger.error(`Failed to check session existence ${sessionId}:`, error);
       throw new Error(
         `Failed to check session existence: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -225,9 +227,9 @@ export class SessionDAO implements ISessionDAO {
       const timestamp = Date.now();
 
       await SessionModel.findByIdAndUpdate(sessionId, { updatedAt: timestamp });
-      logger.debug(`Session timestamp updated: ${sessionId}`);
+      this.logger.debug(`Session timestamp updated: ${sessionId}`);
     } catch (error) {
-      logger.error(`Failed to update session timestamp ${sessionId}:`, error);
+      this.logger.error(`Failed to update session timestamp ${sessionId}:`, error);
       throw new Error(
         `Failed to update session timestamp: ${error instanceof Error ? error.message : String(error)}`,
       );

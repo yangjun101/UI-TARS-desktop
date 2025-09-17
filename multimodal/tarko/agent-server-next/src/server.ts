@@ -15,6 +15,7 @@ import type {
   AgentResolutionResult,
   AgioProviderConstructor,
   ContextVariables,
+  ILogger,
 } from './types';
 import { AgentSessionPool, AgentSessionFactory } from './services/session';
 import { SandboxScheduler } from './services/sandbox';
@@ -30,7 +31,8 @@ import {
 import { createUserConfigRoutes } from './routes/user';
 import { HookManager, BuiltInPriorities, type HookRegistrationOptions } from './hooks';
 import { config } from 'dotenv';
-import { ErroHandlingHook, RequestIdHook } from './hooks/builtInHooks';
+import { ContextStorageHook, ErroHandlingHook, RequestIdHook } from './hooks/builtInHooks';
+import { resetLogger } from './utils/logger';
 import chalk from 'chalk';
 
 config();
@@ -128,7 +130,7 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
     });
 
     this.hookManager.register(ErroHandlingHook);
-    this.hookManager.register(RequestIdHook)
+    this.hookManager.register(RequestIdHook);
   }
 
 
@@ -483,5 +485,12 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
     }
     
     return result;
+  }
+
+  /**
+   * Reset Root Logger in server
+   */
+  setLogger(logger: ILogger) {
+    resetLogger(logger);
   }
 }

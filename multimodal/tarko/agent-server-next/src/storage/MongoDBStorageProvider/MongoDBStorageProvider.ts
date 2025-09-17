@@ -5,11 +5,10 @@
 
 import { Model } from 'mongoose';
 import { AgentEventStream, MongoDBAgentStorageImplementation, SessionInfo } from '@tarko/interface';
-import { getLogger } from '@tarko/shared-utils';
 import { StorageProvider } from '../types';
-import { UserConfigDocument, SandboxAllocationDocument } from './MongoDBSchemas';
 import { MongoDAOFactory } from '../../dao/mongodb/MongoDAOFactory';
 import { IDAOFactory } from '../../dao/interfaces/IDAOFactory';
+import { getLogger } from '../../utils/logger';
 
 const logger = getLogger('MongoDBStorageProvider');
 
@@ -123,7 +122,7 @@ export class MongoDBStorageProvider implements StorageProvider {
     if (this.daoFactory) {
       try {
         await this.daoFactory.close();
-        logger.debug('MongoDB DAO Factory closed successfully');
+        logger.info('MongoDB DAO Factory closed successfully');
       } catch (error) {
         logger.error('Error closing MongoDB DAO Factory:', error);
       } finally {

@@ -12,7 +12,7 @@ import type { HonoContext } from '../types';
  */
 export async function requestIdMiddleware(c: HonoContext, next: Next) {
   const requestId = c.req.header('x-tt-logid') || c.req.header('X-TT-LOGID') || randomUUID();
-
+  // save requestId to context
   c.set('requestId', requestId);
   
   c.res.headers.set('x-tt-logid', requestId);

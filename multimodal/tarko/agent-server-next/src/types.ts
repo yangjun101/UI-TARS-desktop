@@ -17,6 +17,19 @@ import type { StorageProvider } from './storage';
 import type { AgentSession, AgentSessionFactory, AgentSessionPool } from './services/session';
 import type { UserConfigService } from './services/user';
 import { HookRegistrationOptions } from './hooks/types';
+
+/**
+ * Logger interface constraint that defines the required methods
+ * for any logger implementation
+ */
+export interface ILogger {
+  info(message: string, ...args: any[]): void;
+  error(message: string, ...args: any[]): void;
+  warn(message: string, ...args: any[]): void;
+  debug(message: string, ...args: any[]): void;
+  spawn?(module: string): ILogger;
+  setLevel?(level: any): void;
+}
 /**
  * AgentServer initialization options
  */

@@ -6,7 +6,7 @@
 import type { Context, Next } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { UserInfo, ContextVariables } from '../types';
-import { getLogger } from '@tarko/shared-utils';
+import { getLogger } from '../utils/logger';
 
 const logger = getLogger('AuthMiddleware');
 

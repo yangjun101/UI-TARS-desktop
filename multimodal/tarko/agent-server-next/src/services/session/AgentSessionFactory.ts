@@ -7,11 +7,11 @@ import { nanoid } from 'nanoid';
 import { AgentSession } from './AgentSession';
 import { SandboxScheduler } from '../sandbox/SandboxScheduler';
 import { getCurrentUser } from '../../middlewares/auth';
-import type { AgentServer, UserInfo, HonoContext } from '../../types';
+import type { AgentServer, UserInfo, HonoContext, ILogger } from '../../types';
 import type { AgioProviderConstructor, SessionInfo } from '@tarko/interface';
-import { ConsoleLogger, getLogger } from '@tarko/shared-utils';
 import { ISessionDAO } from '../../dao';
 import { getDefaultModel } from '../../utils/model-utils';
+import { getLogger } from '../../utils/logger';
 
 export interface CreateSessionOptions {
   sessionId?: string;
@@ -29,7 +29,7 @@ export interface CreateSessionOptions {
 export class AgentSessionFactory {
   private server: AgentServer;
   private sandboxScheduler?: SandboxScheduler;
-  private logger: ConsoleLogger;
+  private logger: ILogger;
   private sessionDao: ISessionDAO;
 
   constructor(server: AgentServer, sandboxScheduler?: SandboxScheduler) {

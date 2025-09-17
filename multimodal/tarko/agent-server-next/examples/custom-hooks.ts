@@ -4,7 +4,7 @@
  */
 
 import type { AgentServer } from '../src/types';
-import { getLogger } from '@tarko/shared-utils';
+import { getLogger } from '../src/utils/logger';
 
 const logger = getLogger('CustomHooks');
 

@@ -4,8 +4,8 @@
  */
 
 import { Context, Next } from 'hono';
-import { getLogger } from '@tarko/shared-utils';
 import type { HonoContext } from '../types';
+import { getLogger } from '../utils/logger';
 
 const logger = getLogger('SessionRestoreMiddleware');
 
@@ -35,7 +35,7 @@ export async function sessionRestoreMiddleware(
       const restored = await server.getSessionFactory().restoreSession(sessionId);
 
       if (restored?.session) {
-        logger.debug(`Session ${sessionId} restored from storage`);
+        logger.info(`Session ${sessionId} restored from storage`);
 
         session = restored?.session;
         sessionPool.set(sessionId, session);

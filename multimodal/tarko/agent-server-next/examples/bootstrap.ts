@@ -2,8 +2,10 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { AuthHook, CorsHook, AgentServer } from '../src/index';
+import { getContext } from 'hono/context-storage';
+import { AuthHook, CorsHook, AgentServer,  ContextStorageHook } from '../src/index';
 import { resolve } from 'path';
+import { ContextVariables } from '../src/types';
 
 const workspace = resolve(__dirname, './tmp');
 
@@ -78,8 +80,22 @@ const server = new AgentServer({
   },
 });
 
+const logger = {
+  name: 'custom',
+  info: (...splat) => {
+    const requestId = getContext<{ Variables: ContextVariables }>().var.requestId;
+    console.log(`[CUSTOM LOGGER] ${requestId}`, ...splat)
+  },
+  warn: console.warn,
+  error: console.error,
+  debug: console.debug,
+  setLevel: () => {  }
+}
+
+server.setLogger(logger)
 server.registerHook(AuthHook);
 server.registerHook(CorsHook);
+server.registerHook(ContextStorageHook);
 
-console.log('🚀 Starting UI-TARS Agent Server...');
+console.log('🚀 Starting TARS Agent Server...');
 server.start();

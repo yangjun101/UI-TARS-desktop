@@ -47,6 +47,9 @@ export enum BuiltInPriorities {
   
   /** Error handling middleware - catch all errors */
   ERROR_HANDLING = 800,
+
+  /** Context Storage middleware - transfer info through the whole request */
+  CONTEXT_STORAGE = 850,
   
   /** Request ID middleware - for request tracking */
   REQUEST_ID = 700,

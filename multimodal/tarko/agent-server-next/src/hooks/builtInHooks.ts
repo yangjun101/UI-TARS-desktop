@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 import { BuiltInPriorities, HookRegistrationOptions } from "./types";
 import { accessLogMiddleware, errorHandlingMiddleware, requestIdMiddleware } from "../middlewares";
 import { authMiddleware } from "../middlewares/auth";
+import { contextStorage } from "hono/context-storage";
 
 
 //used in setupMiddlewares
@@ -26,6 +27,15 @@ export const ErroHandlingHook: HookRegistrationOptions = {
     description: 'Global error handling middleware',
     handler: errorHandlingMiddleware,
 }
+
+//used in setupMiddlewares
+export const ContextStorageHook: HookRegistrationOptions = {
+    id: 'context-storage',
+    name: 'Context Storage',
+    priority: BuiltInPriorities.CONTEXT_STORAGE,
+    handler: contextStorage(),
+}
+
 
 
 export const CorsHook: HookRegistrationOptions = {
@@ -58,7 +68,7 @@ export const AccessLogHook: HookRegistrationOptions = {
 
 
 
-export const AuthHook: HookRegistrationOptions ={
+export const AuthHook: HookRegistrationOptions = {
     id: 'auth',
     name: 'Authentication',
     priority: BuiltInPriorities.AUTH,

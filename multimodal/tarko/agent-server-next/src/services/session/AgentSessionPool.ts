@@ -2,8 +2,8 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-
-import { ConsoleLogger, getLogger } from '@tarko/shared-utils';
+import { ILogger } from '../../types';
+import { getLogger } from '../../utils/logger';
 import { AgentSession } from './AgentSession';
 
 export interface SessionPoolConfig {
@@ -28,7 +28,7 @@ export class AgentSessionPool {
   private readonly memoryLimitMB: number;
   private readonly checkIntervalMs: number;
   private memoryCheckTimer?: NodeJS.Timeout;
-  private logger: ConsoleLogger;
+  private logger: ILogger;
 
   constructor(config?: SessionPoolConfig) {
     this.maxSessions = config?.maxSessions ?? 200;
@@ -202,7 +202,7 @@ export class AgentSessionPool {
       try {
         await this.cleanupSession(entry.session);
         this.sessions.delete(sessionId);
-        this.logger.log(`[SessionPool] Evicted session ${sessionId} (LRU)`);
+        this.logger.info(`[SessionPool] Evicted session ${sessionId} (LRU)`);
       } catch (error) {
         this.logger.error(`[SessionPool] Failed to evict session ${sessionId}:`, error);
       }

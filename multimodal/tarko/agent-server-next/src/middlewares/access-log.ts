@@ -4,8 +4,8 @@
  */
 
 import { Next } from 'hono';
-import { getLogger } from '@tarko/shared-utils';
 import type { HonoContext } from '../types';
+import { getLogger } from '../utils/logger';
 
 const logger = getLogger('AccessLogMiddleware');
 

@@ -2,8 +2,6 @@
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
  */
-
-import { ConsoleLogger, getLogger } from '@tarko/shared-utils';
 import type {
   SandboxInstance,
   CreateSandboxOptions,
@@ -11,6 +9,8 @@ import type {
   SandboxImageInfo,
 } from './types';
 import { SandboxConfig } from '@tarko/interface';
+import { getLogger } from '../../utils/logger';
+import { ILogger } from '../../types';
 
 /**
  * SandboxManager - Manages sandbox instances with configurable JWT and base URL
@@ -18,7 +18,7 @@ import { SandboxConfig } from '@tarko/interface';
  */
 export class SandboxManager {
   private config: SandboxConfig;
-  private logger: ConsoleLogger;
+  private logger: ILogger;
 
   constructor(config: SandboxConfig) {
     this.config = {

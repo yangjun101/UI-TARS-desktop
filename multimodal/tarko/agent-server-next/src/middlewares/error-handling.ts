@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Context, Next } from 'hono';
+import {  Next } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { getLogger } from '@tarko/shared-utils';
 import type { HonoContext } from '../types';
+import { getLogger } from '../utils/logger';
 
 const logger = getLogger('ErrorHandler');
 

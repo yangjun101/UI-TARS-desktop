@@ -6,18 +6,19 @@
 import { Connection, Model } from 'mongoose';
 import { ISandboxAllocationDAO, SandboxAllocation } from '../interfaces/ISandboxAllocationDAO';
 import { SandboxAllocationDocument } from '../../storage/MongoDBStorageProvider/MongoDBSchemas';
-import { getLogger } from '@tarko/shared-utils';
-
-const logger = getLogger('SandboxAllocationDAO');
+import { getLogger } from '../../utils/logger';
+import { ILogger } from '../../types';
 
 /**
  * MongoDB implementation of ISandboxAllocationDAO
  */
 export class SandboxAllocationDAO implements ISandboxAllocationDAO {
   private connection: Connection;
+  private logger: ILogger
 
   constructor(connection: Connection) {
     this.connection = connection;
+    this.logger = getLogger('SandboxAllocationDAO');
   }
 
   private getSandboxAllocationModel(): Model<SandboxAllocationDocument> {
@@ -39,7 +40,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
 
       const saved = await sandboxAllocation.save();
 
-      logger.debug(`Sandbox allocation created: ${allocation.sandboxId}`);
+      this.logger.info(`Sandbox allocation created: ${allocation.sandboxId}`);
 
       return {
         sandboxId: saved.sandboxId,
@@ -52,7 +53,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         isActive: saved.isActive,
       };
     } catch (error) {
-      logger.error(`Failed to create sandbox allocation ${allocation.sandboxId}:`, error);
+      this.logger.error(`Failed to create sandbox allocation ${allocation.sandboxId}:`, error);
       if ((error as any).code === 11000) {
         throw new Error(`Sandbox allocation with ID ${allocation.sandboxId} already exists`);
       }
@@ -80,7 +81,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         isActive: allocation.isActive,
       };
     } catch (error) {
-      logger.error(`Failed to get sandbox allocation ${sandboxId}:`, error);
+      this.logger.error(`Failed to get sandbox allocation ${sandboxId}:`, error);
       throw new Error('Failed to get sandbox allocation');
     }
   }
@@ -104,7 +105,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         isActive: allocation.isActive,
       }));
     } catch (error) {
-      logger.error(`Failed to get user sandbox allocations for ${userId}:`, error);
+      this.logger.error(`Failed to get user sandbox allocations for ${userId}:`, error);
       throw new Error('Failed to get user sandbox allocations');
     }
   }
@@ -132,7 +133,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         isActive: allocation.isActive,
       };
     } catch (error) {
-      logger.error(`Failed to get session sandbox allocation for ${sessionId}:`, error);
+      this.logger.error(`Failed to get session sandbox allocation for ${sessionId}:`, error);
       throw new Error('Failed to get session sandbox allocation');
     }
   }
@@ -176,7 +177,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         isActive: allocation.isActive,
       }));
     } catch (error) {
-      logger.error(`Failed to get available sandbox allocations for strategy ${strategy}:`, error);
+      this.logger.error(`Failed to get available sandbox allocations for strategy ${strategy}:`, error);
       throw new Error('Failed to get available sandbox allocations');
     }
   }
@@ -191,9 +192,9 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         { lastUsedAt: now },
       );
 
-      logger.debug(`Sandbox last used time updated: ${sandboxId}`);
+      this.logger.info(`Sandbox last used time updated: ${sandboxId}`);
     } catch (error) {
-      logger.error(`Failed to update sandbox last used time for ${sandboxId}:`, error);
+      this.logger.error(`Failed to update sandbox last used time for ${sandboxId}:`, error);
       throw new Error('Failed to update sandbox last used time');
     }
   }
@@ -212,10 +213,10 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         return false;
       }
 
-      logger.debug(`Sandbox allocation deactivated: ${sandboxId}`);
+      this.logger.info(`Sandbox allocation deactivated: ${sandboxId}`);
       return true;
     } catch (error) {
-      logger.error(`Failed to deactivate sandbox allocation ${sandboxId}:`, error);
+      this.logger.error(`Failed to deactivate sandbox allocation ${sandboxId}:`, error);
       throw new Error('Failed to deactivate sandbox allocation');
     }
   }
@@ -234,10 +235,10 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         return false;
       }
 
-      logger.debug(`Sandbox allocation activated: ${sandboxId}`);
+      this.logger.info(`Sandbox allocation activated: ${sandboxId}`);
       return true;
     } catch (error) {
-      logger.error(`Failed to activate sandbox allocation ${sandboxId}:`, error);
+      this.logger.error(`Failed to activate sandbox allocation ${sandboxId}:`, error);
       throw new Error('Failed to activate sandbox allocation');
     }
   }
@@ -250,12 +251,12 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
       const deleted = result.deletedCount > 0;
 
       if (deleted) {
-        logger.debug(`Sandbox allocation deleted: ${sandboxId}`);
+        this.logger.info(`Sandbox allocation deleted: ${sandboxId}`);
       }
 
       return deleted;
     } catch (error) {
-      logger.error(`Failed to delete sandbox allocation ${sandboxId}:`, error);
+      this.logger.error(`Failed to delete sandbox allocation ${sandboxId}:`, error);
       throw new Error('Failed to delete sandbox allocation');
     }
   }
@@ -280,7 +281,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         isActive: allocation.isActive,
       }));
     } catch (error) {
-      logger.error(`Failed to get unused sandbox allocations:`, error);
+      this.logger.error(`Failed to get unused sandbox allocations:`, error);
       throw new Error('Failed to get unused sandbox allocations');
     }
   }
@@ -304,7 +305,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         isActive: allocation.isActive,
       }));
     } catch (error) {
-      logger.error(`Failed to get inactive sandbox allocations:`, error);
+      this.logger.error(`Failed to get inactive sandbox allocations:`, error);
       throw new Error('Failed to get inactive sandbox allocations');
     }
   }
@@ -326,7 +327,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         return null;
       }
 
-      logger.debug(`Sandbox allocation updated: ${sandboxId}`);
+      this.logger.info(`Sandbox allocation updated: ${sandboxId}`);
 
       return {
         sandboxId: result.sandboxId,
@@ -339,7 +340,7 @@ export class SandboxAllocationDAO implements ISandboxAllocationDAO {
         isActive: result.isActive,
       };
     } catch (error) {
-      logger.error(`Failed to update sandbox allocation ${sandboxId}:`, error);
+      this.logger.error(`Failed to update sandbox allocation ${sandboxId}:`, error);
       throw new Error('Failed to update sandbox allocation');
     }
   }

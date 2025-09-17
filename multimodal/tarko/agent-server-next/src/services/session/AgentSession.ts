@@ -18,10 +18,11 @@ import {
 } from '@tarko/interface';
 import { AgentSnapshot } from '@tarko/agent-snapshot';
 import { EventStreamBridge } from '../../utils/event-stream';
-import type { AgentServer } from '../../types';
+import type { AgentServer, ILogger } from '../../types';
 import { AgioEvent } from '@tarko/agio';
 import { handleAgentError, ErrorWithCode } from '../../utils/error-handler';
 import { getAvailableModels, getDefaultModel } from '../../utils/model-utils';
+import { getLogger } from '../../utils/logger';
 
 /**
  * Check if an event should be stored in persistent storage
@@ -71,7 +72,7 @@ export class AgentSession {
   private agioProvider?: AgioEvent.AgioProvider;
   private agioProviderConstructor?: AgioProviderConstructor;
   private sessionInfo?: SessionInfo;
-
+  private logger: ILogger;
   /**
    * Create event handler for storage and AGIO processing
    */
@@ -168,9 +169,13 @@ export class AgentSession {
       // Log AGIO initialization
       console.debug('AGIO collector initialized', { provider: agentOptions.agio.provider });
     }
-
-    // Log agent configuration
-    console.info('Agent Config', JSON.stringify((wrappedAgent as any).getOptions?.(), null, 2));
+    this.logger.info('create new agent with config: ',  JSON.stringify({
+      agent: agentOptions.agent,
+      share: agentOptions.share,
+      workspace: agentOptions.share,
+      thinking: agentOptions.thinking,
+      name: agentOptions.name
+    }, null, 2));
 
     return wrappedAgent;
   }
@@ -238,6 +243,7 @@ export class AgentSession {
     this.eventBridge = new EventStreamBridge();
     this.sessionInfo = sessionInfo;
     this.agioProviderConstructor = agioProviderImpl;
+    this.logger = getLogger('AgentSession');
 
     // Agent will be created and initialized in initialize() method
     this.agent = null as any; // Temporary placeholder
