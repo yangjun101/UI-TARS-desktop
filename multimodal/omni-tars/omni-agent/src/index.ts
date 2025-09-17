@@ -12,7 +12,7 @@ import {
   McpToolCallEngineProvider,
   MCPTarsExtraOption,
 } from '@omni-tars/mcp-agent';
-import { guiPlugin, GuiToolCallEngineProvider } from '@omni-tars/gui-agent';
+import { GuiAgentPlugin, GuiToolCallEngineProvider, OperatorManager } from '@omni-tars/gui-agent';
 import { ComposableAgent, createComposableToolCallEngineFactory } from '@omni-tars/core';
 import { AgentOptions } from '@tarko/agent';
 import { AgentWebUIImplementation } from '@tarko/interface';
@@ -81,7 +81,7 @@ export default class OmniTARSAgent extends ComposableAgent {
       tavilyApiKey,
       googleApiKey,
       googleMcpUrl,
-      aioSandboxUrl,
+      sandboxUrl,
       ignoreSandboxCheck,
       linkReaderAK,
       linkReaderMcpUrl,
@@ -97,8 +97,8 @@ export default class OmniTARSAgent extends ComposableAgent {
           linkReaderAK,
           linkReaderMcpUrl,
         }),
-        codePluginBuilder({ aioSandboxUrl, ignoreSandboxCheck }),
-        guiPlugin,
+        codePluginBuilder({ sandboxUrl, ignoreSandboxCheck }),
+        new GuiAgentPlugin({ operatorManager: OperatorManager.createHybird(options.sandboxUrl) }),
       ],
       toolCallEngine,
       maxTokens: 32768,
