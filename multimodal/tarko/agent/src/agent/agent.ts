@@ -101,8 +101,11 @@ export class Agent<T extends AgentOptions = AgentOptions>
       this.logger.debug(`Log level set to: ${LogLevel[options.logLevel]}`);
     }
 
-    // Initialize event stream manager
-    this.eventStream = new AgentEventStreamProcessor(options.eventStreamOptions);
+    // Initialize event stream manager with initial events
+    this.eventStream = new AgentEventStreamProcessor({
+      ...options.eventStreamOptions,
+      initialEvents: options.initialEvents,
+    });
 
     // Initialize Tool Manager
     this.toolManager = new ToolManager(this.logger);
@@ -167,6 +170,8 @@ export class Agent<T extends AgentOptions = AgentOptions>
     // Initialize execution controller
     this.executionController = new AgentExecutionController();
   }
+
+
 
   /**
    * Custom LLM client for testing or custom implementations

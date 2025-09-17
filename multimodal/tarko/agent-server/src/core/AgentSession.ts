@@ -125,11 +125,17 @@ export class AgentSession {
       throw new Error('Cannot found available resolved agent');
     }
 
-    // Create agent options
+    // Get stored events for this session before creating the agent
+    const storedEvents = this.server.storageProvider
+      ? await this.server.storageProvider.getSessionEvents(this.id)
+      : [];
+
+    // Create agent options including initial events
     const agentOptions = {
       ...this.server.appConfig,
       name: this.server.getCurrentAgentName(),
       model: this.resolveModelConfig(sessionInfo),
+      initialEvents: storedEvents, // 🎯 Pass initial events directly to agent
     };
 
     // Create base agent
@@ -138,7 +144,7 @@ export class AgentSession {
     // Apply snapshot wrapper if enabled
     const wrappedAgent = this.createAgentWithSnapshot(baseAgent, this.id);
 
-    // Initialize the agent
+    // Initialize the agent (this will automatically restore events)
     await wrappedAgent.initialize();
 
     // Initialize AGIO collector if provider URL is configured
