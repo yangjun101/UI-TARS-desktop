@@ -255,10 +255,10 @@ class ApiService {
 
         // Process all complete events in the buffer
         let eventEndIndex;
-        while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+        while ((eventEndIndex = buffer.search(/\r\n\r\n|\n\n|\r\r/)) !== -1) {
           const eventString = buffer.slice(0, eventEndIndex);
-          // Move buffer to the next event
-          buffer = buffer.slice(eventEndIndex + 2);
+          const sepLength = buffer.substr(eventEndIndex, 4) === '\r\n\r\n' ? 4 : 2;
+          buffer = buffer.slice(eventEndIndex + sepLength);
 
           if (eventString.startsWith('data: ')) {
             try {
