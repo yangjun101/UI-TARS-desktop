@@ -5,7 +5,7 @@
 
 import crypto from 'crypto';
 import { AgentEventStream, isAgentWebUIImplementationType } from '@tarko/interface';
-import { SessionInfo, StorageProvider } from '../storage';
+import { StorageProvider } from '../storage';
 import { AgentUIBuilder } from '@tarko/agent-ui-builder';
 import { SlugGenerator } from '../utils/slug-generator';
 import fs from 'fs';
@@ -13,7 +13,7 @@ import path from 'path';
 import { ensureHttps } from '../utils';
 import { mergeWebUIConfig } from '../utils/webui';
 import type { AgentServerVersionInfo, IAgent, AgentAppConfig } from '../types';
-import type { AgentServer } from '../server';
+import type { AgentServer } from '../types';
 
 /**
  * ShareService - Centralized service for handling session sharing
@@ -81,17 +81,21 @@ export class ShareService {
         processedEvents = await this.processWorkspaceImages(keyFrameEvents, metadata.workspace);
       }
 
-      // Generate HTML content
-      if (!isAgentWebUIImplementationType(this.appConfig.webui!, 'static')) {
-        throw new Error(`Unsupported web ui type: ${this.appConfig.webui!.type}`);
+      if(!this.appConfig.webui) {
+        throw new Error('Cannot found webui config');
       }
 
-      if (!this.appConfig.webui?.staticPath) {
+      if (this.appConfig.webui?.type === 'static' && !this.appConfig.webui?.staticPath ) {
         throw new Error('Cannot found static path.');
+      }
+
+      if(this.appConfig.webui?.type === 'remote' && !this.appConfig.webui?.remoteUrl) {
+        throw new Error('Cannot found remote url.');
       }
 
       // Merge web UI config with agent constructor config
       const mergedWebUIConfig = mergeWebUIConfig(this.appConfig.webui, this.server);
+      
       const builder = new AgentUIBuilder({
         events: keyFrameEvents,
         sessionInfo: metadata,
@@ -365,7 +369,7 @@ export class ShareService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const responseData = await response.json();
+      const responseData: any = await response.json();
 
       if (responseData) {
         if (responseData.cdnUrl) {
