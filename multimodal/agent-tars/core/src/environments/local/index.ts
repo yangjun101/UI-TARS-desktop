@@ -3,11 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { InMemoryTransport, Client, Tool, JSONSchema7, ConsoleLogger } from '@tarko/mcp-agent';
-import { AgentTARSOptions, BuiltInMCPServers, BuiltInMCPServerName } from '../types';
-import { BrowserGUIAgent, BrowserManager, BrowserToolsManager } from '../browser';
-import { SearchToolProvider } from '../search';
-import { FilesystemToolsManager } from '../filesystem';
+import {
+  InMemoryTransport,
+  Client,
+  Tool,
+  JSONSchema7,
+  ConsoleLogger,
+  MCPServerRegistry,
+  AgentEventStream,
+} from '@tarko/mcp-agent';
+import { ResourceCleaner } from '../../utils';
+import { AgentTARSOptions, BuiltInMCPServers, BuiltInMCPServerName } from '../../types';
+import { BrowserGUIAgent, BrowserManager, BrowserToolsManager } from './browser';
+import { SearchToolProvider } from './search';
+import { FilesystemToolsManager } from './filesystem';
+import { WorkspacePathResolver } from '../../shared/workspace-path-resolver';
+import { AgentTARSBaseEnvironment } from '../base';
 
 // Static imports for MCP modules
 // @ts-expect-error - Default esm asset has some issues
@@ -16,16 +27,16 @@ import * as filesystemModule from '@agent-infra/mcp-server-filesystem';
 import * as commandsModule from '@agent-infra/mcp-server-commands';
 
 /**
- * AgentTARSInitializer - Handles complex initialization logic for AgentTARS
+ * AgentTARSLocalEnvironment - Handles local environment operations for AgentTARS
  *
- * This class separates the initialization concerns from the main AgentTARS class,
- * making the code more maintainable and testable.
+ * This environment manages local browser, filesystem, and other resources,
+ * providing full local functionality.
  */
-export class AgentTARSInitializer {
-  private logger: ConsoleLogger;
-  private options: AgentTARSOptions;
-  private workspace: string;
-  private browserManager: BrowserManager;
+export class AgentTARSLocalEnvironment extends AgentTARSBaseEnvironment {
+  // Component managers - owned by this environment
+  private readonly browserManager: BrowserManager;
+  private readonly workspacePathResolver: WorkspacePathResolver;
+  private readonly resourceCleaner: ResourceCleaner;
 
   // Component instances
   private browserToolsManager?: BrowserToolsManager;
@@ -35,16 +46,18 @@ export class AgentTARSInitializer {
   private mcpServers: BuiltInMCPServers = {};
   private mcpClients: Partial<Record<BuiltInMCPServerName, Client>> = {};
 
-  constructor(
-    options: AgentTARSOptions,
-    workspace: string,
-    browserManager: BrowserManager,
-    logger: ConsoleLogger,
-  ) {
-    this.options = options;
-    this.workspace = workspace;
-    this.browserManager = browserManager;
-    this.logger = logger.spawn('Initializer');
+  constructor(options: AgentTARSOptions, workspace: string, logger: ConsoleLogger) {
+    super(options, workspace, logger.spawn('LocalEnvironment'));
+
+    // Initialize environment-owned components
+    this.browserManager = BrowserManager.getInstance(this.logger);
+    this.browserManager.lastLaunchOptions = {
+      headless: this.options.browser?.headless,
+      cdpEndpoint: this.options.browser?.cdpEndpoint,
+    };
+
+    this.workspacePathResolver = new WorkspacePathResolver({ workspace });
+    this.resourceCleaner = new ResourceCleaner(this.logger);
   }
 
   /**
@@ -52,14 +65,8 @@ export class AgentTARSInitializer {
    */
   async initialize(
     registerToolFn: (tool: Tool) => void,
-    eventStream?: any,
-  ): Promise<{
-    browserToolsManager?: BrowserToolsManager;
-    filesystemToolsManager?: FilesystemToolsManager;
-    searchToolProvider?: SearchToolProvider;
-    browserGUIAgent?: BrowserGUIAgent;
-    mcpClients: Partial<Record<BuiltInMCPServerName, Client>>;
-  }> {
+    eventStream?: AgentEventStream.Processor,
+  ): Promise<void> {
     const control = this.options.browser?.control || 'hybrid';
 
     // Initialize browser tools manager
@@ -77,26 +84,22 @@ export class AgentTARSInitializer {
     }
 
     // Initialize search tools
-    await this.initializeSearchTools(registerToolFn);
+    if (this.options.search) {
+      await this.initializeSearchTools(registerToolFn);
+    }
 
     // Initialize MCP servers if using in-memory implementation
     if (this.options.mcpImpl === 'in-memory') {
       await this.initializeInMemoryMCP(registerToolFn);
     }
 
-    return {
-      browserToolsManager: this.browserToolsManager,
-      filesystemToolsManager: this.filesystemToolsManager,
-      searchToolProvider: this.searchToolProvider,
-      browserGUIAgent: this.browserGUIAgent,
-      mcpClients: this.mcpClients,
-    };
+    // All components are now managed internally by the environment
   }
 
   /**
    * Initialize GUI Agent for visual browser control
    */
-  private async initializeGUIAgent(eventStream?: any): Promise<void> {
+  private async initializeGUIAgent(eventStream?: AgentEventStream.Processor): Promise<void> {
     this.logger.info('🖥️ Initializing GUI Agent for visual browser control');
 
     this.browserGUIAgent = new BrowserGUIAgent({
@@ -122,7 +125,7 @@ export class AgentTARSInitializer {
     this.searchToolProvider = new SearchToolProvider(this.logger, {
       provider: this.options.search!.provider,
       count: this.options.search!.count,
-      cdpEndpoint: this.options.browser!.cdpEndpoint,
+      cdpEndpoint: this.options.browser?.cdpEndpoint,
       browserSearch: this.options.search!.browserSearch,
       apiKey: this.options.search!.apiKey,
       baseUrl: this.options.search!.baseUrl,
@@ -300,9 +303,189 @@ export class AgentTARSInitializer {
   }
 
   /**
+   * Handle agent loop start (GUI Agent screenshot if needed)
+   */
+  async onEachAgentLoopStart(
+    sessionId: string,
+    eventStream: AgentEventStream.Processor,
+    isReplaySnapshot: boolean,
+  ): Promise<void> {
+    // Handle local browser operations
+    if (
+      this.options.browser?.control !== 'dom' &&
+      this.browserGUIAgent &&
+      this.browserManager.isLaunchingComplete()
+    ) {
+      if (this.browserGUIAgent.setEventStream) {
+        this.browserGUIAgent.setEventStream(eventStream);
+      }
+      await this.browserGUIAgent.onEachAgentLoopStart(eventStream, isReplaySnapshot);
+    }
+  }
+
+  /**
+   * Handle tool call preprocessing (lazy browser launch and path resolution)
+   */
+  async onBeforeToolCall(
+    id: string,
+    toolCall: { toolCallId: string; name: string },
+    args: any,
+    isReplaySnapshot?: boolean,
+  ): Promise<any> {
+    // Handle browser tool calls with lazy initialization
+    if (toolCall.name.startsWith('browser')) {
+      await this.ensureBrowserReady(isReplaySnapshot);
+    }
+
+    // Resolve workspace paths for filesystem operations
+    if (this.workspacePathResolver?.hasPathParameters(toolCall.name)) {
+      return this.workspacePathResolver.resolveToolPaths(toolCall.name, args);
+    }
+
+    return args;
+  }
+
+  /**
+   * Handle post-tool call processing (browser state updates)
+   */
+  async onAfterToolCall(
+    id: string,
+    toolCall: { toolCallId: string; name: string },
+    result: any,
+    browserState: any,
+  ): Promise<any> {
+    // Update browser state after navigation
+    if (
+      toolCall.name === 'browser_navigate' &&
+      this.browserManager.isLaunchingComplete() &&
+      (await this.browserManager.isBrowserAlive())
+    ) {
+      await this.updateBrowserState(browserState);
+    }
+
+    return result;
+  }
+
+  /**
+   * Handle session disposal
+   */
+  async onDispose(): Promise<void> {
+    // Use ResourceCleaner for comprehensive cleanup
+    await this.resourceCleaner.cleanup(
+      this.mcpClients,
+      this.mcpServers,
+      this.browserManager,
+      undefined, // messageHistoryDumper is handled by main class
+    );
+
+    // Clear references
+    this.mcpClients = {};
+    this.mcpServers = {};
+  }
+
+  /**
+   * Get browser control information
+   */
+  getBrowserControlInfo(): { mode: string; tools: string[] } {
+    if (this.browserToolsManager) {
+      return {
+        mode: this.browserToolsManager.getMode(),
+        tools: this.browserToolsManager.getRegisteredTools(),
+      };
+    }
+    return {
+      mode: this.options.browser?.control || 'default',
+      tools: [],
+    };
+  }
+
+  /**
+   * Get the browser manager instance
+   */
+  getBrowserManager(): BrowserManager {
+    return this.browserManager;
+  }
+
+  /**
+   * Ensure browser is ready for tool calls
+   */
+  private async ensureBrowserReady(isReplaySnapshot?: boolean): Promise<void> {
+    if (!this.browserManager.isLaunchingComplete()) {
+      if (!isReplaySnapshot) {
+        await this.browserManager.launchBrowser({
+          headless: this.options.browser?.headless,
+          cdpEndpoint: this.options.browser?.cdpEndpoint,
+        });
+      }
+    } else {
+      const isAlive = await this.browserManager.isBrowserAlive(true);
+      if (!isAlive && !isReplaySnapshot) {
+        this.logger.warn('🔄 Browser recovery needed, attempting explicit recovery...');
+        const recovered = await this.browserManager.recoverBrowser();
+        if (!recovered) {
+          this.logger.error('❌ Browser recovery failed - tool call may not work correctly');
+        }
+      }
+    }
+  }
+
+  /**
+   * Update browser state after navigation
+   */
+  private async updateBrowserState(browserState: any): Promise<void> {
+    try {
+      if (this.options.browser?.control === 'dom') {
+        const response = await this.mcpClients.browser?.callTool({
+          name: 'browser_screenshot',
+          arguments: { highlight: true },
+        });
+
+        if (Array.isArray(response?.content)) {
+          const { data, type, mimeType } = response.content[1];
+          if (type === 'image') {
+            browserState.currentScreenshot = `data:${mimeType};base64,${data}`;
+          }
+        }
+      } else if (this.browserGUIAgent) {
+        const { compressedBase64 } = await this.browserGUIAgent.screenshot();
+        browserState.currentScreenshot = compressedBase64;
+      }
+    } catch (error) {
+      this.logger.warn('⚠️ Failed to update browser state:', error);
+    }
+  }
+
+  /**
    * Get MCP servers for cleanup
    */
   getMCPServers(): BuiltInMCPServers {
     return this.mcpServers;
+  }
+
+  /**
+   * Get MCP server registry configuration for local mode
+   */
+  getMCPServerRegistry(): MCPServerRegistry {
+    // For local mode with stdio implementation
+    if (this.options.mcpImpl === 'stdio') {
+      return {
+        browser: {
+          command: 'npx',
+          args: ['-y', '@agent-infra/mcp-server-browser'],
+        },
+        filesystem: {
+          command: 'npx',
+          args: ['-y', '@agent-infra/mcp-server-filesystem', this.workspace],
+        },
+        commands: {
+          command: 'npx',
+          args: ['-y', '@agent-infra/mcp-server-commands'],
+        },
+        ...(this.options.mcpServers || {}),
+      };
+    }
+
+    // For local mode with in-memory implementation or custom servers only
+    return this.options.mcpServers || {};
   }
 }
