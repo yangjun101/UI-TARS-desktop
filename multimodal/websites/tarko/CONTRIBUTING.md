@@ -1,10 +1,5 @@
 # Tarko 文档贡献指南
 
-> **🚨 重要：所有 Git Commit 信息必须使用中文！英文提交 = PR 被拒绝**
-> 
-> 正确：`feat: 添加新功能` ✅  
-> 错误：`feat: add new feature` ❌
-
 ## 📚 文档-源代码映射
 
 ### `@tarko/agent` 核心包
@@ -68,40 +63,6 @@
 6. **Tool 定义** - 使用 `Tool` 类构造函数，参数为 `{ id, description, parameters, function }`
 7. **Agent 配置** - 使用实际的 `AgentOptions` 接口属性名
 
-## 🔍 验证流程
-
-```bash
-# 测试示例
-cd multimodal/tarko/agent/examples/tool-calls
-npx tsx basic.ts
-
-# 验证 Tool Call Engine 类型
-grep -r "toolCallEngine:" examples/ | head -3
-
-# 验证 Tool 构造函数
-grep -r "new Tool({" examples/ | head -3
-
-# 构建文档
-cd ../../../websites/tarko
-npm run build
-
-# 检查提交信息（必须包含中文）
-git log --oneline | head -5
-```
-
-## 📝 提交信息格式
-
-```bash
-# 正确格式
-git commit -m "feat: 添加新的模型提供商支持"
-git commit -m "fix: 修复事件流处理器的内存泄漏"
-git commit -m "docs: 更新 API 参考文档"
-
-# 错误格式（将被拒绝）
-git commit -m "feat: add new model provider"  # ❌
-git commit -m "fix: memory leak"              # ❌
-```
-
 ---
 
-**记住：** 文档必须反映真实代码，不能编造！中文提交信息是强制要求！
+**记住：** 文档必须反映真实代码，不能编造！提交信息语言根据内容类型选择！
