@@ -160,7 +160,7 @@ export const Navbar: React.FC = () => {
           ) : null}
         </div>
 
-        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 max-[968px]:relative max-[968px]:left-auto max-[968px]:top-auto max-[968px]:transform-none max-[968px]:flex-1 max-[968px]:mx-3">
+        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 max-[968px]:absolute max-[968px]:left-1/2 max-[968px]:top-1/2 max-[968px]:transform max-[968px]:-translate-x-1/2 max-[968px]:-translate-y-1/2">
           <DynamicNavbarCenter
             sessionMetadata={sessionMetadata}
             activeSessionId={activeSessionId}
@@ -262,6 +262,25 @@ export const Navbar: React.FC = () => {
               >
                 {isDarkMode ? 'Light Mode' : 'Dark Mode'}
               </MenuItem>
+
+              {/* Model Selector for Mobile */}
+              {sessionMetadata?.modelConfig && (
+                <>
+                  <MenuDivider />
+                  <MenuItem
+                    onClick={() => handleMobileMenuClose()}
+                    icon={<FiCpu size={16} />}
+                    disabled
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Model</span>
+                      <span className="text-sm font-medium">
+                        {getModelDisplayName(sessionMetadata.modelConfig)} • {sessionMetadata.modelConfig.provider}
+                      </span>
+                    </div>
+                  </MenuItem>
+                </>
+              )}
 
               {activeSessionId && !isReplayMode && (
                 <MenuItem
@@ -411,12 +430,14 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
         </div>
       )}
 
-      <NavbarModelSelector
-        className="min-w-0"
-        activeSessionId={activeSessionId}
-        sessionMetadata={sessionMetadata}
-        isDarkMode={isDarkMode}
-      />
+      <div className="hidden md:block min-w-0">
+        <NavbarModelSelector
+          className="min-w-0"
+          activeSessionId={activeSessionId}
+          sessionMetadata={sessionMetadata}
+          isDarkMode={isDarkMode}
+        />
+      </div>
     </div>
   );
 };

@@ -253,19 +253,21 @@ export const WorkspaceDetail: React.FC = () => {
   return (
     <>
       <div className="h-full flex flex-col bg-white dark:bg-gray-900/20 animate-in fade-in duration-200">
-        <WorkspaceHeader
-          panelContent={panelContent}
-          onBack={handleBack}
-          showToggle={shouldShowToggle()}
-          toggleConfig={getToggleConfig()}
-          showFullscreen={shouldShowFullscreen()}
-          onFullscreen={handleFullscreen}
-          workspaceDisplayMode={workspaceDisplayMode}
-          onWorkspaceDisplayModeChange={setWorkspaceDisplayMode}
-          showWorkspaceToggle={shouldShowWorkspaceToggle()}
-          isReplayMode={isReplayMode}
-        />
-        <div className="flex-1 overflow-auto p-4 pt-2">{renderContent()}</div>
+        <div className="md:px-4 md:py-3 px-3 py-2">
+          <WorkspaceHeader
+            panelContent={panelContent}
+            onBack={handleBack}
+            showToggle={shouldShowToggle()}
+            toggleConfig={getToggleConfig()}
+            showFullscreen={shouldShowFullscreen()}
+            onFullscreen={handleFullscreen}
+            workspaceDisplayMode={workspaceDisplayMode}
+            onWorkspaceDisplayModeChange={setWorkspaceDisplayMode}
+            showWorkspaceToggle={shouldShowWorkspaceToggle()}
+            isReplayMode={isReplayMode}
+          />
+        </div>
+        <div className="flex-1 overflow-auto md:p-4 md:pt-2 px-3 py-2 workspace-scrollbar">{renderContent()}</div>
       </div>
 
       <ImageModal imageData={zoomedImage} onClose={() => setZoomedImage(null)} />

@@ -108,14 +108,16 @@ export const CommandResultRenderer: React.FC<CommandResultRendererProps> = ({ pa
   const isError = exitCode !== 0 && exitCode !== undefined;
 
   return (
-    <div className="space-y-4">
-      <TerminalOutput
-        command={command ? highlightCommand(command) : undefined}
-        stdout={stdout}
-        stderr={stderr}
-        exitCode={exitCode}
-        maxHeight="calc(100vh - 215px)"
-      />
+    <div className="space-y-4 md:text-base text-sm">
+      <div className="md:[&_pre]:text-sm [&_pre]:text-xs md:[&_pre]:p-4 [&_pre]:p-2 md:[&_pre]:max-h-none [&_pre]:overflow-auto">
+        <TerminalOutput
+          command={command ? highlightCommand(command) : undefined}
+          stdout={stdout}
+          stderr={stderr}
+          exitCode={exitCode}
+          maxHeight="calc(100vh - 215px)"
+        />
+      </div>
     </div>
   );
 };
