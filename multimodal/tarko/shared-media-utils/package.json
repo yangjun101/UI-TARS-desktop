@@ -24,8 +24,8 @@
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
-    "imagemin-mozjpeg": "^10.0.0",
-    "imagemin-webp": "^8.0.0"
+    "imagemin-mozjpeg": "^9.0.0",
+    "imagemin-webp": "^6.0.0"
   },
   "devDependencies": {
     "@types/imagemin": "^8.0.5",

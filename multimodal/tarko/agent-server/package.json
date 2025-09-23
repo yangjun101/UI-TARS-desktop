@@ -19,24 +19,24 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@tarko/shared-utils": "workspace:*",
-    "@tarko/shared-media-utils": "workspace:*"
+    "@tarko/shared-media-utils": "workspace:*",
+    "@tarko/shared-utils": "workspace:*"
   },
   "devDependencies": {
-    "@tarko/interface": "workspace:*",
+    "@agent-infra/shared": "0.0.2",
+    "@rslib/core": "0.10.0",
     "@tarko/agent-snapshot": "workspace:*",
     "@tarko/agio": "workspace:*",
-    "@agent-infra/shared": "0.0.2",
+    "@tarko/interface": "workspace:*",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "22.15.30",
     "cors": "^2.8.5",
     "express": "4.21.2",
     "http-proxy-middleware": "^2.0.6",
-    "socket.io": "^4.7.2",
     "lowdb": "^6.0.1",
     "nanoid": "^5.0.8",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@rslib/core": "0.10.0",
-    "@types/node": "22.15.30",
+    "socket.io": "^4.7.2",
     "typescript": "^5.5.3",
     "vitest": "3.2.4"
   }
