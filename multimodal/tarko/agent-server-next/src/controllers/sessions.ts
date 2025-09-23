@@ -16,10 +16,6 @@ export async function getAllSessions(c: HonoContext) {
   try {
     const server = c.get('server');
 
-    if (!server.storageProvider) {
-      throw new Error('no storage provider!');
-    }
-
     let sessions: SessionInfo[];
 
     // In multi-tenant mode, only get user's sessions
@@ -29,10 +25,10 @@ export async function getAllSessions(c: HonoContext) {
         return c.json({ error: 'Authentication required' }, 401);
       }
 
-      sessions = await server.storageProvider.getUserSessions(userId);
+      sessions = await server.daoFactory.getUserSessions(userId);
     } else {
       // Single tenant mode: get all sessions
-      sessions = await server.storageProvider.getAllSessions();
+      sessions = await server.daoFactory.getAllSessions();
     }
 
     filterSessionModel(sessions);
@@ -88,8 +84,8 @@ export async function getSessionDetails(c: HonoContext) {
       return c.json({ error: 'Session not found' }, 404);
     }
 
-    if (server.storageProvider && sessionId) {
-      const sessionInfo = await server.storageProvider.getSessionInfo(sessionId);
+    if (sessionId) {
+      const sessionInfo = await server.daoFactory.getSessionInfo(sessionId);
 
       sessionInfo && filterSessionModel([sessionInfo]);
 
@@ -124,11 +120,7 @@ export async function getSessionEvents(c: HonoContext) {
       return c.json({ error: 'Session ID is required' }, 400);
     }
 
-    if (!server.storageProvider) {
-      return c.json({ error: 'Storage not configured' }, 503);
-    }
-
-    const events = await server.storageProvider.getSessionEvents(sessionId);
+    const events = await server.daoFactory.getSessionEvents(sessionId);
 
     return c.json({ events }, 200);
   } catch (error) {
@@ -149,11 +141,7 @@ export async function getLatestSessionEvents(c: HonoContext) {
       return c.json({ error: 'Session ID is required' }, 400);
     }
 
-    if (!server.storageProvider) {
-      return c.json({ error: 'Storage not configured' }, 503);
-    }
-
-    const events = await server.storageProvider.getSessionEvents(sessionId);
+    const events = await server.daoFactory.getSessionEvents(sessionId);
 
     return c.json({ events }, 200);
   } catch (error) {
@@ -209,17 +197,13 @@ export async function updateSession(c: HonoContext) {
     if (!session) {
       return c.json({ error: 'Session not found' }, 404);
     }
-
-    if (!server.storageProvider) {
-      return c.json({ error: 'Storage not configured' }, 503);
-    }
-
-    const sessionInfo = await server.storageProvider.getSessionInfo(sessionId);
+    
+    const sessionInfo = await server.daoFactory.getSessionInfo(sessionId);
     if (!sessionInfo) {
       return c.json({ error: 'Session not found' }, 404);
     }
 
-    const updatedMetadata = await server.storageProvider.updateSessionInfo(sessionId, {
+    const updatedMetadata = await server.daoFactory.updateSessionInfo(sessionId, {
       metadata: {
         ...sessionInfo.metadata,
         ...metadataUpdates,
@@ -258,14 +242,7 @@ export async function deleteSession(c: HonoContext) {
       delete server.storageUnsubscribes[sessionId];
     }
 
-    // Delete from storage if available
-    if (server.storageProvider) {
-      try {
-        await server.storageProvider.deleteSession(sessionId);
-      } catch (error) {
-        console.warn(`Failed to delete session ${sessionId} from storage:`, error);
-      }
-    }
+    await server.daoFactory.deleteSession(sessionId);   
 
     return c.json({ success: true, message: 'Session deleted successfully' }, 200);
   } catch (error) {
@@ -331,7 +308,7 @@ export async function shareSession(c: HonoContext) {
 
   try {
     const server = c.get('server');
-    const shareService = new ShareService(server.appConfig, server.storageProvider, server);
+    const shareService = new ShareService(server.appConfig, server.daoFactory, server);
 
     // Get agent instance if session is active (for slug generation)
     const agent = server.getSessionPool().get(sessionId)?.agent;
