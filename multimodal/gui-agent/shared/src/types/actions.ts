@@ -53,7 +53,7 @@ export type ScreenShotAction = BaseAction<
  * Click action with coordinates
  */
 export type ClickAction = BaseAction<
-  'click' | 'left_click',
+  'click',
   {
     point: Coordinates;
   }
@@ -63,7 +63,7 @@ export type ClickAction = BaseAction<
  * Right click action with coordinates
  */
 export type RightClickAction = BaseAction<
-  'right_click' | 'right_single',
+  'right_click',
   {
     point: Coordinates;
   }
@@ -73,7 +73,17 @@ export type RightClickAction = BaseAction<
  * Double click action with coordinates
  */
 export type DoubleClickAction = BaseAction<
-  'double_click' | 'left_double',
+  'double_click',
+  {
+    point: Coordinates;
+  }
+>;
+
+/**
+ * Middle click action with coordinates
+ */
+export type MiddleClickAction = BaseAction<
+  'middle_click',
   {
     point: Coordinates;
   }
@@ -105,7 +115,7 @@ export type MouseUpAction = BaseAction<
  * Mouse move action
  */
 export type MouseMoveAction = BaseAction<
-  'move' | 'move_to' | 'mouse_move' | 'hover',
+  'mouse_move', // 'move' | 'move_to' | 'hover',
   {
     point: Coordinates; // Target coordinates
   }
@@ -115,7 +125,7 @@ export type MouseMoveAction = BaseAction<
  * Drag action with start and end coordinates
  */
 export type DragAction = BaseAction<
-  'drag' | 'left_click_drag' | 'select',
+  'drag', // 'left_click_drag' | 'select',
   {
     start: Coordinates;
     end: Coordinates;
@@ -206,7 +216,7 @@ export type LongPressAction = BaseAction<
 >;
 
 export type SwipeAction = BaseAction<
-  'swipe' | 'drag',
+  'swipe', // 'drag',
   {
     start: Coordinates;
     end: Coordinates;
@@ -267,13 +277,13 @@ export type CallUserAction = BaseAction<
 >;
 
 /**
- * Combined type
+ * Operational action types (excluding screenshot which has special handling)
  */
-export type GUIAction =
-  | ScreenShotAction
+export type OperationalGUIAction =
   | ClickAction
   | DoubleClickAction
   | RightClickAction
+  | MiddleClickAction
   | MouseDownAction
   | MouseUpAction
   | MouseMoveAction
@@ -294,63 +304,79 @@ export type GUIAction =
   | FinishAction
   | CallUserAction;
 
-export type ExtractActionType<T> = T extends BaseAction<infer U, any> ? U : never;
-export type SupportedActionType = ExtractActionType<GUIAction>;
+/**
+ * Complete GUI action types including screenshot
+ */
+export type GUIAction = ScreenShotAction | OperationalGUIAction;
 
 /**
- * Type guard function to check if a string is a valid action type
+ * Extract action type from action interface
+ */
+export type ExtractActionType<T> = T extends BaseAction<infer U, any> ? U : never;
+
+/**
+ * Supported operational action types (excluding screenshot)
+ */
+export type SupportedActionType = ExtractActionType<OperationalGUIAction>;
+
+/**
+ * All action types including screenshot
+ */
+export type AllActionType = ExtractActionType<GUIAction>;
+
+/**
+ * Action metadata for documentation and serialization
+ */
+export interface ActionMetadata {
+  description: string;
+  category: 'mouse' | 'keyboard' | 'navigation' | 'mobile' | 'system' | 'wait';
+}
+
+/**
+ * Comprehensive action metadata registry
+ */
+export const ACTION_METADATA: Record<SupportedActionType, ActionMetadata> = {
+  click: { category: 'mouse', description: 'Click on an element' },
+  right_click: { category: 'mouse', description: 'Right click on an element' },
+  double_click: { category: 'mouse', description: 'Double click on an element' },
+  middle_click: { category: 'mouse', description: 'Middle click on an element' },
+  mouse_down: { category: 'mouse', description: 'Press mouse button down' },
+  mouse_up: { category: 'mouse', description: 'Release mouse button' },
+  mouse_move: { category: 'mouse', description: 'Move mouse to position' },
+  drag: { category: 'mouse', description: 'Drag from one position to another' },
+  scroll: { category: 'mouse', description: 'Scroll in a direction' },
+  type: { category: 'keyboard', description: 'Type text' },
+  hotkey: { category: 'keyboard', description: 'Press hotkey combination' },
+  press: { category: 'keyboard', description: 'Press a key' },
+  release: { category: 'keyboard', description: 'Release a key' },
+  navigate: { category: 'navigation', description: 'Navigate to URL' },
+  navigate_back: { category: 'navigation', description: 'Navigate back' },
+  long_press: { category: 'mobile', description: 'Long press on element' },
+  swipe: { category: 'mobile', description: 'Swipe gesture' },
+  home: { category: 'mobile', description: 'Go to home' },
+  press_home: { category: 'mobile', description: 'Press home button' },
+  back: { category: 'mobile', description: 'Go back' },
+  press_back: { category: 'mobile', description: 'Press back button' },
+  open_app: { category: 'mobile', description: 'Open application' },
+  wait: { category: 'wait', description: 'Wait for specified time' },
+  finished: { category: 'system', description: 'Mark task as finished' },
+  call_user: { category: 'system', description: 'Request user interaction' },
+} as const;
+
+/**
+ * Type guard function to check if a string is a valid operational action type
  * @param type - The string to check
  * @returns Whether the string is a valid SupportedActionType
  */
 export function isSupportedActionType(type: string): type is SupportedActionType {
-  const supportedTypes = [
-    // Screenshot action
-    'screenshot',
+  return type in ACTION_METADATA;
+}
 
-    // Mouse actions
-    'click',
-    'left_click',
-    'right_click',
-    'right_single',
-    'double_click',
-    'left_double',
-    'mouse_down',
-    'mouse_up',
-    'move',
-    'move_to',
-    'drag',
-    'left_click_drag',
-    'select',
-    'scroll',
-
-    // Keyboard actions
-    'type',
-    'hotkey',
-    'press',
-    'release',
-
-    // Browser actions
-    'navigate',
-    'navigate_back',
-
-    // App actions
-    'long_press',
-    'swipe',
-    'home',
-    'press_home',
-    'back',
-    'press_back',
-    'open_app',
-
-    // Wait actions
-    'wait',
-
-    // Finish actions
-    'finished',
-
-    // Call user actions
-    'call_user',
-  ];
-
-  return supportedTypes.includes(type);
+/**
+ * Type guard function to check if a string is any valid action type (including screenshot)
+ * @param type - The string to check
+ * @returns Whether the string is a valid AllActionType
+ */
+export function isValidActionType(type: string): type is AllActionType {
+  return type === 'screenshot' || isSupportedActionType(type);
 }

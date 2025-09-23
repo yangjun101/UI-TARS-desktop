@@ -5,9 +5,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { ConsoleLogger } from '@agent-infra/logger';
 import { AgentOptions } from '@tarko/agent-interface';
-import { Factors, BaseAction, Coordinates } from './actions';
+import { Factors, BaseAction, Coordinates, SupportedActionType, ActionMetadata } from './actions';
 
 /**
  * Type definition for parsed GUI response structure
@@ -20,7 +19,7 @@ export interface ParsedGUIResponse {
   /** parsed from Thought: `<thought>` */
   reasoningContent?: string;
   /** parsed from Action: action(params=`action`) */
-  rawActionStrings: string[];
+  rawActionStrings?: string[];
   /** parsed from Action: action(params=`action`) */
   actions: BaseAction[];
   /** error message to feedback to LLM */
@@ -47,22 +46,17 @@ export type NormalizeCoordinates = (
 export type CustomActionParser = (prediction: string) => ParsedGUIResponse | null;
 
 /**
- * Type definition for a function that converts BaseAction array to string representation
- * @param actions - Array of BaseAction objects to be converted to string
- * @returns String representation of the actions
+ * Function type for serializing supported actions to string format
+ * @param actions - Array of supported action types
+ * @returns String representation of the actions for agent processing
  */
-export type SerializeSupportedActions = (
-  actions: Array<
-    Pick<BaseAction, 'type' | 'inputs'> & {
-      description: string;
-      example?: Record<string, unknown>;
-    }
-  >,
-) => string;
+export type SerializeSupportedActions = (actions: Array<SupportedActionType>) => string;
 
-export interface ExecuteParams extends ParsedGUIResponse {
-  context?: Record<string, unknown>;
-}
+export type ExecuteParams = {
+  /** Required actions to execute */
+  actions: BaseAction[];
+} & Partial<Omit<ParsedGUIResponse, 'actions'>> &
+  Record<string, any>;
 
 export type ExecuteOutput = {
   status: 'success' | 'failed';
@@ -86,7 +80,7 @@ export const ACTION_SPACE_PLACEHOLDER = 'action_space';
 export interface SystemPromptTemplate {
   /**
    * Template string with placeholders. Must include an action space placeholder
-   * `{${ACTION_SPACE_PLACEHOLDER}}` that will be replaced with the string representation of available actions
+   * `{{${ACTION_SPACE_PLACEHOLDER}}}` that will be replaced with the string representation of available actions
    */
   template: string;
 
@@ -119,10 +113,8 @@ export interface GUIAgentConfig<TOperator> extends AgentOptions {
   customeActionParser?: CustomActionParser;
   /** The function to normalize raw coordinates */
   normalizeCoordinates?: NormalizeCoordinates;
-  /** Maximum number of turns for Agent to execute, @default 100 */
+  /** Maximum number of turns for Agent to execute, @default 1000 */
   maxLoopCount?: number;
   /** Time interval between two loop iterations (in milliseconds), @default 0 */
   loopIntervalInMs?: number;
-  /** The logger for GUI Agent */
-  logger?: ConsoleLogger;
 }

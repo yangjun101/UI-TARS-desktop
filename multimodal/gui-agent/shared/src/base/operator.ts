@@ -83,6 +83,11 @@ export abstract class Operator extends BaseOperator {
   private _initializing = false;
   private _initPromise: Promise<void> | null = null;
 
+  constructor() {
+    super();
+    // this.ensureInitialized();
+  }
+
   /**
    * Initializes the operator
    * @description Performs initialization operations for the operator, such as validating connections,
@@ -139,8 +144,8 @@ export abstract class Operator extends BaseOperator {
    * Safely returns an array of supported action types with initialization guarantee
    * @returns Array of action types supported by this operator
    */
-  async getSupportedActions(): Promise<Array<SupportedActionType>> {
-    await this.ensureInitialized();
+  getSupportedActions(): Array<SupportedActionType> {
+    // await this.ensureInitialized();
     return this.supportedActions();
   }
 
