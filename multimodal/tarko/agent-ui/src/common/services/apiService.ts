@@ -530,6 +530,58 @@ class ApiService {
       return { success: false };
     }
   }
+
+  async getSessionRuntimeSettings(sessionId: string): Promise<{
+    schema: Record<string, any> | null;
+    currentValues: Record<string, any> | null;
+    message?: string;
+  }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/sessions/runtime-settings?sessionId=${sessionId}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(3000),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to get session runtime settings: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting session runtime settings:', error);
+      return { schema: null, currentValues: null, message: 'Failed to load runtime settings' };
+    }
+  }
+
+  async updateSessionRuntimeSettings(
+    sessionId: string,
+    runtimeSettings: Record<string, any>,
+  ): Promise<{ success: boolean; sessionInfo?: SessionInfo }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/sessions/runtime-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, runtimeSettings }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update session runtime settings: ${response.statusText}`);
+      }
+
+      const responseData = await response.json();
+      return {
+        success: true,
+        sessionInfo: responseData.session,
+      };
+    } catch (error) {
+      console.error('Error updating session runtime settings:', error);
+      return { success: false };
+    }
+  }
 }
 
 // Export singleton instance

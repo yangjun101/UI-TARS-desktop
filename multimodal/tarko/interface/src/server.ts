@@ -122,6 +122,22 @@ export interface AgentServerOptions {
      * These models will be merged with AgentOptions.model and made available for selection in the UI
      */
     models?: AgentModel[];
+    /**
+     * Runtime settings configuration
+     * Defines user-configurable settings that can be adjusted during runtime
+     */
+    runtimeSettings?: {
+      /**
+       * JSON Schema defining the structure and UI rendering of runtime settings
+       */
+      schema: Record<string, any>;
+      /**
+       * Optional transform function to convert runtime settings to agent-specific options
+       * @param runtimeSettings - The current runtime settings values
+       * @returns Transformed options that can be applied to the agent
+       */
+      transform?: (runtimeSettings: any) => any;
+    };
     /*
      * Sandbox config
      */
@@ -202,6 +218,11 @@ export interface SessionItemMetadata {
     configuredAt: number;
     [key: string]: any; // Future agent info fields
   };
+  /**
+   * Current runtime settings configuration
+   * User-adjustable settings that affect agent behavior during execution
+   */
+  runtimeSettings?: Record<string, any>;
   /** The sandbox associated with the current session */
   sandboxUrl?: string;
   /**

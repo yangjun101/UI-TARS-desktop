@@ -80,7 +80,7 @@ export async function updateSessionModel(req: Request, res: Response) {
 
         try {
           // Recreate agent with new model configuration
-          await activeSession.updateModelConfig(updatedSessionInfo);
+          await activeSession.updateSessionConfig(updatedSessionInfo);
           console.log('Session agent recreated with new model config', { sessionId });
         } catch (error) {
           console.error('Failed to update agent model config for session', { sessionId, error });

@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FiSend, FiRefreshCw, FiImage, FiSquare, FiX } from 'react-icons/fi';
+import { TbBulb, TbSearch, TbBook, TbSettings, TbBrain, TbBrowser } from 'react-icons/tb';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ConnectionStatus } from '@/common/types';
 import { ChatCompletionContentPart } from '@tarko/agent-interface';
@@ -19,6 +20,7 @@ import { getAgentTitle, isContextualSelectorEnabled } from '@/config/web-ui-conf
 import { composeMessageContent, isMessageEmpty, parseContextualReferences } from './utils';
 import { handleMultimodalPaste } from '@/common/utils/clipboard';
 import { NavbarModelSelector } from '@/standalone/navbar/ModelSelector';
+import { AgentOptionsSelector, AgentOptionsSelectorRef } from './AgentOptionsSelector';
 import { useNavbarStyles } from '@tarko/ui';
 
 interface ChatInputProps {
@@ -57,6 +59,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const [uploadedImages, setUploadedImages] = useState<ChatCompletionContentPart[]>([]);
   const [isAborting, setIsAborting] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [activeAgentOptions, setActiveAgentOptions] = useState<
+    Array<{ key: string; title: string; currentValue: any; displayValue?: string }>
+  >([]);
+  const agentOptionsSelectorRef = useRef<AgentOptionsSelectorRef | null>(null);
 
   const { activeSessionId, sessionMetadata } = useSession();
   const { isDarkMode } = useNavbarStyles();
@@ -72,6 +78,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const { abortQuery } = useSession();
 
   const contextualSelectorEnabled = isContextualSelectorEnabled() && showContextualSelector;
+
+  // Clear active agent options when session changes
+  useEffect(() => {
+    setActiveAgentOptions([]);
+  }, [sessionId]);
+
+  const handleToggleOption = useCallback((key: string, currentValue: any) => {
+    // Use the ref to call the toggle method on AgentOptionsSelector
+    if (agentOptionsSelectorRef.current) {
+      if (currentValue === undefined) {
+        // This is a remove operation - no need to toggle, just handled by AgentOptionsSelector
+        return;
+      }
+      agentOptionsSelectorRef.current.toggleOption(key);
+    }
+  }, []);
 
   useEffect(() => {
     if (initialValue && !contextualState.input) {
@@ -407,37 +429,97 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               onPaste={handlePaste}
               placeholder={placeholder || defaultPlaceholder}
               disabled={isDisabled}
-              className={`w-full px-5 ${uploadedImages.length > 0 ? 'pt-2' : 'pt-5'} pb-12 focus:outline-none resize-none ${uploadedImages.length > 0 ? (variant === 'home' ? 'min-h-[100px]' : 'min-h-[80px]') : variant === 'home' ? 'min-h-[120px]' : 'min-h-[100px]'} max-h-[220px] bg-transparent text-sm leading-relaxed rounded-[1.4rem]`}
+              className={`w-full px-5 ${
+                uploadedImages.length > 0 ? 'pt-2' : 'pt-5'
+              } pb-12 focus:outline-none resize-none ${
+                uploadedImages.length > 0
+                  ? variant === 'home'
+                    ? 'min-h-[100px]'
+                    : 'min-h-[80px]'
+                  : variant === 'home'
+                    ? 'min-h-[120px]'
+                    : 'min-h-[100px]'
+              } max-h-[220px] bg-transparent text-sm leading-relaxed rounded-[1.4rem]`}
               rows={2}
             />
 
-            {/* File upload button */}
-            {showAttachments && (
-              <div className="absolute left-3 bottom-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleFileUpload}
-                  disabled={isDisabled || isProcessing}
-                  className={`p-2 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 ${
-                    isDisabled || isProcessing
-                      ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                      : 'text-gray-400 hover:text-accent-500 hover:bg-gray-50 dark:hover:bg-gray-700/30 dark:text-gray-400'
-                  }`}
-                  title="Attach image (or paste directly)"
-                >
-                  <FiImage size={18} />
-                </button>
+            {/* Left side controls */}
+            <div className="absolute left-3 bottom-3 flex items-center gap-2">
+              {/* Agent Options Selector - First (leftmost) */}
+              <AgentOptionsSelector
+                ref={agentOptionsSelectorRef}
+                activeSessionId={sessionId}
+                sessionMetadata={sessionMetadata}
+                onActiveOptionsChange={setActiveAgentOptions}
+                onToggleOption={handleToggleOption}
+                showAttachments={showAttachments}
+                onFileUpload={handleFileUpload}
+                isDisabled={isDisabled}
+                isProcessing={isProcessing}
+              />
 
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  disabled={isDisabled || isProcessing}
-                />
-              </div>
+              {/* Active agent options tags */}
+              {activeAgentOptions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {activeAgentOptions.map((option, index) => {
+                    // Get icon based on option key
+                    const getOptionIcon = () => {
+                      const lowerKey = option.key.toLowerCase();
+                      const lowerTitle = option.title.toLowerCase();
+                      if (lowerKey.includes('browser') || lowerTitle.includes('browser')) return <TbBrowser className="w-3 h-3" />;
+                      if (lowerKey.includes('foo')) return <TbBulb className="w-3 h-3" />;
+                      if (lowerKey.includes('search')) return <TbSearch className="w-3 h-3" />;
+                      if (lowerKey.includes('research')) return <TbBook className="w-3 h-3" />;
+                      if (lowerKey.includes('thinking') || lowerTitle.includes('思考'))
+                        return <TbBrain className="w-3 h-3" />;
+                      return <TbSettings className="w-3 h-3" />;
+                    };
+
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          // Call the remove method directly on AgentOptionsSelector
+                          if (agentOptionsSelectorRef.current) {
+                            agentOptionsSelectorRef.current.removeOption(option.key);
+                          }
+                        }}
+                        className="group inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/30 dark:hover:to-indigo-900/30 hover:border-blue-300/60 dark:hover:border-blue-600/60 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
+                        title={`Remove ${option.title}`}
+                      >
+                        <span className="mr-1.5 text-blue-600 dark:text-blue-400 group-hover:opacity-0 transition-opacity duration-200">
+                          {getOptionIcon()}
+                        </span>
+                        <FiX className="absolute ml-0 w-3 h-3 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                        <span className="truncate flex items-center">
+                          <span className="font-medium">{option.title}</span>
+                          {option.displayValue && (
+                            <span className="ml-1.5 text-xs text-blue-600/80 dark:text-blue-300/80 bg-white/90 dark:bg-gray-800/90 px-1.5 py-0.5 rounded-full font-medium backdrop-blur-sm border border-blue-200/30 dark:border-blue-600/30 shadow-sm">
+                              {option.displayValue}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Hidden file input for image upload */}
+            {showAttachments && (
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={isDisabled || isProcessing}
+              />
             )}
 
             {/* Action buttons */}

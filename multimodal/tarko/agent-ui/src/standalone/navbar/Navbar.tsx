@@ -430,14 +430,12 @@ const DynamicNavbarCenter: React.FC<DynamicNavbarCenterProps> = ({
         </div>
       )}
 
-      <div className="hidden md:block min-w-0">
-        <NavbarModelSelector
-          className="min-w-0"
-          activeSessionId={activeSessionId}
-          sessionMetadata={sessionMetadata}
-          isDarkMode={isDarkMode}
-        />
-      </div>
+      <NavbarModelSelector
+        className="min-w-0"
+        activeSessionId={activeSessionId}
+        sessionMetadata={sessionMetadata}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };
