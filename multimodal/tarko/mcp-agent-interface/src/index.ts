@@ -3,27 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AgentOptions } from '@tarko/agent-interface';
+import { AgentOptions, CommonFilterOptions } from '@tarko/agent-interface';
 
 // FIXME: remove enum-based logger
 export { LogLevel } from '@tarko/agent-interface';
 export type * from '@tarko/agent-interface';
+
+/**
+ * MCP Server filtering options for controlling which servers are connected
+ */
+export interface MCPServerFilterOptions extends CommonFilterOptions {}
 
 export interface MCPAgentOptions extends AgentOptions {
   /**
    * Custom mcp servers.
    */
   mcpServers?: MCPServerRegistry;
+
   /**
-   * Version of MCP client to use.
-   * This is a config for test ONLY, DO NOT depends on it.
-   *
-   * - 'v1': Use the built-in MCP client (default)
-   * - 'v2': Use @agent-infra/mcp-client package
-   *
-   * @defaultValue `'v2'`
+   * MCP server filtering options for controlling which servers are connected
    */
-  mcpClientVersion?: 'v1' | 'v2';
+  mcpServer?: MCPServerFilterOptions;
+
+
+
+  /**
+   * Default timeout for MCP client connections in seconds.
+   *
+   * @defaultValue 60
+   */
+  defaultConnectionTimeout?: number;
 }
 
 export interface MCPServerConfig {

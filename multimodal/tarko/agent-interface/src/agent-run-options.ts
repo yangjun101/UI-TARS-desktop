@@ -6,6 +6,7 @@
 
 import { ChatCompletionContentPart, ModelProviderName } from '@tarko/model-provider/types';
 import { ToolCallEngineType } from './tool-call-engine';
+import { AgentEventStream } from './agent-event-stream';
 
 /**
  * Base options for running an agent without specifying streaming mode
@@ -15,18 +16,6 @@ export interface AgentRunBaseOptions {
    * Multimodal message.
    */
   input: string | ChatCompletionContentPart[];
-  /**
-   * Model id used to run the agent.
-   *
-   * @defaultValue "model.id" or the first configured "model.providers."
-   */
-  model?: string;
-  /**
-   * Model provider used to run the agent.
-   *
-   * @defaultValue "model.provider" or the first configured "model.providers."
-   */
-  provider?: ModelProviderName;
   /**
    * Optional session identifier to track the agent loop conversation
    * If not provided, a random ID will be generated
@@ -38,6 +27,21 @@ export interface AgentRunBaseOptions {
    * @defaultValue "toolCallEngine" in agent options
    */
   toolCallEngine?: ToolCallEngineType;
+  /**
+   * Environment input to inject as context before agent execution.
+   * This content will be sent as environment_input events to provide context
+   * without attributing it to user messages.
+   *
+   * @defaultValue `undefined`
+   */
+  environmentInput?: {
+    /** The environment content (can be multimodal) */
+    content: string | ChatCompletionContentPart[];
+    /** Optional description of the environment input */
+    description?: string;
+    /** Optional metadata for the environment input */
+    metadata?: AgentEventStream.EnvironmentInputMetadata;
+  };
   /**
    * Abort signal for canceling the execution
    * @internal This is set internally by the Agent class

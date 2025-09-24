@@ -1,5 +1,49 @@
 # @agent-infra/mcp-client
 
+## 1.2.23
+
+### Patch Changes
+
+- @agent-infra/mcp-shared@1.2.23
+
+## 1.2.22
+
+### Patch Changes
+
+- @agent-infra/mcp-shared@1.2.22
+
+## 1.2.21
+
+### Patch Changes
+
+- @agent-infra/mcp-shared@1.2.21
+
+## 1.2.20
+
+### Patch Changes
+
+- 3d2a9d2: feat(mcp-client): add configurable timeout
+  - @agent-infra/mcp-shared@1.2.20
+
+## 1.2.19
+
+### Patch Changes
+
+- feat(mcp-client): add tools and prompts filtering with comprehensive tests
+  - @agent-infra/mcp-shared@1.2.19
+
+## 1.2.18
+
+### Patch Changes
+
+- @agent-infra/mcp-shared@1.2.18
+
+## 1.2.17
+
+### Patch Changes
+
+- @agent-infra/mcp-shared@1.2.17
+
 ## 1.2.16
 
 ### Patch Changes

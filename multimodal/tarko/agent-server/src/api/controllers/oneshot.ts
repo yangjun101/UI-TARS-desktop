@@ -6,7 +6,7 @@
 import { Request, Response } from 'express';
 import { ChatCompletionContentPart } from '@tarko/interface';
 import { nanoid } from 'nanoid';
-import { SessionMetadata } from '../../storage';
+import { SessionInfo } from '../../storage';
 import { AgentSession } from '../../core';
 import { createErrorResponse } from '../../utils/error-handler';
 
@@ -60,20 +60,23 @@ export async function createAndQuery(req: Request, res: Response) {
 
     // Store session metadata if storage is available
     if (server.storageProvider) {
-      const metadata: SessionMetadata = {
+      const metadataContent: SessionInfo['metadata'] = { version: 1 };
+      if (sessionName) metadataContent.name = sessionName;
+      if (sessionTags) metadataContent.tags = sessionTags;
+
+      const metadata: SessionInfo = {
         id: sessionId,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        name: sessionName,
         workspace: server.getCurrentWorkspace(),
-        tags: sessionTags,
+        metadata: Object.keys(metadataContent).length > 1 ? metadataContent : undefined,
       };
 
       await server.storageProvider.createSession(metadata);
     }
 
     // Execute query on new session
-    const response = await session.runQuery(query);
+    const response = await session.runQuery({ input: query });
 
     if (response.success) {
       res.status(200).json({
@@ -123,13 +126,16 @@ export async function createAndStreamingQuery(req: Request, res: Response) {
 
     // Store session metadata if storage is available
     if (server.storageProvider) {
-      const metadata: SessionMetadata = {
+      const metadataContent: SessionInfo['metadata'] = { version: 1 };
+      if (sessionName) metadataContent.name = sessionName;
+      if (sessionTags) metadataContent.tags = sessionTags;
+
+      const metadata: SessionInfo = {
         id: sessionId,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        name: sessionName,
         workspace: server.getCurrentWorkspace(),
-        tags: sessionTags,
+        metadata: Object.keys(metadataContent).length > 1 ? metadataContent : undefined,
       };
 
       await server.storageProvider.createSession(metadata);
@@ -150,7 +156,7 @@ export async function createAndStreamingQuery(req: Request, res: Response) {
     );
 
     // Get streaming response
-    const eventStream = await session.runQueryStreaming(query);
+    const eventStream = await session.runQueryStreaming({ input: query });
 
     // Stream events one by one
     for await (const event of eventStream) {

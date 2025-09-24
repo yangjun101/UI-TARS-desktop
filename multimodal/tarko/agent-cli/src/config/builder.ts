@@ -4,15 +4,17 @@
  */
 
 import { deepMerge, isTest } from '@tarko/shared-utils';
+import { getStaticPath } from '@tarko/agent-ui-builder';
 import {
+  CommonFilterOptions,
   AgentCLIArguments,
   ModelProviderName,
   AgentAppConfig,
   LogLevel,
   isAgentWebUIImplementationType,
 } from '@tarko/interface';
-import { resolveValue } from '../utils';
-import path, { join } from 'path';
+import { resolveValue, loadWorkspaceConfig } from '../utils';
+import { logDeprecatedWarning, logConfigComplete } from './display';
 
 /**
  * Handler for processing deprecated CLI options
@@ -23,12 +25,11 @@ export type CLIOptionsEnhancer<
 > = (cliArguments: T, appConfig: Partial<U>) => void;
 
 /**
-
  * Build complete application configuration from CLI arguments, user config, and app defaults
- * 
+ *
  * Follows the configuration priority order:
  * L0: CLI Arguments (highest priority)
- * L1: Workspace Config File  
+ * L1: Workspace Config File
  * L2: Global Workspace Config File
  * L3: CLI Config Files
  * L4: CLI Remote Config
@@ -42,15 +43,20 @@ export function buildAppConfig<
   userConfig: Partial<U>,
   appDefaults?: Partial<U>,
   cliOptionsEnhancer?: CLIOptionsEnhancer<T, U>,
+  workspacePath?: string,
 ): U {
-  // Start with app defaults (L5 - lowest priority)
   let config: Partial<U> = appDefaults ? { ...appDefaults } : {};
 
-  // Merge with user config (L4-L1 based on file loading order)
   // @ts-expect-error
   config = deepMerge(config, userConfig);
 
-  // Extract CLI-specific properties that need special handling
+  if (workspacePath) {
+    const workspaceConfig = loadWorkspaceConfig(workspacePath);
+    // @ts-expect-error
+    config = deepMerge(config, workspaceConfig);
+  }
+
+  // Extract known CLI options, everything else (including unknown options) goes to cliConfigProps
   const {
     agent,
     workspace,
@@ -59,40 +65,68 @@ export function buildAppConfig<
     quiet,
     port,
     stream,
-    // Extract core deprecated options
+    headless,
+    input,
+    format,
+    includeLogs,
+    useCache,
+    open,
     provider,
     apiKey,
     baseURL,
     shareProvider,
+    thinking,
+    tool,
+    mcpServer,
+    server,
     ...cliConfigProps
   } = cliArguments;
 
-  // Handle core deprecated options
-  handleCoreDeprecatedOptions(cliConfigProps, {
+  // Handle deprecated options
+  const deprecatedOptionValues = {
     provider,
-    apiKey,
+    apiKey: apiKey || undefined,
     baseURL,
     shareProvider,
-  });
+    thinking,
+  }; // secretlint-disable-line @secretlint/secretlint-rule-pattern
+  const deprecatedKeys = Object.entries(deprecatedOptionValues)
+    .filter(([, value]) => value !== undefined)
+    .map(([optionName]) => optionName);
 
-  // Allow external handler to process additional options
+  logDeprecatedWarning(deprecatedKeys);
+  handleCoreDeprecatedOptions(cliConfigProps, deprecatedOptionValues);
+
+  // Handle tool filters
+  handleToolFilterOptions(cliConfigProps, { tool });
+
+  // Handle MCP server filters
+  handleMCPServerFilterOptions(cliConfigProps, { mcpServer });
+
+  // Handle server options
+  handleServerOptions(cliConfigProps, { server });
+
+  // Process additional options
   if (cliOptionsEnhancer) {
     cliOptionsEnhancer(cliArguments, config);
   }
 
-  // Extract environment variables in CLI model configuration
+  // Resolve model secrets
   resolveModelSecrets(cliConfigProps);
 
-  // Merge CLI configuration properties (L0 - highest priority)
-  // @ts-expect-error TypeScript cannot infer the complex generic relationship
+  // @ts-expect-error
   config = deepMerge(config, cliConfigProps);
 
-  // Apply CLI shortcuts and special handling
+  // Apply CLI shortcuts
   applyLoggingShortcuts(config, { debug, quiet });
   applyServerConfiguration(config, { port });
 
-  // Apply WebUI defaults after all merging is complete
+  // Apply WebUI defaults
   applyWebUIDefaults(config as AgentAppConfig);
+
+  // Log configuration
+  const isDebug = cliArguments.debug || false;
+  logConfigComplete(config as AgentAppConfig, isDebug);
 
   return config as U;
 }
@@ -107,35 +141,20 @@ function handleCoreDeprecatedOptions(
     apiKey?: string;
     baseURL?: string;
     shareProvider?: string;
+    thinking?: boolean;
   },
 ): void {
-  const { provider, apiKey, baseURL, shareProvider } = deprecated;
+  const { provider, apiKey: deprecatedApiKey, baseURL, shareProvider, thinking } = deprecated; // secretlint-disable-line @secretlint/secretlint-rule-pattern
 
   // Handle deprecated model configuration
-  if (provider || apiKey || baseURL) {
-    if (config.model) {
-      if (typeof config.model === 'string') {
-        config.model = {
-          id: config.model,
-        };
-      }
-    } else {
-      config.model = {};
-    }
-
-    if (provider && !config.model.provider) {
-      config.model.provider = provider as ModelProviderName;
-    }
-
-    if (apiKey && !config.model.apiKey) {
-      config.model.apiKey = apiKey;
-    }
-
-    if (baseURL && !config.model.baseURL) {
-      config.model.baseURL = baseURL;
-    }
+  if (provider || deprecatedApiKey || baseURL) {
+    config.model = {
+      id: (typeof config.model === 'string' ? config.model : config.model?.id)!,
+      provider: (config.model?.provider ?? provider) as ModelProviderName,
+      apiKey: config.model?.apiKey ?? deprecatedApiKey,
+      baseURL: config.model?.baseURL ?? baseURL,
+    };
   }
-
   // Handle deprecated share provider
   if (shareProvider) {
     if (!config.share) {
@@ -145,6 +164,44 @@ function handleCoreDeprecatedOptions(
     if (!config.share.provider) {
       config.share.provider = shareProvider;
     }
+  }
+
+  if (thinking) {
+    if (typeof thinking === 'boolean') {
+      config.thinking = {
+        type: thinking ? 'enabled' : 'disabled',
+      };
+    } else if (typeof thinking === 'object') {
+      config.thinking = thinking;
+    }
+  }
+}
+
+/**
+ * Handle server CLI options
+ */
+function handleServerOptions(
+  config: Partial<AgentAppConfig>,
+  serverOptions: {
+    server?: {
+      exclusive?: boolean;
+    };
+  },
+): void {
+  const { server } = serverOptions;
+
+  if (!server) {
+    return;
+  }
+
+  // Initialize server config if it doesn't exist
+  if (!config.server) {
+    config.server = {};
+  }
+
+  // Handle exclusive mode option
+  if (server.exclusive !== undefined) {
+    config.server.exclusive = server.exclusive;
   }
 }
 
@@ -210,7 +267,9 @@ function applyServerConfiguration(config: AgentAppConfig, serverOptions: { port?
 function resolveModelSecrets(cliConfigProps: Partial<AgentAppConfig>): void {
   if (cliConfigProps.model) {
     if (cliConfigProps.model.apiKey) {
-      cliConfigProps.model.apiKey = resolveValue(cliConfigProps.model.apiKey, 'API key');
+      const modelApiKey = cliConfigProps.model.apiKey;
+      const resolvedApiKey = resolveValue(modelApiKey, 'API key');
+      cliConfigProps.model['apiKey'] = resolvedApiKey;
     }
 
     if (cliConfigProps.model.baseURL) {
@@ -232,7 +291,7 @@ function applyWebUIDefaults(config: AgentAppConfig): void {
   }
 
   if (isAgentWebUIImplementationType(config.webui, 'static') && !config.webui.staticPath) {
-    config.webui.staticPath = isTest() ? '/path/to/web-ui' : path.resolve(__dirname, '../static');
+    config.webui.staticPath = isTest() ? '/path/to/web-ui' : getStaticPath();
   }
 
   if (!config.webui.title) {
@@ -254,5 +313,118 @@ function applyWebUIDefaults(config: AgentAppConfig): void {
   if (!config.webui.logo) {
     config.webui.logo =
       'https://lf3-static.bytednsdoc.com/obj/eden-cn/zyha-aulnh/ljhwZthlaukjlkulzlp/appicon.png';
+  }
+}
+
+/**
+ * Handle tool filter CLI options
+ */
+function handleToolFilterOptions(
+  config: Partial<AgentAppConfig>,
+  toolOptions: {
+    tool?: {
+      include?: string | string[];
+      exclude?: string | string[];
+    };
+  },
+): void {
+  const { tool } = toolOptions;
+
+  if (!tool) {
+    return;
+  }
+
+  // Initialize tool config if it doesn't exist
+  if (!config.tool) {
+    config.tool = {};
+  }
+
+  // Handle include patterns
+  if (tool.include) {
+    const includePatterns = Array.isArray(tool.include) ? tool.include : [tool.include];
+    // Flatten comma-separated patterns
+    const flattenedInclude = includePatterns.flatMap((pattern) =>
+      pattern
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0),
+    );
+    if (flattenedInclude.length > 0) {
+      config.tool.include = flattenedInclude;
+    }
+  }
+
+  // Handle exclude patterns
+  if (tool.exclude) {
+    const excludePatterns = Array.isArray(tool.exclude) ? tool.exclude : [tool.exclude];
+    // Flatten comma-separated patterns
+    const flattenedExclude = excludePatterns.flatMap((pattern) =>
+      pattern
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0),
+    );
+    if (flattenedExclude.length > 0) {
+      config.tool.exclude = flattenedExclude;
+    }
+  }
+}
+
+/**
+ * Handle MCP server filter CLI options
+ */
+function handleMCPServerFilterOptions(
+  config: Partial<AgentAppConfig>,
+  mcpServerOptions: {
+    mcpServer?: CommonFilterOptions;
+  },
+): void {
+  const { mcpServer } = mcpServerOptions;
+
+  if (!mcpServer) {
+    return;
+  }
+
+  // Initialize mcpServer config if it doesn't exist
+  // @ts-expect-error
+  if (!config.mcpServer) {
+    // @ts-expect-error
+    config.mcpServer = {};
+  }
+
+  // Handle include patterns
+  if (mcpServer.include) {
+    const includePatterns = Array.isArray(mcpServer.include)
+      ? mcpServer.include
+      : [mcpServer.include];
+    // Flatten comma-separated patterns
+    const flattenedInclude = includePatterns.flatMap((pattern) =>
+      pattern
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0),
+    );
+    if (flattenedInclude.length > 0) {
+      // @ts-expect-error
+      config.mcpServer.include = flattenedInclude;
+    }
+  }
+
+  // Handle exclude patterns
+  if (mcpServer.exclude) {
+    const excludePatterns = Array.isArray(mcpServer.exclude)
+      ? mcpServer.exclude
+      : [mcpServer.exclude];
+    // Flatten comma-separated patterns
+    const flattenedExclude = excludePatterns.flatMap((pattern) =>
+      pattern
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0),
+    );
+    if (flattenedExclude.length > 0) {
+      // @ts-expect-error
+      config.mcpServer.exclude = flattenedExclude;
+    }
   }
 }

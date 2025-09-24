@@ -40,8 +40,7 @@
         <br>
         <br>
         它主要提供
-        <a href="https://github.com/bytedance/UI-TARS-desktop/blob/docs/new-readme/docs/quick-start.md#get-model-and-run" target="_blank">本地</a>和
-        <a href="https://github.com/bytedance/UI-TARS-desktop/blob/docs/new-readme/docs/quick-start.md#try-out-our-free-remote-operators" target="_blank">远程</a>计算机以及浏览器操作器。
+        <a href="https://github.com/bytedance/UI-TARS-desktop/blob/docs/new-readme/docs/quick-start.md#get-model-and-run" target="_blank">本地</a>计算机以及浏览器操作器。
       </td>
     </tr>
   </tbody>
@@ -86,7 +85,7 @@
     <a href="https://nodejs.org/en/about/previous-releases"><img src="https://img.shields.io/node/v/@agent-tars/cli.svg?style=for-the-badge&colorA=1a1a2e&colorB=06B6D4&logo=node.js&logoColor=white" alt="node version"></a>
     <a href="https://discord.gg/HnKcSBgTVx"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord Community" /></a>
     <a href="https://twitter.com/agent_tars"><img src="https://img.shields.io/badge/Twitter-Follow%20%40agent__tars-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white" alt="Official Twitter" /></a>
-    <a href="https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=279h3365-b0fa-407f-89f3-0f96f36cd4d8"><img src="https://img.shields.io/badge/飞书群-加入交流群-00D4AA?style=for-the-badge&logo=lark&logoColor=white" alt="飞书交流群" /></a>
+    <a href="https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=deen76f4-ea3c-4964-93a3-78f126f39651"><img src="https://img.shields.io/badge/飞书群-加入交流群-00D4AA?style=for-the-badge&logo=lark&logoColor=white" alt="飞书交流群" /></a>
     <a href="https://deepwiki.com/bytedance/UI-TARS-desktop"><img src="https://img.shields.io/badge/DeepWiki-Ask%20AI-8B5CF6?style=for-the-badge&logo=gitbook&logoColor=white" alt="Ask DeepWiki" /></a>
 </p>
 
@@ -238,7 +237,7 @@ agent-tars --provider anthropic --model claude-3-7-sonnet-latest --apiKey your-a
   <img alt="UI-TARS" width="260" src="./apps/ui-tars/resources/icon.png">
 </p>
 
-UI-TARS Desktop 是一个由 [UI-TARS](https://github.com/bytedance/UI-TARS) 和 Seed-1.5-VL/1.6 系列模型驱动的原生 GUI agent，可在你的本地计算机和云端远程 VM 沙箱上使用。
+UI-TARS Desktop 是一个由 [UI-TARS](https://github.com/bytedance/UI-TARS) 和 Seed-1.5-VL/1.6 系列模型驱动的原生 GUI agent，可在你的本地计算机上使用。
 
 <div align="center">
 <p>
@@ -270,7 +269,6 @@ UI-TARS Desktop 是一个由 [UI-TARS](https://github.com/bytedance/UI-TARS) 和
 - 💻 跨平台支持 (Windows/MacOS/Browser)
 - 🔄 实时反馈和状态显示
 - 🔐 私密且安全 - 完全本地处理
-- 🛠️ 轻松设置和直观的远程操作器
 
 ### Quick Start
 

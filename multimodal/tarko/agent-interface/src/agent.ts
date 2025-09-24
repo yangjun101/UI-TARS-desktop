@@ -15,6 +15,7 @@ import {
   LoopTerminationCheckResult,
   PrepareRequestContext,
   PrepareRequestResult,
+  EachAgentLoopEndContext,
 } from './agent-instance';
 import { AgentRunObjectOptions, AgentRunStreamingOptions } from './agent-run-options';
 import {
@@ -26,7 +27,7 @@ import {
   ChatCompletionChunk,
 } from '@tarko/model-provider/types';
 import { ToolCallResult } from './tool-call-engine';
-import { ResolvedModel } from '@tarko/model-provider';
+import { AgentModel } from '@tarko/model-provider';
 import { AgentEventStream } from './agent-event-stream';
 import { Tool } from './tool';
 
@@ -121,7 +122,7 @@ export interface IAgent<T extends AgentOptions = AgentOptions> {
   /**
    * Generate a summary of conversation messages
    *
-   * FIXME: remove it, high-level layout can use resolved model to implement it.
+   * FIXME: remove it, high-level layout can use current model to implement it.
    *
    * @param request The summary request containing messages and optional model settings
    * @returns Promise resolving to the summary response
@@ -129,11 +130,11 @@ export interface IAgent<T extends AgentOptions = AgentOptions> {
   generateSummary(request: SummaryRequest): Promise<SummaryResponse>;
 
   /**
-   * Get the current resolved model configuration
+   * Get the current current model configuration
    *
-   * @returns The current resolved model configuration or undefined if not set
+   * @returns The current current model configuration or undefined if not set
    */
-  getCurrentResolvedModel(): ResolvedModel | undefined;
+  getCurrentModel(): AgentModel | undefined;
 
   /**
    * Hook called before sending a request to the LLM
@@ -208,6 +209,18 @@ export interface IAgent<T extends AgentOptions = AgentOptions> {
    * @returns A promise that resolves when pre-iteration setup is complete
    */
   onEachAgentLoopStart(sessionId: string): void | Promise<void>;
+
+  /**
+   * Hook called at the end of each agent loop iteration
+   *
+   * This method is invoked after each iteration of the agent loop completes,
+   * allowing derived classes to perform cleanup, logging, or state updates
+   * based on the iteration results.
+   *
+   * @param context The iteration end context including session info and results
+   * @returns A promise that resolves when post-iteration cleanup is complete
+   */
+  onEachAgentLoopEnd(context: EachAgentLoopEndContext): void | Promise<void>;
 
   /**
    * Hook called at the end of the agent's execution loop

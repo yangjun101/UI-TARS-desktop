@@ -19,7 +19,7 @@ import {
   Tool,
 } from '@tarko/agent-interface';
 import {
-  ResolvedModel,
+  AgentModel,
   LLMReasoningOptions,
   OpenAI,
   ChatCompletionMessageToolCall,
@@ -39,6 +39,8 @@ export class LLMProcessor {
   private messageHistory: MessageHistory;
   private llmClient?: OpenAI;
   private enableStreamingToolCallEvents: boolean;
+  private enableMetrics: boolean;
+  private thinkingStartTimes = new Map<string, number>();
 
   constructor(
     private agent: Agent,
@@ -47,14 +49,17 @@ export class LLMProcessor {
     private reasoningOptions: LLMReasoningOptions,
     private maxTokens?: number,
     private temperature: number = 0.7,
+    private top_p?: number,
     private contextAwarenessOptions?: AgentContextAwarenessOptions,
     enableStreamingToolCallEvents = false,
+    enableMetrics = false,
   ) {
     this.messageHistory = new MessageHistory(
       this.eventStream,
       this.contextAwarenessOptions?.maxImagesCount,
     );
     this.enableStreamingToolCallEvents = enableStreamingToolCallEvents;
+    this.enableMetrics = enableMetrics;
   }
 
   /**
@@ -78,7 +83,7 @@ export class LLMProcessor {
   /**
    * Process an LLM request for a single iteration
    *
-   * @param resolvedModel The resolved model configuration
+   * @param currentModel The current model configuration
    * @param systemPrompt The configured base system prompt
    * @param toolCallEngine The tool call engine to use
    * @param sessionId Session identifier
@@ -87,7 +92,7 @@ export class LLMProcessor {
    * @param abortSignal Optional signal to abort the execution
    */
   async processRequest(
-    resolvedModel: ResolvedModel,
+    currentModel: AgentModel,
     systemPrompt: string,
     toolCallEngine: ToolCallEngine,
     sessionId: string,
@@ -115,7 +120,7 @@ export class LLMProcessor {
     // Create or reuse llm client
     if (!this.llmClient) {
       this.llmClient = getLLMClient(
-        resolvedModel,
+        currentModel,
         this.reasoningOptions,
         // Pass session ID to request interceptor hook
         (provider, request, baseURL) => {
@@ -190,41 +195,46 @@ export class LLMProcessor {
       finalTools,
     );
 
-    this.logger.info(`[LLM] Requesting ${resolvedModel.provider}/${resolvedModel.id}`);
+    this.logger.info(`[LLM] Requesting ${currentModel.provider}/${currentModel.id}`);
 
     // Prepare request context with final tools
     const prepareRequestContext: ToolCallEnginePrepareRequestContext = {
-      model: resolvedModel.id,
+      model: currentModel.id,
       messages,
       tools: finalTools,
       temperature: this.temperature,
+      top_p: this.top_p,
     };
 
     // Process the request
-    const startTime = Date.now();
+    const startTime = this.enableMetrics ? Date.now() : 0;
 
     await this.sendRequest(
-      resolvedModel,
+      currentModel,
       prepareRequestContext,
       sessionId,
       toolCallEngine,
       streamingMode,
+      startTime,
       abortSignal,
     );
 
-    const duration = Date.now() - startTime;
-    this.logger.info(`[LLM] Response received | Duration: ${duration}ms`);
+    if (this.enableMetrics) {
+      const duration = Date.now() - startTime;
+      this.logger.info(`[LLM] Response received | Duration: ${duration}ms`);
+    }
   }
 
   /**
    * Send the actual request to the LLM and process the response
    */
   private async sendRequest(
-    resolvedModel: ResolvedModel,
+    currentModel: AgentModel,
     context: ToolCallEnginePrepareRequestContext,
     sessionId: string,
     toolCallEngine: ToolCallEngine,
     streamingMode: boolean,
+    requestStartTime: number,
     abortSignal?: AbortSignal,
   ): Promise<void> {
     // Check if operation was aborted
@@ -243,7 +253,7 @@ export class LLMProcessor {
 
     // Use either the custom LLM client or create one using model resolver
     this.logger.info(
-      `[LLM] Sending streaming request to ${resolvedModel.provider} | SessionId: ${sessionId}`,
+      `[LLM] Sending streaming request to ${currentModel.provider} | ${currentModel.id} | SessionId: ${sessionId}`,
     );
 
     // Make the streaming request with abort signal if available
@@ -254,10 +264,11 @@ export class LLMProcessor {
 
     await this.handleStreamingResponse(
       stream,
-      resolvedModel,
+      currentModel,
       sessionId,
       toolCallEngine,
       streamingMode,
+      requestStartTime,
       abortSignal,
     );
   }
@@ -268,10 +279,11 @@ export class LLMProcessor {
    */
   private async handleStreamingResponse(
     stream: AsyncIterable<ChatCompletionChunk>,
-    resolvedModel: ResolvedModel,
+    currentModel: AgentModel,
     sessionId: string,
     toolCallEngine: ToolCallEngine,
     streamingMode: boolean,
+    requestStartTime: number,
     abortSignal?: AbortSignal,
   ): Promise<void> {
     // Collect all chunks for final onLLMResponse call
@@ -282,6 +294,12 @@ export class LLMProcessor {
 
     // Generate a unique message ID to correlate streaming messages with final message
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+    // Track TTFT (Time to First Token) only if metrics are enabled
+    let firstTokenTime: number | null = null;
+    let hasReceivedFirstContent = false;
+    let lastReasoningContentLength = 0;
+    let reasoningCompleted = false;
 
     this.logger.info(`llm stream start`);
 
@@ -298,19 +316,69 @@ export class LLMProcessor {
       // Process the chunk using the tool call engine
       const chunkResult = toolCallEngine.processStreamingChunk(chunk, processingState);
 
+      // Track first token time only if metrics are enabled
+      if (
+        this.enableMetrics &&
+        !hasReceivedFirstContent /* && (chunkResult.content || chunkResult.reasoningContent) */
+      ) {
+        firstTokenTime = Date.now();
+        hasReceivedFirstContent = true;
+        if (requestStartTime > 0) {
+          // Only calculate if we have a valid start time
+          const ttft = firstTokenTime - requestStartTime;
+          this.logger.info(`[LLM] First token received | TTFT: ${ttft}ms`);
+        }
+      }
+
       // Only send streaming events in streaming mode
       if (streamingMode) {
         // Send reasoning content if any
         if (chunkResult.reasoningContent) {
+          // Track thinking start time for the first reasoning chunk
+          if (!this.thinkingStartTimes.has(messageId)) {
+            this.thinkingStartTimes.set(messageId, Date.now());
+          }
+
+          // Update reasoning content length tracking
+          const currentReasoningLength = (processingState.reasoningBuffer || '').length;
+
           // Create thinking streaming event
           const thinkingEvent = this.eventStream.createEvent(
             'assistant_streaming_thinking_message',
             {
               content: chunkResult.reasoningContent,
               isComplete: Boolean(processingState.finishReason),
+              messageId: messageId,
             },
           );
           this.eventStream.sendEvent(thinkingEvent);
+
+          lastReasoningContentLength = currentReasoningLength;
+        }
+
+        // Check if reasoning has completed (no new reasoning content in this chunk but we had it before)
+        if (
+          !chunkResult.reasoningContent &&
+          lastReasoningContentLength > 0 &&
+          !reasoningCompleted
+        ) {
+          reasoningCompleted = true;
+
+          // Calculate and send final thinking duration immediately when reasoning ends
+          if (this.thinkingStartTimes.has(messageId)) {
+            const startTime = this.thinkingStartTimes.get(messageId)!;
+            const thinkingDurationMs = Date.now() - startTime;
+            this.thinkingStartTimes.delete(messageId);
+
+            // Send final thinking message with duration
+            const finalThinkingEvent = this.eventStream.createEvent('assistant_thinking_message', {
+              content: processingState.reasoningBuffer || '',
+              isComplete: true,
+              messageId: messageId,
+              thinkingDurationMs: thinkingDurationMs,
+            });
+            this.eventStream.sendEvent(finalThinkingEvent);
+          }
         }
 
         // Only send content chunk if it contains actual content
@@ -354,6 +422,16 @@ export class LLMProcessor {
 
     this.logger.infoWithData('Finalized Response', parsedResponse, JSON.stringify);
 
+    // Calculate timing metrics only if enabled
+    let ttftMs: number | undefined;
+    let ttltMs: number | undefined;
+
+    if (this.enableMetrics && requestStartTime > 0) {
+      ttltMs = Date.now() - requestStartTime;
+      ttftMs = firstTokenTime ? firstTokenTime - requestStartTime : ttltMs;
+      this.logger.info(`[LLM] Response timing | TTFT: ${ttftMs}ms | Total: ${ttltMs}ms`);
+    }
+
     // Create the final events based on processed content
     this.createFinalEvents(
       parsedResponse.content || '',
@@ -362,11 +440,14 @@ export class LLMProcessor {
       parsedResponse.reasoningContent || '',
       parsedResponse.finishReason || 'stop',
       messageId, // Pass the message ID to final events
+      ttftMs, // Pass the TTFT only if metrics were calculated
+      ttltMs, // Pass the TTLT only if metrics were calculated
+      streamingMode, // Pass streaming mode to determine duration calculation
     );
 
     // Call response hooks with session ID
     this.agent.onLLMResponse(sessionId, {
-      provider: resolvedModel.provider,
+      provider: currentModel.provider,
       response: {
         id: allChunks[0]?.id || '',
         choices: [
@@ -382,18 +463,18 @@ export class LLMProcessor {
           },
         ],
         created: Date.now(),
-        model: resolvedModel.id,
+        model: currentModel.id,
         object: 'chat.completion',
       } as ChatCompletion,
     });
 
     this.agent.onLLMStreamingResponse(sessionId, {
-      provider: resolvedModel.provider,
+      provider: currentModel.provider,
       chunks: allChunks,
     });
 
     this.logger.info(
-      `[LLM] Streaming response completed from ${resolvedModel.provider} | SessionId: ${sessionId}`,
+      `[LLM] Streaming response completed from ${currentModel.provider} | SessionId: ${sessionId}`,
     );
 
     // Process any tool calls
@@ -418,6 +499,9 @@ export class LLMProcessor {
     reasoningBuffer: string,
     finishReason: string,
     messageId?: string,
+    ttftMs?: number,
+    ttltMs?: number,
+    streamingMode?: boolean,
   ): void {
     // If we have complete content, create a consolidated assistant message event
     if (content || currentToolCalls.length > 0) {
@@ -427,16 +511,21 @@ export class LLMProcessor {
         toolCalls: currentToolCalls.length > 0 ? currentToolCalls : undefined,
         finishReason: finishReason,
         messageId: messageId, // Include the message ID in the final message
+        ttftMs: ttftMs, // Include the TTFT (Time to First Token) for display
+        ttltMs: ttltMs, // Include the total response time for analytics
       });
 
       this.eventStream.sendEvent(assistantEvent);
     }
 
-    // If we have complete reasoning content, create a consolidated thinking message event
-    if (reasoningBuffer) {
+    // If we have complete reasoning content and NOT in streaming mode, create a consolidated thinking message event
+    // (In streaming mode, final thinking event is already sent when reasoning ends)
+    if (reasoningBuffer && !streamingMode) {
       const thinkingEvent = this.eventStream.createEvent('assistant_thinking_message', {
         content: reasoningBuffer,
         isComplete: true,
+        messageId: messageId,
+        // No thinkingDurationMs in non-streaming mode as it's not meaningful
       });
 
       this.eventStream.sendEvent(thinkingEvent);

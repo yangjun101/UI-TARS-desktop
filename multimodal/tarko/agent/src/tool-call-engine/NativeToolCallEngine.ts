@@ -16,6 +16,7 @@ import {
   StreamProcessingState,
   StreamChunkResult,
   ChatCompletionMessageToolCall,
+  StreamingToolCallUpdate,
 } from '@tarko/agent-interface';
 import { buildToolCallResultMessages } from './utils';
 
@@ -31,7 +32,7 @@ export class NativeToolCallEngine extends ToolCallEngine {
   }
 
   prepareRequest(context: ToolCallEnginePrepareRequestContext): ChatCompletionCreateParams {
-    const { model, messages, tools, temperature = 0.7 } = context;
+    const { model, messages, tools, temperature = 0.7, top_p } = context;
 
     if (!tools) {
       this.logger.debug(`Preparing request for model: ${model} without tools`);
@@ -39,6 +40,7 @@ export class NativeToolCallEngine extends ToolCallEngine {
         model,
         messages,
         temperature,
+        top_p,
         stream: false,
       };
     }
@@ -63,6 +65,7 @@ export class NativeToolCallEngine extends ToolCallEngine {
       // but the following model does not support tools: gpt-image-1
       tools: openAITools.length > 0 ? openAITools : undefined,
       temperature,
+      top_p,
       stream: false,
     };
   }
@@ -233,11 +236,4 @@ export class NativeToolCallEngine extends ToolCallEngine {
   ): ChatCompletionMessageParam[] {
     return buildToolCallResultMessages(toolCallResults, true);
   }
-}
-
-interface StreamingToolCallUpdate {
-  toolCallId: string;
-  toolName: string;
-  argumentsDelta: string;
-  isComplete: boolean;
 }

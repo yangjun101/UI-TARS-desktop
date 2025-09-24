@@ -24,9 +24,10 @@ export const rules = [
       patterns: [
         {
           name: 'key-value secret',
-          pattern: String.raw`/\b(?<key>(?:password|pass|key|secret|token|apiKey)(?:[_-]\w+)?)\b\s*[:=]\s*(?<value>(?!['"]?\s*['"]?$)(?!\d+\.\d+(?:\.\d+)?(?:\s|$))\S.*)/i`,
+          pattern: String.raw`/\b(?<key>(?:password|pass|secret|token|apiKey)(?:[_-]\w+)?)\b\s*[:=]\s*(?<value>(?!['"]?\s*['"]?$)(?!\d+\.\d+(?:\.\d+)?(?:\s|$))\S.*)/i`,
         },
       ],
+      allows: ['your_api_key', 'YOUR_API_KEY'],
     },
   },
   { id: '@secretlint/secretlint-rule-privatekey' },

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* secretlint-disable @secretlint/secretlint-rule-pattern */
 /*
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
@@ -8,22 +9,21 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { buildAppConfig } from '../src/config/builder';
 import { AgentCLIArguments, AgentAppConfig, LogLevel, Tool } from '@tarko/interface';
 
+// Mock the display module
+vi.mock('../src/config/display', () => ({
+  logDeprecatedWarning: vi.fn(),
+  logConfigComplete: vi.fn(),
+  logDebugInfo: vi.fn(),
+}));
+
 // Mock the utils module
 vi.mock('../src/utils', () => ({
   resolveValue: vi.fn((value: string) => value),
+  loadWorkspaceConfig: vi.fn(() => ({})),
 }));
 
 /**
  * Test suite for the buildAppConfig function
- *
- * These tests verify:
- * 1. CLI arguments are properly merged with user configuration
- * 2. Nested configuration structures are handled correctly
- * 3. Environment variable resolution works
- * 4. Configuration merging prioritizes CLI over user config
- * 5. CLI shortcuts (debug, quiet, port) work correctly
- * 6. Deprecated options are handled correctly
- * 7. Server storage defaults are applied correctly
  */
 describe('buildAppConfig', () => {
   beforeEach(() => {
@@ -44,7 +44,7 @@ describe('buildAppConfig', () => {
         model: {
           provider: 'anthropic',
           id: 'claude-3',
-          apiKey: 'user-key',
+          apiKey: 'user-key', // secretlint-disable-line
         },
       };
 
@@ -83,7 +83,7 @@ describe('buildAppConfig', () => {
         model: {
           provider: 'openai',
           id: 'gpt-4',
-          apiKey: 'test-key',
+          apiKey: 'test-key', // secretlint-disable-line
           baseURL: 'https://api.test.com',
         },
       };
@@ -93,8 +93,27 @@ describe('buildAppConfig', () => {
       expect(result.model).toEqual({
         provider: 'openai',
         id: 'gpt-4',
-        apiKey: 'test-key',
+        // secretlint-disable-line
+        apiKey: 'test-key', // secretlint-disable-line
         baseURL: 'https://api.test.com',
+      });
+    });
+
+    it('should handle model displayName configuration', () => {
+      const cliArgs: AgentCLIArguments = {
+        model: {
+          provider: 'openai',
+          id: 'gpt-4',
+          displayName: 'GPT-4 Turbo',
+        },
+      };
+
+      const result = buildAppConfig(cliArgs, {});
+
+      expect(result.model).toEqual({
+        provider: 'openai',
+        id: 'gpt-4',
+        displayName: 'GPT-4 Turbo',
       });
     });
 
@@ -193,7 +212,8 @@ describe('buildAppConfig', () => {
       const userConfig: AgentAppConfig = {
         model: {
           id: 'existing-model',
-          apiKey: 'existing-key',
+          // secretlint-disable-line
+          apiKey: 'existing-key', // secretlint-disable-line
         },
       };
 
@@ -202,7 +222,8 @@ describe('buildAppConfig', () => {
       expect(result.model).toEqual({
         provider: 'openai', // Added from CLI
         id: 'existing-model', // Preserved from user config
-        apiKey: 'existing-key', // Preserved from user config
+        // secretlint-disable-line
+        apiKey: 'existing-key', // Preserved from user config// secretlint-disable-line
       });
     });
 
@@ -242,17 +263,16 @@ describe('buildAppConfig', () => {
     });
 
     it('should resolve environment variables in model configuration', async () => {
-      // Get the mocked resolveValue function
       const { resolveValue } = await import('../src/utils');
 
-      // Configure the mock to return specific values
       vi.mocked(resolveValue)
         .mockReturnValueOnce('resolved-api-key')
         .mockReturnValueOnce('resolved-base-url');
 
       const cliArgs: AgentCLIArguments = {
         model: {
-          apiKey: 'OPENAI_API_KEY',
+          // secretlint-disable-line
+          apiKey: 'OPENAI_API_KEY', // secretlint-disable-line
           baseURL: 'OPENAI_BASE_URL',
         },
       };
@@ -264,7 +284,8 @@ describe('buildAppConfig', () => {
       expect(resolveValue).toHaveBeenCalledWith('OPENAI_API_KEY', 'API key');
       expect(resolveValue).toHaveBeenCalledWith('OPENAI_BASE_URL', 'base URL');
       expect(result.model).toEqual({
-        apiKey: 'resolved-api-key',
+        // secretlint-disable-line
+        apiKey: 'resolved-api-key', // secretlint-disable-line
         baseURL: 'resolved-base-url',
       });
     });
@@ -296,7 +317,8 @@ describe('buildAppConfig', () => {
       const userConfig: AgentAppConfig = {
         model: {
           id: 'user-model',
-          apiKey: 'user-key',
+          // secretlint-disable-line
+          apiKey: 'user-key', // secretlint-disable-line
         },
         tools: [
           new Tool({
@@ -362,13 +384,15 @@ describe('buildAppConfig', () => {
 
     it('should handle deprecated --apiKey option', () => {
       const cliArgs: AgentCLIArguments = {
-        apiKey: 'test-key',
+        // secretlint-disable-line
+        apiKey: 'test-key', // secretlint-disable-line
       };
 
       const result = buildAppConfig(cliArgs, {});
 
       expect(result.model).toEqual({
-        apiKey: 'test-key',
+        // secretlint-disable-line
+        apiKey: 'test-key', // secretlint-disable-line
       });
     });
 
@@ -414,7 +438,8 @@ describe('buildAppConfig', () => {
     it('should handle multiple deprecated options together', () => {
       const cliArgs: AgentCLIArguments = {
         provider: 'openai',
-        apiKey: 'test-key',
+        // secretlint-disable-line
+        apiKey: 'test-key', // secretlint-disable-line
         baseURL: 'https://api.test.com',
         shareProvider: 'https://share.test.com',
       };
@@ -426,6 +451,7 @@ describe('buildAppConfig', () => {
           "model": {
             "apiKey": "test-key",
             "baseURL": "https://api.test.com",
+            "id": undefined,
             "provider": "openai",
           },
           "server": {
@@ -486,14 +512,16 @@ describe('buildAppConfig', () => {
     it('should create empty model object when no model config exists but deprecated options are present', () => {
       const cliArgs: AgentCLIArguments = {
         provider: 'openai', // Deprecated option
-        apiKey: 'test-key', // Deprecated option
+        // secretlint-disable-line
+        apiKey: 'test-key', // Deprecated option// secretlint-disable-line
       };
 
       const result = buildAppConfig(cliArgs, {});
 
       expect(result.model).toEqual({
         provider: 'openai',
-        apiKey: 'test-key',
+        // secretlint-disable-line
+        apiKey: 'test-key', // secretlint-disable-line
       });
     });
 
@@ -501,7 +529,8 @@ describe('buildAppConfig', () => {
       const cliArgs: AgentCLIArguments = {
         model: 'gpt-4' as any,
         provider: 'openai',
-        apiKey: 'test-key',
+        // secretlint-disable-line
+        apiKey: 'test-key', // secretlint-disable-line
         baseURL: 'https://api.test.com',
       };
 
@@ -510,7 +539,8 @@ describe('buildAppConfig', () => {
       expect(result.model).toEqual({
         id: 'gpt-4', // String converted to id
         provider: 'openai',
-        apiKey: 'test-key',
+        // secretlint-disable-line
+        apiKey: 'test-key', // secretlint-disable-line
         baseURL: 'https://api.test.com',
       });
     });
@@ -523,7 +553,8 @@ describe('buildAppConfig', () => {
 
       const userConfig: AgentAppConfig = {
         model: {
-          apiKey: 'existing-key',
+          // secretlint-disable-line
+          apiKey: 'existing-key', // secretlint-disable-line
         },
       };
 
@@ -532,7 +563,8 @@ describe('buildAppConfig', () => {
       expect(result.model).toEqual({
         id: 'gpt-4', // Converted from string
         provider: 'openai', // From deprecated option
-        apiKey: 'existing-key', // Preserved from user config
+        // secretlint-disable-line
+        apiKey: 'existing-key', // Preserved from user config// secretlint-disable-line
       });
     });
 
@@ -670,6 +702,369 @@ describe('buildAppConfig', () => {
       expect(result.server?.storage).toEqual({
         type: 'sqlite',
       });
+    });
+  });
+
+  describe('workspace configuration integration', () => {
+    it('should merge workspace config when workspacePath is provided', async () => {
+      const { loadWorkspaceConfig } = await import('../src/utils');
+
+      vi.mocked(loadWorkspaceConfig).mockReturnValue({
+        instructions: 'You are a workspace-specific assistant.',
+      });
+
+      const cliArgs: AgentCLIArguments = {
+        model: {
+          provider: 'openai',
+        },
+      };
+
+      const userConfig: AgentAppConfig = {
+        model: {
+          id: 'gpt-4',
+        },
+      };
+
+      const result = buildAppConfig(cliArgs, userConfig, undefined, undefined, '/workspace/path');
+
+      expect(loadWorkspaceConfig).toHaveBeenCalledWith('/workspace/path');
+      expect(result.instructions).toBe('You are a workspace-specific assistant.');
+      expect(result.model).toEqual({
+        provider: 'openai',
+        id: 'gpt-4',
+      });
+    });
+
+    it('should not call loadWorkspaceConfig when workspacePath is not provided', async () => {
+      const { loadWorkspaceConfig } = await import('../src/utils');
+
+      const cliArgs: AgentCLIArguments = {
+        model: {
+          provider: 'openai',
+        },
+      };
+
+      const result = buildAppConfig(cliArgs, {});
+
+      expect(loadWorkspaceConfig).not.toHaveBeenCalled();
+      expect(result.instructions).toBeUndefined();
+    });
+
+    it('should prioritize workspace config over user config', async () => {
+      const { loadWorkspaceConfig } = await import('../src/utils');
+
+      vi.mocked(loadWorkspaceConfig).mockReturnValue({
+        instructions: 'Workspace instructions',
+        model: {
+          provider: 'anthropic',
+        },
+      });
+
+      const cliArgs: AgentCLIArguments = {};
+      const userConfig: AgentAppConfig = {
+        instructions: 'User instructions',
+        model: {
+          provider: 'openai',
+          id: 'gpt-4',
+        },
+      };
+
+      const result = buildAppConfig(cliArgs, userConfig, undefined, undefined, '/workspace');
+
+      expect(result.instructions).toBe('Workspace instructions');
+      expect(result.model).toEqual({
+        provider: 'anthropic', // Workspace overrides user
+        id: 'gpt-4', // User config preserved where not overridden
+      });
+    });
+
+    it('should allow CLI args to override workspace config', async () => {
+      const { loadWorkspaceConfig } = await import('../src/utils');
+
+      vi.mocked(loadWorkspaceConfig).mockReturnValue({
+        instructions: 'Workspace instructions',
+        model: {
+          provider: 'anthropic',
+        },
+      });
+
+      const cliArgs: AgentCLIArguments = {
+        model: {
+          provider: 'openai', // CLI should override workspace
+        },
+      };
+      const userConfig: AgentAppConfig = {};
+
+      const result = buildAppConfig(cliArgs, userConfig, undefined, undefined, '/workspace');
+
+      expect(result.instructions).toBe('Workspace instructions');
+      expect(result.model?.provider).toBe('openai'); // CLI overrides workspace
+    });
+
+    it('should handle workspace config with empty return', async () => {
+      const { loadWorkspaceConfig } = await import('../src/utils');
+
+      vi.mocked(loadWorkspaceConfig).mockReturnValue({});
+
+      const cliArgs: AgentCLIArguments = {
+        model: {
+          provider: 'openai',
+        },
+      };
+      const userConfig: AgentAppConfig = {
+        instructions: 'User instructions',
+      };
+
+      const result = buildAppConfig(cliArgs, userConfig, undefined, undefined, '/workspace');
+
+      expect(loadWorkspaceConfig).toHaveBeenCalledWith('/workspace');
+      expect(result.instructions).toBe('User instructions'); // User config preserved
+      expect(result.model?.provider).toBe('openai');
+    });
+  });
+
+  describe('unknown options passthrough', () => {
+    it('should preserve unknown CLI options in the final config', () => {
+      const cliArgs: AgentCLIArguments = {
+        model: {
+          provider: 'openai',
+          id: 'gpt-4',
+        },
+        // Unknown options that should be preserved
+        aioSandbox: 'test-sandbox-value',
+        customOption: 'custom-value',
+        nestedUnknown: {
+          nested: 'value',
+        },
+      };
+
+      const result = buildAppConfig(cliArgs, {});
+
+      // Known options should work as expected
+      expect(result.model).toEqual({
+        provider: 'openai',
+        id: 'gpt-4',
+      });
+
+      // Unknown options should be preserved
+      expect(result).toHaveProperty('aioSandbox', 'test-sandbox-value');
+      expect(result).toHaveProperty('customOption', 'custom-value');
+      expect(result).toHaveProperty('nestedUnknown', {
+        nested: 'value',
+      });
+    });
+
+    it('should preserve unknown options while filtering out known CLI-only options', () => {
+      const cliArgs: AgentCLIArguments = {
+        // Known CLI-only options that should be filtered out
+        agent: 'agent-tars',
+        workspace: '/workspace',
+        debug: true,
+        quiet: false,
+        headless: true,
+        input: 'test input',
+        format: 'json',
+        includeLogs: true,
+        useCache: false,
+        open: true,
+        
+        // Known options that should be preserved
+        model: {
+          provider: 'openai',
+        },
+        
+        // Unknown options that should be preserved
+        aioSandbox: 'sandbox-value',
+        customAgentOption: 'agent-specific-value',
+      };
+
+      const result = buildAppConfig(cliArgs, {});
+
+      // Known CLI-only options should not appear in result
+      expect(result).not.toHaveProperty('agent');
+      expect(result).not.toHaveProperty('workspace');
+      expect(result).not.toHaveProperty('debug');
+      expect(result).not.toHaveProperty('quiet');
+      expect(result).not.toHaveProperty('headless');
+      expect(result).not.toHaveProperty('input');
+      expect(result).not.toHaveProperty('format');
+      expect(result).not.toHaveProperty('includeLogs');
+      expect(result).not.toHaveProperty('useCache');
+      expect(result).not.toHaveProperty('open');
+
+      // Known options should be preserved
+      expect(result.model).toEqual({
+        provider: 'openai',
+      });
+
+      // Unknown options should be preserved
+      expect(result).toHaveProperty('aioSandbox', 'sandbox-value');
+      expect(result).toHaveProperty('customAgentOption', 'agent-specific-value');
+    });
+
+    it('should preserve unknown options alongside deprecated options', () => {
+      const cliArgs: AgentCLIArguments = {
+        // Deprecated options
+        provider: 'openai',
+        apiKey: 'deprecated-key', // secretlint-disable-line
+        
+        // Unknown options
+        aioSandbox: 'test-value',
+        customFeature: true,
+      };
+
+      const result = buildAppConfig(cliArgs, {});
+
+      // Deprecated options should be handled normally
+      expect(result.model).toEqual({
+        provider: 'openai',
+        apiKey: 'deprecated-key', // secretlint-disable-line
+      });
+
+      // Unknown options should be preserved
+      expect(result).toHaveProperty('aioSandbox', 'test-value');
+      expect(result).toHaveProperty('customFeature', true);
+    });
+
+    it('should handle unknown options with complex data types', () => {
+      const complexObject = {
+        nested: {
+          array: [1, 2, 3],
+          boolean: true,
+          string: 'test',
+        },
+      };
+
+      const cliArgs: AgentCLIArguments = {
+        model: {
+          provider: 'openai',
+        },
+        complexUnknownOption: complexObject,
+        arrayOption: ['item1', 'item2'],
+        numberOption: 42,
+        booleanOption: false,
+      };
+
+      const result = buildAppConfig(cliArgs, {});
+
+      expect(result).toHaveProperty('complexUnknownOption', complexObject);
+      expect(result).toHaveProperty('arrayOption', ['item1', 'item2']);
+      expect(result).toHaveProperty('numberOption', 42);
+      expect(result).toHaveProperty('booleanOption', false);
+    });
+
+    it('should preserve unknown options when merging with user config', () => {
+      const cliArgs: AgentCLIArguments = {
+        model: {
+          provider: 'openai',
+        },
+        aioSandbox: 'cli-value',
+        cliOnlyOption: 'cli-only',
+      };
+
+      const userConfig: AgentAppConfig = {
+        model: {
+          id: 'user-model',
+        },
+        instructions: 'User instructions',
+        // User config might also have unknown properties
+        userSpecificOption: 'user-value',
+      } as any;
+
+      const result = buildAppConfig(cliArgs, userConfig);
+
+      // Known options should merge correctly
+      expect(result.model).toEqual({
+        provider: 'openai', // From CLI
+        id: 'user-model', // From user config
+      });
+      expect(result.instructions).toBe('User instructions');
+
+      // Unknown options from both sources should be preserved
+      expect(result).toHaveProperty('aioSandbox', 'cli-value'); // CLI overrides
+      expect(result).toHaveProperty('cliOnlyOption', 'cli-only');
+      expect(result).toHaveProperty('userSpecificOption', 'user-value');
+    });
+
+    it('should handle unknown options with CLI enhancer', () => {
+      const cliArgs: AgentCLIArguments = {
+        model: {
+          provider: 'openai',
+        },
+        aioSandbox: 'test-value',
+        customOption: 'original-value',
+      };
+
+      const userConfig: AgentAppConfig = {};
+
+      const enhancer: any = (cliArguments: any, appConfig: any) => {
+        // Enhancer might modify unknown options
+        if (cliArguments.customOption) {
+          appConfig.enhancedCustomOption = `enhanced-${cliArguments.customOption}`;
+        }
+      };
+
+      const result = buildAppConfig(cliArgs, userConfig, undefined, enhancer);
+
+      // Original unknown options should be preserved
+      expect(result).toHaveProperty('aioSandbox', 'test-value');
+      expect(result).toHaveProperty('customOption', 'original-value');
+      
+      // Enhancer modifications should also be present
+      expect(result).toHaveProperty('enhancedCustomOption', 'enhanced-original-value');
+    });
+
+    it('should not include known options in unknown options preservation', () => {
+      const cliArgs: AgentCLIArguments = {
+        // All known options
+        model: { provider: 'openai' },
+        thinking: { type: 'enabled' },
+        toolCallEngine: 'native',
+        share: { provider: 'test' },
+        snapshot: { enable: true },
+        logLevel: 'info' as any,
+        server: { exclusive: true },
+        port: 3000,
+        provider: 'deprecated-provider',
+        apiKey: 'deprecated-key', // secretlint-disable-line
+        baseURL: 'deprecated-url',
+        shareProvider: 'deprecated-share',
+        config: ['config.json'],
+        debug: true,
+        quiet: false,
+        stream: true,
+        open: true,
+        agent: 'test-agent',
+        headless: true,
+        input: 'test',
+        format: 'json',
+        includeLogs: true,
+        useCache: true,
+        workspace: '/workspace',
+        
+        // Unknown option
+        unknownOption: 'should-be-preserved',
+      };
+
+      const result = buildAppConfig(cliArgs, {});
+
+      // All the known options should be properly processed, not duplicated as unknown
+      expect(result.model?.provider).toBe('openai');
+      expect(result.thinking?.type).toBe('enabled');
+      expect(result.toolCallEngine).toBe('native');
+      expect(result.share?.provider).toBe('test');
+      expect(result.snapshot?.enable).toBe(true);
+      expect(result.server?.exclusive).toBe(true);
+      expect(result.server?.port).toBe(3000);
+
+      // Unknown option should be preserved
+      expect(result).toHaveProperty('unknownOption', 'should-be-preserved');
+
+      // Known CLI-only options should not appear
+      expect(result).not.toHaveProperty('agent');
+      expect(result).not.toHaveProperty('workspace');
+      expect(result).not.toHaveProperty('debug');
+      expect(result).not.toHaveProperty('config');
     });
   });
 });

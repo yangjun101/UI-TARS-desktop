@@ -4,20 +4,21 @@
  */
 
 import { ChatCompletionMessageParam } from 'openai/resources';
+import type { ChatCompletionCreateParamsBase } from 'openai/resources/chat/completions';
 import type { models } from '@tarko/llm-client';
 
 export * from './third-party';
 
 /**
- * The actual underlying model provider
+ * The base underlying model provider
  */
-export type ActualModelProviderName = keyof typeof models;
+export type BaseModelProviderName = keyof typeof models;
 
 /**
  * All Model Providers, including some providers that align with OpenAI compatibility
  */
 export type ModelProviderName =
-  | ActualModelProviderName
+  | BaseModelProviderName
   | 'ollama'
   | 'lm-studio'
   | 'volcengine'
@@ -25,9 +26,11 @@ export type ModelProviderName =
   | 'bedrock';
 
 /**
- * Model provider serving configuration
+ * Basic Model configuration
+ *
+ * Shared between Agent and LLM.
  */
-export interface ModelProviderServingConfig {
+export interface Model {
   /**
    * Provider's API key
    */
@@ -37,6 +40,11 @@ export interface ModelProviderServingConfig {
    */
   baseURL?: string;
   /**
+  /**
+   * Additional headers to include in requests
+   */
+  headers?: Record<string, string>;
+  /**
    * AWS region (for Bedrock)
    */
   region?: string;
@@ -55,67 +63,25 @@ export interface ModelProviderServingConfig {
 }
 
 /**
- * Default model selection configuration
+ * Model configuration used by the Agent.
  */
-export interface ModelDefaultSelection extends ModelProviderServingConfig {
+export interface AgentModel extends Model {
   /**
-   * Default provider name
-   */
-  provider?: ModelProviderName;
-  /**
-   * Default model identifier
-   */
-  id?: string;
-}
-
-/**
- * Model provider configuration
- */
-export interface ModelProvider extends ModelProviderServingConfig {
-  /**
-   * Model provider name
-   */
-  name: ModelProviderName;
-  /**
-   * Provider's supported model identifiers
-   */
-  models: string[];
-}
-
-/**
- * Configuration options for the model provider
- */
-export interface ProviderOptions extends ModelDefaultSelection {
-  /**
-   * Pre-configured model providers for runtime use
-   */
-  providers?: ModelProvider[];
-}
-
-/**
- * Result of model resolution containing all necessary configuration
- */
-export interface ResolvedModel {
-  /**
-   * The public provider name
-   */
-  provider: ModelProviderName;
-  /**
-   * The model identifier for LLM requests
+   * Model identifier
    */
   id: string;
   /**
-   * Base URL for the provider API
+   * High-level Provider name
    */
-  baseURL?: string;
+  provider: ModelProviderName;
   /**
-   * API key for authentication
+   * Display name for the model
    */
-  apiKey?: string;
+  displayName?: string;
   /**
-   * The actual implementation provider name
+   * Base provider name
    */
-  actualProvider: ActualModelProviderName;
+  baseProvider?: BaseModelProviderName;
   /**
    * AWS region (for Bedrock)
    */
@@ -132,6 +98,11 @@ export interface ResolvedModel {
    * AWS session token (for Bedrock)
    */
   sessionToken?: string;
+  /**
+   * Experimental parameters passed directly through request body
+   * @warning Use with caution - these parameters bypass validation
+   */
+  params?: Record<string, any>;
 }
 
 /**
@@ -143,9 +114,9 @@ export interface ProviderConfig {
    */
   name: ModelProviderName;
   /**
-   * The actual implementation provider name
+   * The base implementation provider name
    */
-  actual: ActualModelProviderName;
+  extends: BaseModelProviderName;
   /**
    * Default base URL
    */
@@ -178,10 +149,11 @@ export interface LLMReasoningOptions {
 
 /**
  * Extended LLM request with reasoning parameters
+ * Extends OpenAI's ChatCompletionCreateParamsBase for full type safety
  */
-export type LLMRequest = ChatCompletionMessageParam & {
+export interface LLMRequest extends ChatCompletionCreateParamsBase {
   /**
    * Agent reasoning options
    */
   thinking?: LLMReasoningOptions;
-};
+}

@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import { defineConfig } from 'rspress/config';
+import { defineConfig } from '@rspress/core';
 import mermaid from 'rspress-plugin-mermaid';
 import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { SEO_CONFIG } from './src/shared/seoConfig';
@@ -17,15 +17,17 @@ export default defineConfig({
     dark: '/agent-tars-dark-logo.png',
   },
   route: {
-    exclude: [
-      'en/sdk/**',
-      'en/api/**',
-      'en/api/runtime/**',
-      'zh/sdk/**',
-      'zh/api/**',
-      'zh/api/runtime/**',
-      isProd ? 'en/banner' : '',
-    ].filter(Boolean),
+    exclude: isProd
+      ? [
+          'en/sdk/**',
+          'en/api/**',
+          'en/api/runtime/**',
+          'zh/sdk/**',
+          'zh/api/**',
+          'zh/api/runtime/**',
+          'en/banner',
+        ].filter(Boolean)
+      : [],
   },
   builderConfig: {
     resolve: {
@@ -76,6 +78,9 @@ export default defineConfig({
         // theme: 'base',
         fontSize: 16,
       },
+    }),
+    pluginClientRedirects({
+      redirects: [],
     }),
   ],
   themeConfig: {

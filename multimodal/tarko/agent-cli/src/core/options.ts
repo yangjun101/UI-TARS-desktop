@@ -50,6 +50,7 @@ export function addCommonOptions(command: Command): Command {
       'LLM provider name (deprecated, replaced by `--model.provider`)',
     )
     .option('--model.id [model]', 'Model identifier')
+    .option('--model.displayName [displayName]', 'Model display name')
     .option('--model.apiKey [apiKey]', 'Model API key')
     .option('--apiKey [apiKey]', 'Model API key (deprecated, replaced by `--model.apiKey`)')
     .option('--model.baseURL [baseURL]', 'Model base URL')
@@ -64,6 +65,40 @@ export function addCommonOptions(command: Command): Command {
     .option(
       '--toolCallEngine [engine]',
       'Tool call engine type (native, prompt_engineering, structured_outputs)',
+    )
+
+    .option('--tool', 'Tool config including filter options')
+    // Tool filtering
+    .option(
+      '--tool.include <patterns>',
+      'Include only tools whose names contain these patterns (comma-separated)',
+      {
+        type: [String],
+      },
+    )
+    .option(
+      '--tool.exclude <patterns>',
+      'Exclude tools whose names contain these patterns (comma-separated)',
+      {
+        type: [String],
+      },
+    )
+
+    // MCP Server filtering
+    .option('--mcpServer', 'MCP server config including filter options')
+    .option(
+      '--mcpServer.include <patterns>',
+      'Include only MCP servers whose names contain these patterns (comma-separated)',
+      {
+        type: [String],
+      },
+    )
+    .option(
+      '--mcpServer.exclude <patterns>',
+      'Exclude MCP servers whose names contain these patterns (comma-separated)',
+      {
+        type: [String],
+      },
     )
 
     // Workspace configuration
@@ -82,6 +117,13 @@ export function addCommonOptions(command: Command): Command {
     .option('--snapshot.enable', 'Enable agent snapshot functionality')
     .option('--snapshot.snapshotPath <path>', 'Path for storing agent snapshots')
 
+    // Server configuration
+    .option('--server', 'Server config')
+    .option(
+      '--server.exclusive',
+      'Enable exclusive mode - reject new requests while an agent is running',
+    )
+
     // Agent selection
     .option(
       '--agent [agent]',
@@ -98,6 +140,44 @@ export function addCommonOptions(command: Command): Command {
 }
 
 /**
+ * Built-in agent mappings
+ *
+ * Using lazy resolution - resolve module path only when needed
+ */
+const BUILTIN_AGENTS: Record<string, { modulePath: string; label: string }> = {
+  'agent-tars': {
+    modulePath: '@agent-tars/core',
+    label: 'Agent TARS',
+  },
+  'omni-tars': {
+    modulePath: '@omni-tars/agent',
+    label: 'Omni Agent',
+  },
+  'mcp-agent': {
+    modulePath: '@tarko/mcp-agent',
+    label: 'MCP Agent',
+  },
+};
+
+/**
+ * Resolve built-in agent module path when needed
+ */
+function resolveBuiltinAgent(agentName: string): string {
+  const agent = BUILTIN_AGENTS[agentName];
+  if (!agent) {
+    throw new Error(`Unknown built-in agent: ${agentName}`);
+  }
+
+  try {
+    return require.resolve(agent.modulePath);
+  } catch (error: unknown) {
+    throw new Error(
+      `Failed to resolve built-in agent "${agentName}": ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
  * FIXME: Support markdown agent.
  *
  * Resolve agent implementation from cli argument
@@ -108,6 +188,19 @@ export async function resolveAgentFromCLIArgument(
 ): Promise<AgentImplementation> {
   // Use default agent if no agent parameter provided
   if (agentParam) {
+    // Check if it's a built-in agent
+    const builtinAgent = BUILTIN_AGENTS[agentParam];
+    if (builtinAgent) {
+      console.log(`Using built-in agent: ${builtinAgent.label}`);
+      return {
+        type: 'modulePath',
+        value: resolveBuiltinAgent(agentParam),
+        label: builtinAgent.label,
+        agio: AgioProvider,
+      };
+    }
+
+    // Otherwise treat as custom module path
     return {
       type: 'modulePath',
       value: agentParam,

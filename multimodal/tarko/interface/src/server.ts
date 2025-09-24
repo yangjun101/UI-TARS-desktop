@@ -5,7 +5,7 @@
  */
 
 import { AgioEvent } from '@tarko/agio';
-import { IAgent, TConstructor, AgentOptions } from '@tarko/agent-interface';
+import { IAgent, TConstructor, AgentOptions, AgentModel } from '@tarko/agent-interface';
 import { AgentImplementation } from './agent-implementation';
 import { AgentWebUIImplementation } from './web-ui-implementation';
 import { AgentStorageImplementation } from './storage-implementation';
@@ -49,6 +49,45 @@ export interface AgentServerSnapshotOptions {
 }
 
 /**
+ * Sandbox configuration for agent execution environments
+ *
+ * Defines the connection and authentication settings for sandbox instance management
+ * where agents execute their tasks in isolated environments.
+ */
+export interface SandboxConfig {
+  /**
+   * Base URL of the sandbox manager service endpoint
+   */
+  baseUrl: string;
+
+  /**
+   * Static JWT token for sandbox manager authentication
+   */
+  jwtToken?: string;
+
+  /**
+   * Dynamic JWT token provider function
+   * Use this for scenarios requiring token refresh or dynamic token generation
+   * @returns Promise that resolves to a valid JWT token
+   */
+  getJwtToken?: () => Promise<string>;
+
+  /**
+   * Default time-to-live for sandbox instances in minutes
+   */
+  defaultTtlMinutes?: number;
+}
+
+/**
+ * Tenant mode
+ * @type {('multi' | 'single')}
+ */
+export interface TenantConfig {
+  mode: 'multi' | 'single';
+  auth: boolean;
+}
+
+/**
  * Options implemented by Agent Server
  *
  * Defines all customizable aspects of the server including:
@@ -73,6 +112,41 @@ export interface AgentServerOptions {
      * Server Storage options.
      */
     storage?: AgentStorageImplementation;
+    /**
+     * Enable exclusive mode - reject new requests while an agent is running
+     * @default false
+     */
+    exclusive?: boolean;
+    /**
+     * Available models for the agent server
+     * These models will be merged with AgentOptions.model and made available for selection in the UI
+     */
+    models?: AgentModel[];
+    /**
+     * Runtime settings configuration
+     * Defines user-configurable settings that can be adjusted during runtime
+     */
+    runtimeSettings?: {
+      /**
+       * JSON Schema defining the structure and UI rendering of runtime settings
+       */
+      schema: Record<string, any>;
+      /**
+       * Optional transform function to convert runtime settings to agent-specific options
+       * @param runtimeSettings - The current runtime settings values
+       * @returns Transformed options that can be applied to the agent
+       */
+      transform?: (runtimeSettings: any) => any;
+    };
+    /*
+     * Sandbox config
+     */
+    sandbox?: SandboxConfig;
+
+    /**
+     * Tenant mode, default to single tenant, no auth required
+     */
+    tenant?: TenantConfig;
   };
   /**
    * Share config
@@ -115,3 +189,73 @@ export type AgioProviderConstructor<T extends AgentOptions = AgentOptions> = TCo
   AgioEvent.AgioProvider,
   [string, T, string, IAgent]
 >;
+
+/**
+ * Session item metadata interface - JSON schema design for extensibility
+ */
+export interface SessionItemMetadata {
+  /**
+   * Reserved version interface for backward compatibility
+   */
+  version?: number;
+  /**
+   * Session name
+   */
+  name?: string;
+  /**
+   * Session tags
+   */
+  tags?: string[];
+  /**
+   * Current using model configuration
+   */
+  modelConfig?: AgentModel;
+  /**
+   * Current using agent configuration
+   */
+  agentInfo?: {
+    name: string;
+    configuredAt: number;
+    [key: string]: any; // Future agent info fields
+  };
+  /**
+   * Current runtime settings configuration
+   * User-adjustable settings that affect agent behavior during execution
+   */
+  runtimeSettings?: Record<string, any>;
+  /** The sandbox associated with the current session */
+  sandboxUrl?: string;
+  /**
+   * Future extensible fields
+   */
+  [key: string]: any;
+}
+
+/**
+ * Session interface
+ */
+export interface SessionInfo {
+  id: string;
+  createdAt: number;
+  updatedAt: number;
+  workspace: string;
+  metadata?: SessionItemMetadata;
+  userId?: string;
+}
+
+/**
+ * Legacy interface for backward compatibility during transition
+ * @deprecated Use SessionInfo.metadata instead
+ */
+export interface LegacySessionItemInfo {
+  id: string;
+  createdAt: number;
+  updatedAt: number;
+  name?: string;
+  workspace: string;
+  tags?: string[];
+  modelConfig?: {
+    provider: string;
+    id: string;
+  };
+}

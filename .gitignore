@@ -12,6 +12,8 @@ coverage/
 scripts/merge-yml/*.yml
 .claude/
 .history/
+.tarko
+.mcp*_token
 
 # Agent TARS session files (temporary data)
 **/session_*.json

@@ -49,22 +49,23 @@ export class EventStreamBridge {
       // Mapping event types to socket.io-friendly events
       switch (event.type) {
         case 'agent_run_start':
-          // 确保明确发送processing状态
-          this.emit('agent-status', { isProcessing: true, state: 'executing' });
           break;
 
         case 'agent_run_end':
-          // 确保明确发送完成状态
-          this.emit('agent-status', { isProcessing: false, state: event.status || 'idle' });
           break;
 
         case 'user_message':
-          // 用户消息时明确设置处理中状态
-          this.emit('agent-status', { isProcessing: true, state: 'processing' });
           this.emit('query', { text: event.content });
           break;
         case 'assistant_message':
           this.emit('answer', { text: event.content });
+          break;
+        case 'assistant_streaming_message':
+          this.emit('streaming_message', {
+            content: event.content,
+            isComplete: event.isComplete,
+            messageId: event.messageId,
+          });
           break;
         case 'tool_call':
           this.emit('event', {
@@ -90,11 +91,8 @@ export class EventStreamBridge {
           this.emit('event', event);
       }
 
-      // 特别处理中止事件
       if (event.type === 'system' && event.message?.includes('aborted')) {
         this.emit('aborted', { message: event.message });
-        // 中止后明确设置非处理状态
-        this.emit('agent-status', { isProcessing: false, state: 'idle' });
       }
 
       // Add handling for status events

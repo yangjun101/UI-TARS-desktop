@@ -1,6 +1,6 @@
 {
   "name": "@tarko/mcp-agent",
-  "version": "0.3.0-beta.1",
+  "version": "0.3.0-beta.12",
   "description": "An event-stream driven MCP Agent Framework for building effective multimodal Agents.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -30,8 +30,9 @@
     "@tarko/agent": "workspace:*",
     "@tarko/agent-snapshot": "workspace:*",
     "@tarko/mcp-agent-interface": "workspace:*",
+    "@tarko/shared-utils": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "@agent-infra/mcp-client": "1.1.6-beta.3",
+    "@agent-infra/mcp-client": "1.2.20",
     "@agent-infra/logger": "0.0.2-beta.2"
   },
   "devDependencies": {

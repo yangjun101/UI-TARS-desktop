@@ -5,7 +5,7 @@
 
 import express from 'express';
 import * as sessionsController from '../controllers/sessions';
-import { sessionRestoreMiddleware } from '../middleware';
+import { sessionRestoreMiddleware, exclusiveModeMiddleware } from '../middleware';
 
 /**
  * Register session management routes
@@ -16,7 +16,7 @@ export function registerSessionRoutes(app: express.Application): void {
     // Get all sessions
     router.get('/', sessionsController.getAllSessions);
     // Create a new session
-    router.post('/create', sessionsController.createSession);
+    router.post('/create', exclusiveModeMiddleware, sessionsController.createSession);
   });
 
   app.group('/api/v1/sessions', [sessionRestoreMiddleware], (router: express.Router) => {
@@ -30,6 +30,10 @@ export function registerSessionRoutes(app: express.Application): void {
     router.get('/status', sessionsController.getSessionStatus);
     // Update session metadata
     router.post('/update', sessionsController.updateSession);
+    // Get runtime settings schema
+    router.get('/runtime-settings', sessionsController.getRuntimeSettings);
+    // Update runtime settings
+    router.post('/runtime-settings', sessionsController.updateRuntimeSettings);
     // Delete a session
     router.post('/delete', sessionsController.deleteSession);
     // Generate summary for a session
@@ -38,5 +42,9 @@ export function registerSessionRoutes(app: express.Application): void {
     router.post('/share', sessionsController.shareSession);
     // Get session workspace files
     router.get('/workspace/files', sessionsController.getSessionWorkspaceFiles);
+    // Search workspace items for contextual selector
+    router.get('/workspace/search', sessionsController.searchWorkspaceItems);
+    // Validate workspace paths
+    router.post('/workspace/validate', sessionsController.validateWorkspacePaths);
   });
 }

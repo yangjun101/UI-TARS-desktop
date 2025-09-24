@@ -169,6 +169,12 @@ export interface ToolCallEnginePrepareRequestContext {
    * @default 0.7
    */
   temperature?: number;
+  /**
+   * Top-p (nucleus) sampling parameter for LLM text generation.
+   * Controls the cumulative probability threshold for token selection.
+   * Range: 0.0 to 1.0.
+   */
+  top_p?: number;
 }
 
 /**
@@ -187,7 +193,7 @@ export abstract class ToolCallEngine<T extends StreamProcessingState = StreamPro
    * @param instructions System Prompt built into Agent Kernel
    * @param tools The tools currently activated by the Agent
    */
-  abstract preparePrompt(instructions: string, tools: Tool[]): string;
+  abstract preparePrompt(instructions: string, tools: Tool[]): string | string[];
 
   /**
    * Prepare a Chat Completion Request based on the current context

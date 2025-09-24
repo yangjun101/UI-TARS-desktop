@@ -5,11 +5,9 @@
 
 import express from 'express';
 import http from 'http';
-import { Server as SocketIOServer } from 'socket.io';
 import { setupAPI } from './api';
 import { LogLevel } from '@tarko/interface';
 import { StorageProvider, createStorageProvider } from './storage';
-import { setupSocketIO } from './core/SocketHandlers';
 import type { AgentSession } from './core';
 import { resolveAgentImplementation } from './utils/agent-resolver';
 import type {
@@ -18,7 +16,6 @@ import type {
   AgentAppConfig,
   AgentResolutionResult,
   AgioProviderConstructor,
-  IAgent,
 } from './types';
 import { TARKO_CONSTANTS, GlobalDirectoryOptions } from '@tarko/interface';
 
@@ -41,7 +38,6 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
   // Core server components
   private app: express.Application;
   private server: http.Server;
-  private io: SocketIOServer; // Socket.IO server
 
   // Server state
   private isRunning = false;
@@ -53,10 +49,14 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
   // Configuration
   public readonly port: number;
   public readonly isDebug: boolean;
+  public readonly isExclusive: boolean;
   public readonly storageProvider: StorageProvider | null = null;
   public readonly appConfig: T;
   public readonly versionInfo?: AgentServerVersionInfo;
   public readonly directories: Required<GlobalDirectoryOptions>;
+
+  // Exclusive mode state
+  private runningSessionId: string | null = null;
 
   // Current agent resolution, resolved before server started
   private currentAgentResolution?: AgentResolutionResult;
@@ -80,6 +80,7 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
     // Extract server configuration from agent options
     this.port = appConfig.server?.port ?? 3000;
     this.isDebug = appConfig.logLevel === LogLevel.DEBUG;
+    this.isExclusive = appConfig.server?.exclusive ?? false;
 
     // Initialize Express app and HTTP server
     this.app = express();
@@ -96,19 +97,30 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
       isDebug: this.isDebug,
     });
 
-    // Setup WebSocket functionality
-    this.io = setupSocketIO(this.server, this);
-
     // Make server instance available to request handlers
     this.app.locals.server = this;
   }
 
   /**
+   * Get the current agent resolution.
+   */
+  getCurrentAgentResolution(): AgentResolutionResult | undefined {
+    return this.currentAgentResolution;
+  }
+
+  /**
    * Get the custom AGIO provider if injected
-   * @returns Custom AGIO provider or undefined
    */
   getCustomAgioProvider(): AgioProviderConstructor | undefined {
     return this.currentAgentResolution?.agioProviderConstructor;
+  }
+
+  /**
+   * Get the Web UI config from Agent Constructor
+   * @returns Web UI config or undefined
+   */
+  getAgentConstructorWebConfig(): Record<string, any> | undefined {
+    return this.currentAgentResolution?.agentConstructor.webuiConfig;
   }
 
   /**
@@ -129,6 +141,47 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
   }
 
   /**
+   * Check if server can accept new requests in exclusive mode
+   */
+  canAcceptNewRequest(): boolean {
+    if (!this.isExclusive) {
+      return true;
+    }
+    return this.runningSessionId === null;
+  }
+
+  /**
+   * Set running session for exclusive mode
+   */
+  setRunningSession(sessionId: string): void {
+    if (this.isExclusive) {
+      this.runningSessionId = sessionId;
+      if (this.isDebug) {
+        console.log(`[DEBUG] Session started: ${sessionId}`);
+      }
+    }
+  }
+
+  /**
+   * Clear running session for exclusive mode
+   */
+  clearRunningSession(sessionId: string): void {
+    if (this.isExclusive && this.runningSessionId === sessionId) {
+      this.runningSessionId = null;
+      if (this.isDebug) {
+        console.log(`[DEBUG] Session ended: ${sessionId}`);
+      }
+    }
+  }
+
+  /**
+   * Get current running session ID
+   */
+  getRunningSessionId(): string | null {
+    return this.runningSessionId;
+  }
+
+  /**
    * Get the Express application instance
    * @returns Express application
    */
@@ -142,14 +195,6 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
    */
   getHttpServer(): http.Server {
     return this.server;
-  }
-
-  /**
-   * Get the Socket.IO server instance
-   * @returns Socket.IO server
-   */
-  getSocketIOServer(): SocketIOServer {
-    return this.io;
   }
 
   /**
@@ -254,16 +299,5 @@ export class AgentServer<T extends AgentAppConfig = AgentAppConfig> {
     }
 
     return Promise.resolve();
-  }
-
-  /**
-   * Create a new Agent instance using the injected constructor
-   * @returns New Agent instance
-   */
-  createAgent(): IAgent {
-    if (!this.currentAgentResolution) {
-      throw new Error('Cannot found availble resolved agent');
-    }
-    return new this.currentAgentResolution.agentConstructor(this.appConfig);
   }
 }

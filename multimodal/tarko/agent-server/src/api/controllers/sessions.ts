@@ -5,11 +5,133 @@
 
 import { Request, Response } from 'express';
 import { nanoid } from 'nanoid';
-import { SessionMetadata } from '../../storage';
+import { SessionInfo } from '../../storage';
 import { AgentSession } from '../../core';
 import { ShareService } from '../../services';
+import { getDefaultModel } from '../../utils/model-utils';
 import * as path from 'path';
 import * as fs from 'fs';
+
+/**
+ * Get runtime settings schema and current values
+ */
+export async function getRuntimeSettings(req: Request, res: Response) {
+  const sessionId = req.query.sessionId as string;
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Session ID is required' });
+  }
+
+  try {
+    const server = req.app.locals.server;
+    
+    // Get runtime settings configuration from server config
+    const runtimeSettingsConfig = server.appConfig?.server?.runtimeSettings;
+    
+    if (!runtimeSettingsConfig) {
+      return res.status(200).json({ 
+        schema: { type: 'object', properties: {} },
+        currentValues: {}
+      });
+    }
+
+    // Get current session info to retrieve stored runtime settings
+    let currentValues = {};
+    if (server.storageProvider) {
+      try {
+        const sessionInfo = await server.storageProvider.getSessionInfo(sessionId);
+        currentValues = sessionInfo?.metadata?.runtimeSettings || {};
+      } catch (error) {
+        // Session doesn't exist or no stored values, use defaults from schema
+      }
+    }
+
+    // Merge with default values from schema
+    const schema = runtimeSettingsConfig.schema;
+    const mergedValues: Record<string, any> = { ...currentValues };
+    
+    if (schema.properties) {
+      Object.entries(schema.properties).forEach(([key, propSchema]: [string, any]) => {
+        if (mergedValues[key] === undefined && propSchema.default !== undefined) {
+          mergedValues[key] = propSchema.default;
+        }
+      });
+    }
+
+    res.status(200).json({
+      schema: runtimeSettingsConfig.schema,
+      currentValues: mergedValues
+    });
+  } catch (error) {
+    console.error(`Error getting runtime settings for session ${sessionId}:`, error);
+    res.status(500).json({ error: 'Failed to get runtime settings' });
+  }
+}
+
+/**
+ * Update runtime settings for a session
+ */
+export async function updateRuntimeSettings(req: Request, res: Response) {
+  const { sessionId, runtimeSettings } = req.body as {
+    sessionId: string;
+    runtimeSettings: Record<string, any>;
+  };
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Session ID is required' });
+  }
+
+  if (!runtimeSettings || typeof runtimeSettings !== 'object') {
+    return res.status(400).json({ error: 'Runtime settings object is required' });
+  }
+
+  try {
+    const server = req.app.locals.server;
+
+    if (!server.storageProvider) {
+      return res.status(404).json({ error: 'Storage not configured, cannot update runtime settings' });
+    }
+
+    const sessionInfo = await server.storageProvider.getSessionInfo(sessionId);
+    if (!sessionInfo) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Update session info with new runtime settings
+    const updatedSessionInfo = await server.storageProvider.updateSessionInfo(sessionId, {
+      metadata: {
+        ...sessionInfo.metadata,
+        runtimeSettings,
+      },
+    });
+
+    // If session is currently active, recreate the agent with new runtime settings
+    const activeSession = server.sessions[sessionId];
+    if (activeSession) {
+      console.log('Runtime settings updated', {
+        sessionId,
+        runtimeSettings,
+      });
+
+      try {
+        // Recreate agent with new runtime settings configuration
+        await activeSession.updateSessionConfig(updatedSessionInfo);
+        console.log('Session agent recreated with new runtime settings', { sessionId });
+      } catch (error) {
+        console.error('Failed to update agent runtime settings for session', { sessionId, error });
+        // Continue execution - the runtime settings are saved, will apply on next session
+      }
+    }
+
+    res.status(200).json({ 
+      session: updatedSessionInfo,
+      runtimeSettings 
+    });
+  } catch (error) {
+    console.error(`Error updating runtime settings for session ${sessionId}:`, error);
+    res.status(500).json({ error: 'Failed to update runtime settings' });
+  }
+}
 
 /**
  * Get all sessions
@@ -44,11 +166,25 @@ export async function getAllSessions(req: Request, res: Response) {
 export async function createSession(req: Request, res: Response) {
   try {
     const server = req.app.locals.server;
-
     const sessionId = nanoid();
 
-    // Pass custom AGIO provider if available
-    const session = new AgentSession(server, sessionId, server.getCustomAgioProvider());
+    // Get session metadata if it exists (for restored sessions)
+    let sessionInfo = null;
+    if (server.storageProvider) {
+      try {
+        sessionInfo = await server.storageProvider.getSessionInfo(sessionId);
+      } catch (error) {
+        // Session doesn't exist yet, will be created below
+      }
+    }
+
+    // Pass custom AGIO provider and session metadata if available
+    const session = new AgentSession(
+      server,
+      sessionId,
+      server.getCustomAgioProvider(),
+      sessionInfo || undefined,
+    );
 
     server.sessions[sessionId] = session;
 
@@ -59,19 +195,32 @@ export async function createSession(req: Request, res: Response) {
       server.storageUnsubscribes[sessionId] = storageUnsubscribe;
     }
 
+    let savedSessionInfo: SessionInfo | undefined;
     // Store session metadata if we have storage
     if (server.storageProvider) {
-      const metadata: SessionMetadata = {
+      const now = Date.now();
+
+      const defaultModel = getDefaultModel(server.appConfig);
+      const sessionInfo: SessionInfo = {
         id: sessionId,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
         workspace: server.getCurrentWorkspace(),
+        metadata: {
+          agentInfo: {
+            name: server.getCurrentAgentName()!,
+            configuredAt: now,
+          },
+          ...(defaultModel && {
+            modelConfig: defaultModel,
+          }),
+        },
       };
 
-      await server.storageProvider.createSession(metadata);
+      savedSessionInfo = await server.storageProvider.createSession(sessionInfo);
     }
 
-    res.status(201).json({ sessionId });
+    res.status(201).json({ sessionId, session: savedSessionInfo });
   } catch (error) {
     console.error('Failed to create session:', error);
     res.status(500).json({ error: 'Failed to create session' });
@@ -93,7 +242,7 @@ export async function getSessionDetails(req: Request, res: Response) {
 
     // Check storage first
     if (server.storageProvider) {
-      const metadata = await server.storageProvider.getSessionMetadata(sessionId);
+      const metadata = await server.storageProvider.getSessionInfo(sessionId);
       if (metadata) {
         return res.status(200).json({
           session: metadata,
@@ -165,7 +314,10 @@ export async function getSessionStatus(req: Request, res: Response) {
  * Update session metadata
  */
 export async function updateSession(req: Request, res: Response) {
-  const { sessionId, name, tags } = req.body;
+  const { sessionId, metadata: metadataUpdates } = req.body as {
+    sessionId: string;
+    metadata: Partial<SessionInfo['metadata']>;
+  };
 
   if (!sessionId) {
     return res.status(400).json({ error: 'Session ID is required' });
@@ -178,15 +330,16 @@ export async function updateSession(req: Request, res: Response) {
       return res.status(404).json({ error: 'Storage not configured, cannot update session' });
     }
 
-    const metadata = await server.storageProvider.getSessionMetadata(sessionId);
-    if (!metadata) {
+    const sessionInfo = await server.storageProvider.getSessionInfo(sessionId);
+    if (!sessionInfo) {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    const updatedMetadata = await server.storageProvider.updateSessionMetadata(sessionId, {
-      name,
-      tags,
-      updatedAt: Date.now(),
+    const updatedMetadata = await server.storageProvider.updateSessionInfo(sessionId, {
+      metadata: {
+        ...sessionInfo.metadata,
+        ...metadataUpdates,
+      },
     });
 
     res.status(200).json({ session: updatedMetadata });
@@ -301,7 +454,7 @@ export async function shareSession(req: Request, res: Response) {
 
   try {
     const server = req.app.locals.server;
-    const shareService = new ShareService(server.appConfig, server.storageProvider);
+    const shareService = new ShareService(server.appConfig, server.storageProvider, server);
 
     // Get agent instance if session is active (for slug generation)
     const agent = server.sessions[sessionId]?.agent;
@@ -349,7 +502,7 @@ export async function getLatestSessionEvents(req: Request, res: Response) {
 
     res.status(200).json({
       sessionId: latestSession.id,
-      sessionMetadata: latestSession,
+      sessionInfo: latestSession,
       events,
     });
   } catch (error) {
@@ -375,7 +528,7 @@ export async function getSessionWorkspaceFiles(req: Request, res: Response) {
 
     // Check if session exists (active or stored)
     if (!session && server.storageProvider) {
-      const metadata = await server.storageProvider.getSessionMetadata(sessionId);
+      const metadata = await server.storageProvider.getSessionInfo(sessionId);
       if (!metadata) {
         return res.status(404).json({ error: 'Session not found' });
       }
@@ -451,4 +604,325 @@ export async function getSessionWorkspaceFiles(req: Request, res: Response) {
       message: error instanceof Error ? error.message : String(error),
     });
   }
+}
+
+/**
+ * Search files and directories in session workspace
+ */
+export async function searchWorkspaceItems(req: Request, res: Response) {
+  const sessionId = req.query.sessionId as string;
+  const query = req.query.q as string;
+  const type = req.query.type as 'file' | 'directory' | 'all';
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Session ID is required' });
+  }
+
+  // Allow empty query for default directory listing
+  if (query === undefined || query === null) {
+    return res.status(400).json({ error: 'Search query parameter is required' });
+  }
+
+  try {
+    const server = req.app.locals.server;
+    const baseWorkspacePath = server.getCurrentWorkspace();
+
+    let items: Array<{
+      name: string;
+      path: string;
+      type: 'file' | 'directory';
+      relativePath: string;
+    }>;
+
+    if (query.length === 0) {
+      // Empty query: return current directory contents (top-level files and directories)
+      items = await getWorkspaceRootItems(baseWorkspacePath, type || 'all');
+    } else {
+      // Non-empty query: search recursively
+      items = await searchWorkspaceItemsRecursive(baseWorkspacePath, query, type || 'all');
+    }
+
+    // Limit results to avoid overwhelming the UI
+    const limitedItems = items.slice(0, 20);
+
+    res.status(200).json({ items: limitedItems });
+  } catch (error) {
+    console.error(`Error searching workspace items for session ${sessionId}:`, error);
+    res.status(500).json({
+      error: 'Failed to search workspace items',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Recursively search for files and directories
+ */
+async function searchWorkspaceItemsRecursive(
+  basePath: string,
+  query: string,
+  type: 'file' | 'directory' | 'all',
+): Promise<
+  Array<{ name: string; path: string; type: 'file' | 'directory'; relativePath: string }>
+> {
+  const items: Array<{
+    name: string;
+    path: string;
+    type: 'file' | 'directory';
+    relativePath: string;
+  }> = [];
+
+  const searchInDirectory = async (currentPath: string, depth = 0) => {
+    // Limit recursion depth to avoid performance issues
+    if (depth > 5) return;
+
+    try {
+      const entries = fs.readdirSync(currentPath);
+
+      for (const entry of entries) {
+        // Skip hidden files and common ignore patterns
+        if (entry.startsWith('.') || entry === 'node_modules' || entry === '.git') {
+          continue;
+        }
+
+        const fullPath = path.join(currentPath, entry);
+        const stats = fs.statSync(fullPath);
+        const relativePath = path.relative(basePath, fullPath);
+
+        // Check if name or relative path matches query (case-insensitive)
+        const nameMatches = entry.toLowerCase().includes(query.toLowerCase());
+        const pathMatches = relativePath.toLowerCase().includes(query.toLowerCase());
+
+        if (nameMatches || pathMatches) {
+          const itemType = stats.isDirectory() ? 'directory' : 'file';
+
+          if (type === 'all' || type === itemType) {
+            items.push({
+              name: entry,
+              path: fullPath,
+              type: itemType,
+              relativePath: relativePath.replace(/\\/g, '/'), // Normalize path separators
+            });
+          }
+        }
+
+        // Recursively search in subdirectories
+        if (stats.isDirectory()) {
+          await searchInDirectory(fullPath, depth + 1);
+        }
+      }
+    } catch (error) {
+      // Skip directories we can't read
+      console.warn(`Cannot read directory ${currentPath}:`, error);
+    }
+  };
+
+  await searchInDirectory(basePath);
+
+  // Smart relevance-based sorting
+  return items.sort((a, b) => {
+    const scoreA = calculateRelevanceScore(a, query);
+    const scoreB = calculateRelevanceScore(b, query);
+
+    // Higher score comes first
+    if (scoreA !== scoreB) {
+      return scoreB - scoreA;
+    }
+
+    // If scores are equal, prefer directories over files
+    if (a.type !== b.type) {
+      return a.type === 'directory' ? -1 : 1;
+    }
+
+    // Finally, sort by name
+    return a.name.localeCompare(b.name);
+  });
+}
+
+/**
+ * Calculate relevance score for search results
+ * Higher score means more relevant to the query
+ */
+function calculateRelevanceScore(
+  item: { name: string; relativePath: string; type: 'file' | 'directory' },
+  query: string,
+): number {
+  const queryLower = query.toLowerCase();
+  const nameLower = item.name.toLowerCase();
+  const pathLower = item.relativePath.toLowerCase();
+
+  let score = 0;
+
+  // 1. Exact name match gets highest score
+  if (nameLower === queryLower) {
+    score += 1000;
+  }
+  // 2. Name starts with query
+  else if (nameLower.startsWith(queryLower)) {
+    score += 800;
+  }
+  // 3. Name ends with query (good for searching package names like '@tarko/agent')
+  else if (nameLower.endsWith(queryLower)) {
+    score += 700;
+  }
+  // 4. Name contains query
+  else if (nameLower.includes(queryLower)) {
+    score += 500;
+  }
+
+  // 5. Path-based scoring
+  if (pathLower.endsWith(queryLower)) {
+    score += 600; // Path ends with query is very relevant
+  } else if (pathLower.includes(queryLower)) {
+    score += 300; // Path contains query
+  }
+
+  // 6. Bonus for shorter paths (closer to root)
+  const pathDepth = item.relativePath.split('/').length;
+  score += Math.max(0, 50 - pathDepth * 5); // Subtract 5 points per level deep
+
+  // 7. Bonus for directories when searching for package-like names
+  if (item.type === 'directory' && queryLower.includes('/')) {
+    score += 100;
+  }
+
+  // 8. Penalty for very deep nested files when name doesn't match well
+  if (pathDepth > 4 && !nameLower.includes(queryLower)) {
+    score -= 200;
+  }
+
+  // 9. Special bonus for exact path segment matches
+  const pathSegments = item.relativePath.toLowerCase().split('/');
+  const querySegments = queryLower.split('/');
+
+  // Check if query segments match path segments in order
+  if (querySegments.length > 1) {
+    let segmentMatches = 0;
+    let queryIndex = 0;
+
+    for (const pathSegment of pathSegments) {
+      if (queryIndex < querySegments.length && pathSegment.includes(querySegments[queryIndex])) {
+        segmentMatches++;
+        queryIndex++;
+      }
+    }
+
+    if (segmentMatches === querySegments.length) {
+      score += 400; // All query segments found in path order
+    } else if (segmentMatches > 0) {
+      score += segmentMatches * 100; // Partial segment matches
+    }
+  }
+
+  return score;
+}
+
+/**
+ * Validate if workspace paths exist
+ */
+export async function validateWorkspacePaths(req: Request, res: Response) {
+  const sessionId = req.query.sessionId as string;
+  const paths = req.body.paths as string[];
+
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Session ID is required' });
+  }
+
+  if (!Array.isArray(paths)) {
+    return res.status(400).json({ error: 'Paths array is required' });
+  }
+
+  try {
+    const server = req.app.locals.server;
+    const baseWorkspacePath = server.getCurrentWorkspace();
+
+    const validationResults = paths.map((relativePath) => {
+      try {
+        const fullPath = path.join(baseWorkspacePath, relativePath);
+        const normalizedPath = path.resolve(fullPath);
+        const normalizedWorkspace = path.resolve(baseWorkspacePath);
+
+        // Security check
+        if (!normalizedPath.startsWith(normalizedWorkspace)) {
+          return { path: relativePath, exists: false, error: 'Path outside workspace' };
+        }
+
+        const exists = fs.existsSync(normalizedPath);
+        let type: 'file' | 'directory' | undefined;
+
+        if (exists) {
+          const stats = fs.statSync(normalizedPath);
+          type = stats.isDirectory() ? 'directory' : 'file';
+        }
+
+        return { path: relativePath, exists, type };
+      } catch (error) {
+        return { path: relativePath, exists: false, error: 'Access denied' };
+      }
+    });
+
+    res.status(200).json({ results: validationResults });
+  } catch (error) {
+    // FIXME: Security - Log injection vulnerability
+    // The sessionId comes from user input and is directly interpolated into the log message.
+    // This could allow attackers to inject malicious content into logs.
+    // Solution: Use structured logging or sanitize the sessionId before logging.
+    // Example: console.error('Error validating workspace paths:', { sessionId: sessionId?.substring(0, 8) + '***' }, error);
+    console.error(`Error validating workspace paths for session ${sessionId}:`, error);
+    res.status(500).json({
+      error: 'Failed to validate workspace paths',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Get root level items in workspace
+ */
+async function getWorkspaceRootItems(
+  basePath: string,
+  type: 'file' | 'directory' | 'all',
+): Promise<
+  Array<{ name: string; path: string; type: 'file' | 'directory'; relativePath: string }>
+> {
+  const items: Array<{
+    name: string;
+    path: string;
+    type: 'file' | 'directory';
+    relativePath: string;
+  }> = [];
+
+  try {
+    const entries = fs.readdirSync(basePath);
+
+    for (const entry of entries) {
+      // Skip hidden files and common ignore patterns
+      if (entry.startsWith('.') || entry === 'node_modules' || entry === '.git') {
+        continue;
+      }
+
+      const fullPath = path.join(basePath, entry);
+      const stats = fs.statSync(fullPath);
+      const itemType = stats.isDirectory() ? 'directory' : 'file';
+
+      if (type === 'all' || type === itemType) {
+        items.push({
+          name: entry,
+          path: fullPath,
+          type: itemType,
+          relativePath: entry,
+        });
+      }
+    }
+  } catch (error) {
+    console.warn(`Cannot read directory ${basePath}:`, error);
+  }
+
+  // Sort by type (directories first) then by name
+  return items.sort((a, b) => {
+    if (a.type !== b.type) {
+      return a.type === 'directory' ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
 }

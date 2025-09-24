@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AgentEventStream, ToolCallEngine } from '@tarko/agent-interface';
+import { AgentEventStream, ToolCallEngine, EachAgentLoopEndContext } from '@tarko/agent-interface';
 import { getLogger } from '@tarko/shared-utils';
-import { ResolvedModel } from '@tarko/model-provider';
+import { AgentModel } from '@tarko/model-provider';
 import { LLMProcessor } from './llm-processor';
 import { ToolProcessor } from './tool-processor';
 import type { Agent } from '../agent';
@@ -40,7 +40,7 @@ export class LoopExecutor {
   /**
    * Executes the full reasoning loop until completion or max iterations
    *
-   * @param resolvedModel The resolved model configuration
+   * @param currentModel The current model configuration
    * @param sessionId Session identifier
    * @param toolCallEngine The tool call engine to use
    * @param streamingMode Whether to operate in streaming mode
@@ -48,7 +48,7 @@ export class LoopExecutor {
    * @returns The final assistant message event
    */
   async executeLoop(
-    resolvedModel: ResolvedModel,
+    currentModel: AgentModel,
     sessionId: string,
     toolCallEngine: ToolCallEngine,
     streamingMode = false,
@@ -141,7 +141,7 @@ export class LoopExecutor {
 
         // Process the current iteration
         await this.llmProcessor.processRequest(
-          resolvedModel,
+          currentModel,
           this.instructions,
           toolCallEngine,
           sessionId,
@@ -152,10 +152,13 @@ export class LoopExecutor {
 
         // Check if we've reached a final answer
         const assistantEvents = this.eventStream.getEventsByType(['assistant_message']);
+        let currentAssistantEvent: AgentEventStream.AssistantMessageEvent | undefined;
+
         if (assistantEvents.length > 0) {
           const latestAssistantEvent = assistantEvents[
             assistantEvents.length - 1
           ] as AgentEventStream.AssistantMessageEvent;
+          currentAssistantEvent = latestAssistantEvent;
 
           if (!latestAssistantEvent.toolCalls || latestAssistantEvent.toolCalls.length === 0) {
             finalEvent = latestAssistantEvent;
@@ -163,6 +166,23 @@ export class LoopExecutor {
             this.logger.info(`[LLM] Text response received | Length: ${contentLength} characters`);
             this.logger.info(`[Agent] Final answer received`);
           }
+        }
+
+        // FIXME: Create `iterationEndContext` on demand.
+        // Call the iteration end hook
+        try {
+          const iterationEndContext: EachAgentLoopEndContext = {
+            sessionId,
+            iteration,
+            hasFinalAnswer: finalEvent !== null,
+            willContinue: finalEvent === null && iteration < this.maxIterations - 1,
+            assistantEvent: currentAssistantEvent,
+          };
+
+          await Promise.resolve(this.agent.onEachAgentLoopEnd(iterationEndContext));
+          this.logger.debug(`[Agent] Post-iteration hook executed for iteration ${iteration}`);
+        } catch (error) {
+          this.logger.error(`[Agent] Error in post-iteration hook: ${error}`);
         }
 
         this.logger.info(`[Iteration] ${iteration}/${this.maxIterations} completed`);

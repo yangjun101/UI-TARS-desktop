@@ -118,8 +118,23 @@ export namespace AgentEventStream {
     /** How the response was finished */
     finishReason?: string;
 
-    /** Time taken to generate this response */
-    elapsedMs?: number;
+    /**
+     * Time to First Token (TTFT) in milliseconds - time from request start to first content chunk.
+     * The time it takes for the model to return the first token of the response after it receives the prompt.
+     *
+     * @see https://modal.com/llm-almanac/how-to-benchmark
+     * @see https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompt-best-practices
+     */
+    ttftMs?: number;
+
+    /**
+     * Time to Last Token (TTLT) in milliseconds - time from request start to response completion.
+     * The overall time taken by the model to process the prompt and generate the complete response.
+     *
+     * @see https://modal.com/llm-almanac/how-to-benchmark
+     * @see https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompt-best-practices
+     */
+    ttltMs?: number;
 
     /**
      * Unique message identifier that links streaming messages to their final message
@@ -139,6 +154,15 @@ export namespace AgentEventStream {
 
     /** Whether the thinking process is complete */
     isComplete?: boolean;
+
+    /** Duration of the thinking process in milliseconds */
+    thinkingDurationMs?: number;
+
+    /**
+     * Unique message identifier that links thinking messages to their session
+     * This allows clients to correlate incremental updates with complete thinking
+     */
+    messageId?: string;
   }
 
   /**
@@ -171,6 +195,12 @@ export namespace AgentEventStream {
 
     /** Whether this is the final reasoning chunk */
     isComplete?: boolean;
+
+    /**
+     * Unique message identifier that links streaming thinking messages to their final thinking
+     * This allows clients to correlate incremental updates with complete thinking
+     */
+    messageId?: string;
   }
 
   /**
@@ -297,6 +327,12 @@ export namespace AgentEventStream {
 
     /** Model identifier being used */
     model?: string;
+
+    /** Display name for the model */
+    modelDisplayName?: string;
+
+    /** Agent name being used */
+    agentName?: string;
   }
 
   /**
@@ -319,6 +355,53 @@ export namespace AgentEventStream {
   }
 
   /**
+   * Base metadata interface for environment input events
+   */
+  export interface BaseEnvironmentInputMetadata {
+    /** Type of environment input */
+    type: string;
+  }
+
+  /**
+   * Screenshot-specific metadata
+   */
+  export interface ScreenshotMetadata extends BaseEnvironmentInputMetadata {
+    type: 'screenshot';
+    /** URL of the webpage being captured in the screenshot */
+    url?: string;
+  }
+
+  /**
+   * Text content metadata
+   */
+  export interface TextMetadata extends BaseEnvironmentInputMetadata {
+    type: 'text';
+  }
+
+  /**
+   * Codebase metadata
+   */
+  export interface CodebaseMetadata extends BaseEnvironmentInputMetadata {
+    type: 'codebase';
+  }
+
+  /**
+   * Generic metadata for other types
+   */
+  export interface GenericMetadata extends BaseEnvironmentInputMetadata {
+    type: string;
+  }
+
+  /**
+   * Union type for all environment input metadata types
+   */
+  export type EnvironmentInputMetadata =
+    | ScreenshotMetadata
+    | TextMetadata
+    | CodebaseMetadata
+    | GenericMetadata;
+
+  /**
    * Environment input event - for injecting contextual information
    *
    * This allows agents to receive multimodal context from their environment
@@ -330,8 +413,44 @@ export namespace AgentEventStream {
     /** The environment content (can be multimodal) */
     content: string | ChatCompletionContentPart[];
 
-    /** Optional description of the environment input */
+    /**
+     * Optional description of the environment input.
+     * Description is used in Message History for constructing context,
+     * while metadata is not included in the context.
+     */
     description?: string;
+
+    /**
+     * Optional metadata for the environment input.
+     * Metadata provides structured information about the input type and properties
+     * but is NOT included in Message History context construction.
+     */
+    metadata?: EnvironmentInputMetadata;
+  }
+
+  /**
+   * Type guard function to check if metadata is screenshot metadata
+   */
+  export function isScreenshotMetadata(
+    metadata: EnvironmentInputMetadata,
+  ): metadata is ScreenshotMetadata {
+    return metadata.type === 'screenshot';
+  }
+
+  /**
+   * Type guard function to check if an event is an environment input event
+   */
+  export function isEnvironmentInputEvent(event: Event): event is EnvironmentInputEvent {
+    return event.type === 'environment_input';
+  }
+
+  /**
+   * Type guard function to check if an environment input event has screenshot metadata
+   */
+  export function hasScreenshotMetadata(
+    event: EnvironmentInputEvent,
+  ): event is EnvironmentInputEvent & { metadata: ScreenshotMetadata } {
+    return event.metadata !== undefined && isScreenshotMetadata(event.metadata);
   }
 
   /**
@@ -494,6 +613,9 @@ export namespace AgentEventStream {
 
     /** Whether to automatically trim old events */
     autoTrim?: boolean;
+
+    /** Initial events to restore when creating the event stream */
+    initialEvents?: AgentEventStream.Event[];
   }
 
   /**

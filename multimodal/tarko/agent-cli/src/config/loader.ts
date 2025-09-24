@@ -8,8 +8,12 @@ import { deepMerge } from '@tarko/shared-utils';
 import { loadConfig } from '@tarko/config-loader';
 import { AgentAppConfig } from '@tarko/interface';
 import fetch from 'node-fetch';
-import { logger } from '../utils';
+import dotenv from 'dotenv';
+import * as path from 'path';
+import { existsSync } from 'fs';
+
 import { CONFIG_FILES } from './paths';
+import { logConfigStart, logConfigLoaded, logConfigError, logDebugInfo } from './display';
 
 /**
  * Load remote configuration from URL
@@ -20,10 +24,6 @@ import { CONFIG_FILES } from './paths';
  */
 async function loadRemoteConfig(url: string, isDebug = false): Promise<AgentAppConfig> {
   try {
-    if (isDebug) {
-      logger.debug(`Loading remote config from: ${url}`);
-    }
-
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -32,24 +32,51 @@ async function loadRemoteConfig(url: string, isDebug = false): Promise<AgentAppC
 
     const contentType = response.headers.get('content-type') || '';
 
+    let config: AgentAppConfig;
     if (contentType.includes('application/json')) {
-      return await response.json();
+      config = await response.json();
     } else {
-      console.warn(`Remote config has non-JSON content type: ${contentType}`);
       const text = await response.text();
       try {
-        return JSON.parse(text);
+        config = JSON.parse(text);
       } catch (error) {
         throw new Error(
           `Failed to parse remote config as JSON: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }
+
+    logConfigLoaded(`Remote: ${url}`, Object.keys(config).length, isDebug);
+    logDebugInfo(`Remote config keys`, Object.keys(config), isDebug);
+
+    return config;
   } catch (error) {
-    console.error(
-      `Error loading remote config from ${url}: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    logConfigError(`Remote: ${url}`, error instanceof Error ? error.message : String(error));
     return {};
+  }
+}
+
+/**
+ * Load environment variables from .env.local and .env files
+ */
+export function loadEnvironmentVars(workspace: string, isDebug = false) {
+  try {
+    // .env.local has higher priority than .env
+    const envPaths = [path.join(workspace, '.env.local'), path.join(workspace, '.env')];
+
+    for (const p of envPaths) {
+      if (existsSync(p)) {
+        dotenv.config({ path: p });
+        logDebugInfo('Environment files loaded', p, isDebug);
+        return;
+      }
+    }
+  } catch (err) {
+    logDebugInfo(
+      'No environment files found',
+      err instanceof Error ? err.message : String(err),
+      isDebug,
+    );
   }
 }
 
@@ -72,6 +99,8 @@ export async function loadAgentConfig(
   configPaths?: string[],
   isDebug = false,
 ): Promise<AgentAppConfig> {
+  logConfigStart(isDebug);
+
   // Handle no config case - try to load from default locations
   if (!configPaths || configPaths.length === 0) {
     try {
@@ -80,17 +109,18 @@ export async function loadAgentConfig(
         configFiles: CONFIG_FILES,
       });
 
-      if (filePath && isDebug) {
-        logger.debug(`Loaded default config from: ${filePath}`);
+      if (filePath) {
+        logConfigLoaded(filePath, Object.keys(content).length, isDebug);
+        logDebugInfo(`Default config keys`, Object.keys(content), isDebug);
       }
 
       return content;
     } catch (err) {
-      if (isDebug) {
-        logger.debug(
-          `Failed to load default configuration: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
+      logDebugInfo(
+        'No default config found',
+        err instanceof Error ? err.message : String(err),
+        isDebug,
+      );
       return {};
     }
   }
@@ -101,8 +131,9 @@ export async function loadAgentConfig(
   for (const path of configPaths) {
     let config: AgentAppConfig = {};
 
-    if (isUrl(path)) {
+    if (isUrl(path) && !existsSync(path)) {
       // Load from URL
+      // Note: a local file can be a valid URL, but we can not fetch it
       config = await loadRemoteConfig(path, isDebug);
     } else {
       // Load from file
@@ -112,15 +143,14 @@ export async function loadAgentConfig(
           path,
         });
 
-        if (filePath && isDebug) {
-          logger.debug(`Loaded config from: ${filePath}`);
+        if (filePath) {
+          logConfigLoaded(filePath, Object.keys(content).length, isDebug);
+          logDebugInfo(`Config keys from ${filePath}`, Object.keys(content), isDebug);
         }
 
         config = content;
       } catch (err) {
-        console.error(
-          `Failed to load configuration from ${path}: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        logConfigError(path, err instanceof Error ? err.message : String(err));
         continue;
       }
     }
@@ -129,12 +159,7 @@ export async function loadAgentConfig(
     mergedConfig = deepMerge(mergedConfig, config);
   }
 
-  return mergedConfig;
-}
+  logDebugInfo(`Final merged config keys`, Object.keys(mergedConfig), isDebug);
 
-/**
- * Check if value is an object
- */
-function isObject(item: any): boolean {
-  return item && typeof item === 'object' && !Array.isArray(item);
+  return mergedConfig;
 }

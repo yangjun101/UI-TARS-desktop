@@ -6,9 +6,26 @@
 
 import { ToolCallEngineType } from './tool-call-engine';
 import { Tool } from './tool';
-import { ProviderOptions, LLMReasoningOptions } from '@tarko/model-provider/types';
+import { AgentModel, LLMReasoningOptions } from '@tarko/model-provider/types';
 import { AgentEventStream } from './agent-event-stream';
 import { LogLevel } from '@agent-infra/logger';
+
+/**
+ * Filter options interface for include/exclude patterns
+ */
+export interface CommonFilterOptions {
+  /**
+   * Include only items whose names contain any of these strings
+   * Applied before exclude filters
+   */
+  include?: string[];
+
+  /**
+   * Exclude items whose names contain any of these strings
+   * Applied after include filters
+   */
+  exclude?: string[];
+}
 
 export { LogLevel };
 
@@ -33,8 +50,9 @@ export interface AgentBaseOptions {
 
   /**
    * Used to define the Agent's system prompt.
+   * This completely replaces the default system prompt when provided.
    *
-   * @defaultValue `undefined`
+   * @defaultValue `undefined` (uses default prompt: "You are an intelligent assistant...")
    */
   instructions?: string;
 }
@@ -48,7 +66,7 @@ export interface AgentModelOptions {
    *
    * @defaultValue {undefined}
    */
-  model?: ProviderOptions;
+  model?: AgentModel;
 
   /**
    * Maximum number of tokens allowed in the context window.
@@ -67,10 +85,26 @@ export interface AgentModelOptions {
   temperature?: number;
 
   /**
+   * Top-p (nucleus) sampling parameter for LLM text generation.
+   * Controls the cumulative probability threshold for token selection.
+   * Lower values (e.g., 0.1) make output more focused and deterministic.
+   * Higher values (e.g., 0.9) allow more diverse and creative outputs.
+   * Range: 0.0 to 1.0.
+   *
+   * @defaultValue `undefined` (uses model's default)
+   */
+  top_p?: number;
+
+  /**
    * Used to control the reasoning content.
    */
   thinking?: LLMReasoningOptions;
 }
+
+/**
+ * Tool filtering options for controlling which tools are available
+ */
+export interface AgentToolFilterOptions extends CommonFilterOptions {}
 
 /**
  * Tool configuration options for agent capabilities and execution engine
@@ -82,6 +116,11 @@ export interface AgentToolOptions {
    * @defaultValue `undefined`
    */
   tools?: Tool[];
+
+  /**
+   * Tool filtering options for controlling which tools are available
+   */
+  tool?: AgentToolFilterOptions;
 
   /**
    * Tool Call Engine configuration - supports both predefined engines and custom constructors.
@@ -113,8 +152,10 @@ export interface AgentToolOptions {
 export interface AgentLoopOptions {
   /**
    * Maximum number of iterations of the agent.
+   * Modern LLM models have improved agentic loop-horizon task capabilities,
+   * allowing for more complex multi-step reasoning processes.
    *
-   * @defaultValue `50`
+   * @defaultValue `1000`
    */
   maxIterations?: number;
 }
@@ -143,6 +184,28 @@ export interface AgentMemoryOptions {
    * @defaultValue `false`
    */
   enableStreamingToolCallEvents?: boolean;
+
+  /**
+   * Initial events to restore to the agent's event stream during initialization.
+   * This is useful for restoring conversation context from storage when recreating agent instances.
+   * Events will be restored without triggering subscribers or side effects.
+   *
+   * @defaultValue `undefined`
+   */
+  initialEvents?: AgentEventStream.Event[];
+}
+
+/**
+ * Metric configuration options for performance monitoring
+ */
+export interface AgentMetricOptions {
+  /**
+   * Whether to enable metric collection (TTFT, TTLT, etc.)
+   * When disabled, timing metrics will not be collected or included in event streams.
+   *
+   * @defaultValue `false`
+   */
+  enable?: boolean;
 }
 
 /**
@@ -155,6 +218,11 @@ export interface AgentMiscOptions {
    * @defaultValue `LogLevel.INFO` in development, `LogLevel.WARN` in production
    */
   logLevel?: LogLevel;
+
+  /**
+   * Metric collection settings
+   */
+  metric?: AgentMetricOptions;
 }
 
 /**
@@ -171,6 +239,13 @@ export interface AgentWorkspaceOptions {
 }
 
 /**
+ * Options for sandbox using in agent tools
+ */
+export interface AgentSandboxOptions {
+  sandboxUrl?: string;
+}
+
+/**
  * Some setting options used to instantiate an Agent.
  */
 export interface AgentOptions
@@ -180,7 +255,8 @@ export interface AgentOptions
     AgentLoopOptions,
     AgentMemoryOptions,
     AgentMiscOptions,
-    AgentWorkspaceOptions {}
+    AgentWorkspaceOptions,
+    AgentSandboxOptions {}
 
 /**
  * Options for configuring agent context behavior (e.g. message history)

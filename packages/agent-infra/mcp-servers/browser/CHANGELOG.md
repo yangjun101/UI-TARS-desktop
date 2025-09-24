@@ -1,5 +1,35 @@
 # @agent-infra/mcp-server-browser
 
+## 1.2.23
+
+### Patch Changes
+
+- chore: rename mcpName
+
+## 1.2.22
+
+### Patch Changes
+
+- 910105e: feat(mcp-servers): support mcp offical registry
+
+## 1.2.21
+
+### Patch Changes
+
+- 9e1a390: fix(browser): server declares logging capability but doesn't implement method logging/setLevel
+
+## 1.2.20
+
+## 1.2.19
+
+## 1.2.18
+
+## 1.2.17
+
+### Patch Changes
+
+- fix: console error
+
 ## 1.2.16
 
 ### Patch Changes
