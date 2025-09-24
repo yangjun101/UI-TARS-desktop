@@ -175,6 +175,16 @@ export interface BaseAgentWebUIImplementation {
    */
   enableContextualSelector?: boolean;
   /**
+   * Base path for routing deployment
+   * Supports both static paths and regex patterns
+   *
+   * @example
+   * base: "/agent-ui"           // Static path
+   * base: "/tenant-.+"         // Regex pattern
+   * base: "/(foo|bar)/app"     // Regex with groups
+   */
+  base?: string;
+  /**
    * Workspace configuration
    */
   workspace?: WorkspaceConfig;

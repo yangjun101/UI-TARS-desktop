@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Provider } from 'jotai';
 import { App } from './App';
 import { ReplayModeProvider } from '@/common/hooks/useReplayMode';
 import { useThemeInitialization } from '@/common/hooks/useThemeInitialization';
 import { HashRouter, BrowserRouter } from 'react-router-dom';
+import { getWebUIRouteBase } from '@/config/web-ui-config';
 
 export const AgentWebUI: React.FC = () => {
   useThemeInitialization();
@@ -15,7 +16,7 @@ export const AgentWebUI: React.FC = () => {
   return (
     <Provider>
       <ReplayModeProvider>
-        <Router>
+        <Router basename={getWebUIRouteBase()}>
           <App />
         </Router>
       </ReplayModeProvider>
