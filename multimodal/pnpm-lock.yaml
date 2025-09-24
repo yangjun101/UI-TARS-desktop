@@ -1033,6 +1033,9 @@ importers:
 
   tarko/agent-ui:
     dependencies:
+      '@tarko/shared-utils':
+        specifier: workspace:*
+        version: link:../shared-utils
       '@tarko/ui':
         specifier: workspace:*
         version: link:../ui
